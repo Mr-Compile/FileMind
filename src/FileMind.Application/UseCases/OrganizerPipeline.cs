@@ -36,6 +36,7 @@ public sealed class OrganizerPipeline(
     IOperationStore operationStore,
     FileIndexingService? indexing = null,
     ICandidateEnricher? enricher = null,
+    IAiAdvisor? advisor = null,
     int enrichmentTextLimit = 8192)
 {
     public async IAsyncEnumerable<FileCandidate> ScanAsync(
@@ -89,6 +90,12 @@ public sealed class OrganizerPipeline(
                 {
                     Warnings = [.. classification.Warnings, .. enrichWarnings],
                 };
+            if (advisor is not null)
+            {
+                var assisted = await advisor.AssistAsync(effective, classification, ct);
+                if (assisted.IsSuccess && assisted.Value is { } rescored)
+                    classification = rescored;
+            }
             var evaluation = ruleEngine.Evaluate(effective, classification, ruleList.Value);
             var decision = decisionMaker.Decide(effective, classification, evaluation, collectionList.Value);
             results.Add(new AnalyzedFile(effective, classification, evaluation, decision));

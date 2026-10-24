@@ -92,6 +92,14 @@ public sealed class FileMindDb : IDisposable
             Exec("INSERT INTO schema_migrations(version, applied_at) VALUES(3, $at)",
                 ("$at", DateTimeOffset.UtcNow.ToString("O")));
         }
+
+        if (applied < 4)
+        {
+            foreach (var statement in V4.Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                Exec(statement);
+            Exec("INSERT INTO schema_migrations(version, applied_at) VALUES(4, $at)",
+                ("$at", DateTimeOffset.UtcNow.ToString("O")));
+        }
     }
 
     private const string V1 = """
@@ -159,6 +167,21 @@ public sealed class FileMindDb : IDisposable
             kind,
             content,
             tokenize='unicode61')
+        """;
+
+    // Usage ledger for the Groq budget (PLAN-020): token counts + purpose only,
+    // never payload contents.
+    private const string V4 = """
+        CREATE TABLE ai_usage(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            at TEXT NOT NULL,
+            request_hash TEXT NOT NULL DEFAULT '',
+            model TEXT NOT NULL,
+            purpose TEXT NOT NULL,
+            prompt_tokens INTEGER NOT NULL,
+            completion_tokens INTEGER NOT NULL,
+            outcome TEXT NOT NULL);
+        CREATE INDEX idx_ai_usage_at ON ai_usage(at)
         """;
 
     public void Dispose() => _connection.Dispose();

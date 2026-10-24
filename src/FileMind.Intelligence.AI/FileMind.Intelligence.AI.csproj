@@ -1,6 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <ProjectReference Include="..\FileMind.Application\FileMind.Application.csproj" />
     <ProjectReference Include="..\FileMind.Domain\FileMind.Domain.csproj" />
   </ItemGroup>
 

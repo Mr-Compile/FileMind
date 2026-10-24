@@ -64,6 +64,7 @@ public interface ISmartInboxRepository
 public interface IExclusionRepository
 {
     Task<Result<IReadOnlyList<string>>> GetPatternsAsync(CancellationToken ct = default);
+    Task<Result<bool>> AddAsync(string pattern, CancellationToken ct = default);
     bool Matches(string path);
 }
 
@@ -104,4 +105,25 @@ public interface IAiAuditRepository
 {
     Task<Result<bool>> RecordAsync(string requestHash, string outcome, DateTimeOffset at, CancellationToken ct = default);
     Task<Result<IReadOnlyList<string>>> GetRecentAsync(int limit, CancellationToken ct = default);
+}
+
+/// <summary>Per-call token usage row. Stores counts and metadata only — never payload contents.</summary>
+public sealed record AiUsageRecord(
+    string RequestHash,
+    string Model,
+    string Purpose,
+    int PromptTokens,
+    int CompletionTokens,
+    string Outcome,
+    DateTimeOffset At);
+
+/// <summary>
+/// Persisted AI usage ledger backing the quota gate (PLAN-020). Counters are
+/// derived by summing rows within rolling windows.
+/// </summary>
+public interface IAiUsageLedger
+{
+    Task<Result<bool>> RecordAsync(AiUsageRecord record, CancellationToken ct = default);
+    Task<Result<IReadOnlyList<AiUsageRecord>>> SinceAsync(DateTimeOffset from, CancellationToken ct = default);
+    Task<Result<IReadOnlyList<AiUsageRecord>>> GetRecentAsync(int limit, CancellationToken ct = default);
 }

@@ -12,8 +12,8 @@ public sealed class SqliteStore(FileMindDb db) :
     IRuleRepository, ICollectionRepository, ISubjectRepository, IProjectRepository,
     IOperationRepository, IOperationStore, ISmartInboxRepository, IExclusionRepository,
     IProtectedPathRepository, IWatchedFolderRepository, ISettingsRepository,
-    IJobRepository, IAiAuditRepository, IProfileRepository, IFileIndexRepository,
-    ISearchIndex
+    IJobRepository, IAiAuditRepository, IAiUsageLedger, IProfileRepository,
+    IFileIndexRepository, ISearchIndex
 {
     private static JsonSerializerOptions Json => FileMindDb.JsonOptions;
 
@@ -331,6 +331,14 @@ public sealed class SqliteStore(FileMindDb db) :
         (_exclusionCache ??= db.Query("SELECT pattern FROM exclusions", r => r.GetString(0)))
             .Any(p => path.Contains(p, StringComparison.OrdinalIgnoreCase));
 
+    Task<Result<bool>> IExclusionRepository.AddAsync(string pattern, CancellationToken ct) =>
+        Task.FromResult(Try(() =>
+        {
+            _exclusionCache = null;
+            return Result<bool>.Ok(
+                db.Exec("INSERT OR IGNORE INTO exclusions(pattern) VALUES($p)", ("$p", pattern)) > 0);
+        }));
+
     // ---- IProtectedPathRepository ----
 
     public Task<Result<IReadOnlyList<string>>> GetUserPathsAsync(CancellationToken ct = default) =>
@@ -413,6 +421,31 @@ public sealed class SqliteStore(FileMindDb db) :
         Task.FromResult(Try<IReadOnlyList<string>>(() => Result<IReadOnlyList<string>>.Ok(
             db.Query("SELECT request_hash || ' | ' || outcome || ' | ' || at FROM ai_audit ORDER BY at DESC LIMIT $n",
                 r => r.GetString(0), ("$n", limit)).ToList())));
+
+    // ---- IAiUsageLedger ----
+
+    Task<Result<bool>> IAiUsageLedger.RecordAsync(AiUsageRecord e, CancellationToken ct) =>
+        Task.FromResult(Try(() =>
+        {
+            db.Exec("INSERT INTO ai_usage(at,request_hash,model,purpose,prompt_tokens,completion_tokens,outcome) VALUES($at,$h,$m,$p,$pt,$ct,$o)",
+                ("$at", Iso(e.At)), ("$h", e.RequestHash), ("$m", e.Model), ("$p", e.Purpose),
+                ("$pt", e.PromptTokens), ("$ct", e.CompletionTokens), ("$o", e.Outcome));
+            return Result<bool>.Ok(true);
+        }));
+
+    private static AiUsageRecord ReadUsage(Microsoft.Data.Sqlite.SqliteDataReader r) =>
+        new(r.GetString(0), r.GetString(1), r.GetString(2),
+            r.GetInt32(3), r.GetInt32(4), r.GetString(5), ParseIso(r.GetString(6)));
+
+    Task<Result<IReadOnlyList<AiUsageRecord>>> IAiUsageLedger.SinceAsync(DateTimeOffset from, CancellationToken ct) =>
+        Task.FromResult(Try<IReadOnlyList<AiUsageRecord>>(() => Result<IReadOnlyList<AiUsageRecord>>.Ok(
+            db.Query("SELECT request_hash,model,purpose,prompt_tokens,completion_tokens,outcome,at FROM ai_usage WHERE at >= $f ORDER BY id",
+                ReadUsage, ("$f", Iso(from))).ToList())));
+
+    Task<Result<IReadOnlyList<AiUsageRecord>>> IAiUsageLedger.GetRecentAsync(int limit, CancellationToken ct) =>
+        Task.FromResult(Try<IReadOnlyList<AiUsageRecord>>(() => Result<IReadOnlyList<AiUsageRecord>>.Ok(
+            db.Query("SELECT request_hash,model,purpose,prompt_tokens,completion_tokens,outcome,at FROM ai_usage ORDER BY id DESC LIMIT $n",
+                ReadUsage, ("$n", limit)).ToList())));
 
     // ---- IProfileRepository ----
 

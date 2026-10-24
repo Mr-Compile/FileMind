@@ -84,6 +84,18 @@ public interface IAIProvider
     bool IsAvailable { get; }
 }
 
+/// <summary>
+/// Advisory AI escalation: called after deterministic classification when the
+/// mode allows AI. Returns a rescored classification with AI evidence merged,
+/// or null when AI did not contribute (disabled, gated, unavailable, or the
+/// classification was already high-confidence). Never mutates anything itself.
+/// </summary>
+public interface IAiAdvisor
+{
+    Task<Result<ClassificationResult?>> AssistAsync(
+        FileCandidate candidate, ClassificationResult classification, CancellationToken ct = default);
+}
+
 public sealed record AppEvent(string Kind, string EntityId, DateTimeOffset At, string? Detail = null);
 
 public interface IEventSink
