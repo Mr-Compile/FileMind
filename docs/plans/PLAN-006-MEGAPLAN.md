@@ -32,6 +32,19 @@ README reports "90 tests pass" (Status) vs "82 tests" (Build) — `INCONSISTENT`
 - Matrix rows already satisfied: unit suites, fixture E2E (subset), boundary grep — `EXISTING` (verify per-row during implementation audit, mark honestly).
 - Contract suite, stress, failure injection, recovery, release-gate audit: `MISSING`.
 
+### M0 Gap Table (2026-10-24 audit, post-PLAN-018 tree, 224 tests)
+
+| QA_MATRIX row | Status | Evidence / owner tests |
+|---|---|---|
+| Unit: normalizer, matchers, confidence, rules, destination templates, conflict policy | EXISTING | `NormalizationTests`, `MatcherTests`, `ClassifierTests`, `ConfidenceTests`, `RuleTests`, `PlannerTests` (+ `{RelativeDir}`/preserve-tree), `SchemaTests`; conflict suffixing covered in `WindowsEndToEndTests.Execute_Conflict_KeepBoth_NeverOverwrites` |
+| Contract: all FileSystemAdapter impls same semantics | MISSING→added | `AdapterContractTests` (Fake + Windows shared assertions) — this plan; 2 divergences found & fixed in `FakeFileSystemAdapter` (`Ask` silently overwrote; `CheckCapabilities` non-existent → `NotFound`) + `LockPaths` extended to mutations |
+| Integration: SQLite, migrations, Windows adapter, transaction recovery | EXISTING | `SearchTests.Migration_V3_CreatesFtsTable`, `AiInfrastructureTests.SqliteLedger_PersistsAcrossReopen` (v4), `WindowsEndToEndTests` (real FS+SQLite), `TransactionTests.*`, `ResidualCompletionTests.Recovery_*` |
+| Fixture E2E: School, Work, Development, Downloads, Media, duplicates, messy names | PARTIAL | `tests/fixtures/*` corpus + `manifest.json` exist; covered areas: organize E2E, `.crdownload`/`.part` stability, duplicates, messy unicode names. Gap: no automated per-fixture manifest walk — recorded, not silently claimed |
+| Stress: 10k/50k+ indexed files, burst watcher events, cancellation, restart | MISSING→added | `StressTests` — 10k index, 50k plan, cancel mid-index, reopen/restart persistence, watcher queue+debounce burst |
+| Failure injection: permission denied, locked, source disappears, disk full, DB failure, crash boundaries, USB removal | PARTIAL→added | `FailureInjectionTests` — readonly-permission (Windows), `LockPaths` locked file, `VanishOn` disappearance, `FreeSpaceOverrides` disk-full, disposed-DB `Persistence` errors, crash-boundary recovery states, simulated USB removal (vanish under watch). Prior: `TransactionTests.Execute_MoveFailure_ItemFailed`, `Execute_SafetyBlock_Fails` |
+| Recovery: resume/reconcile persisted operations and jobs | EXISTING+added | `ResidualCompletionTests.Recovery_*` (Planned→Failed, partial→NeedsAttention, idempotent), `WatchPipelineTests.Recovery_RunningJob_Requeued`, `WatchService_NoDanglingRunningJob` |
+| Release gate: no silent data-loss; ambiguity→review; undo for every mutating op | MISSING→added | Undo coverage audit in `TransactionTests`/`AdapterContractTests` (Move/Copy/Rename/CreateFolder execute+undo); `docs/qa/` evidence — this plan |
+
 ## Global Constraints
 
 Fixture E2E restricted to temp copies — harness must assert no real paths touched. No test asserts mutable global state. SAC constraint: run via `dotnet test --artifacts-path <outside C:\wamp64\www>`; do not re-add `FileMind.Windows.IntegrationTests` to the solution unless signed/SAC-off (document outcome).
