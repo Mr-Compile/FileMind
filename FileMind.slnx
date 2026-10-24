@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/FileMind.Application/FileMind.Application.csproj" />
+    <Project Path="src/FileMind.Domain/FileMind.Domain.csproj" />
+    <Project Path="src/FileMind.Infrastructure.Sqlite/FileMind.Infrastructure.Sqlite.csproj" />
+    <Project Path="src/FileMind.Intelligence.AI/FileMind.Intelligence.AI.csproj" />
+    <Project Path="src/FileMind.Intelligence.Local/FileMind.Intelligence.Local.csproj" />
+    <Project Path="src/FileMind.Platform.Windows/FileMind.Platform.Windows.csproj" />
+    <Project Path="src/FileMind.Windows.Host/FileMind.Windows.Host.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/FileMind.Application.Tests/FileMind.Application.Tests.csproj" />
+    <Project Path="tests/FileMind.Domain.Tests/FileMind.Domain.Tests.csproj" />
+    <Project Path="tests/FileMind.Windows.IntegrationTests/FileMind.Windows.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
