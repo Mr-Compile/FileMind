@@ -13,7 +13,7 @@ $signtool = Get-ChildItem "$env:USERPROFILE\.nuget\packages\microsoft.windows.sd
 if (-not (Test-Path $pfx)) { Write-Error "dev signing cert missing: $pfx"; exit 2 }
 if (-not $signtool) { Write-Error "signtool.exe not found in NuGet cache"; exit 2 }
 
-Get-ChildItem $Dir -Filter "FileMind*.dll" + (Get-ChildItem $Dir -Filter "FileMind*.exe") |
+@(Get-ChildItem $Dir -Filter "FileMind*.dll") + @(Get-ChildItem $Dir -Filter "FileMind*.exe") |
 ForEach-Object {
     & $signtool.FullName sign /fd sha256 /f $pfx /p fmdev $_.FullName | Out-Null
     if ($LASTEXITCODE -eq 0) { Write-Output "signed $($_.Name)" }
