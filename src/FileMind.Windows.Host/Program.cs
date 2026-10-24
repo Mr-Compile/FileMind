@@ -27,15 +27,16 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
         Usage:
           filemind scan <dir> [--shallow]
           filemind analyze <dir> [--shallow]
-          filemind plan <dir> [--dest <root>] [--shallow]
-          filemind execute <dir> [--dest <root>] [--dry-run] [--apply] [--shallow]
+          filemind plan <dir> [--dest <root>] [--shallow] [--preserve-tree]
+          filemind execute <dir> [--dest <root>] [--dry-run] [--apply] [--shallow] [--preserve-tree]
           filemind undo <operationId>
           filemind history [count]
           filemind smart-inbox [resolve <id>]
           filemind watch [run] [--seconds N] [--apply]
-          filemind watch add <dir> [--mode <mode>]
+          filemind watch add <dir> [--mode <mode>] [--tree]
           filemind watch remove <dir>
           filemind watch list
+          filemind watch tree <dir> [on|off]
           filemind watch-status
           filemind mode [<manual|smart|automatic|ai-assisted|local-only>]
           filemind rules [list]
@@ -245,7 +246,8 @@ switch (command)
     case "plan":
     {
         var analyzed = await AnalyzeDirAsync();
-        var plan = pipeline.Plan(analyzed, dryRun: true, destinationRoot: dest ?? DefaultDest(positional[0]));
+        var plan = pipeline.Plan(analyzed, dryRun: true, destinationRoot: dest ?? DefaultDest(positional[0]),
+            sourceRoot: positional[0], preserveTree: flags.Contains("--preserve-tree"));
         if (!plan.IsSuccess) return Fail(plan.Error!.Message);
         PrintPlan(plan.Value);
         return 0;
@@ -260,7 +262,8 @@ switch (command)
             .Where(a => modePolicy.RouteFor(a, apply || previewOnly) == ItemRoute.Execute).ToList();
         Console.WriteLine($"-- mode={ModePolicy.Display(currentMode)}; {executable.Count} item(s) routed to execute");
         var plan = pipeline.Plan(executable, dryRun: flags.Contains("--dry-run") || previewOnly,
-            destinationRoot: dest ?? DefaultDest(positional[0]));
+            destinationRoot: dest ?? DefaultDest(positional[0]),
+            sourceRoot: positional[0], preserveTree: flags.Contains("--preserve-tree"));
         if (!plan.IsSuccess) return Fail(plan.Error!.Message);
         PrintPlan(plan.Value);
 
@@ -553,7 +556,7 @@ switch (command)
         {
             case "add":
             {
-                if (positional.Count < 2) return Fail("usage: filemind watch add <dir> [--mode <mode>]");
+                if (positional.Count < 2) return Fail("usage: filemind watch add <dir> [--mode <mode>] [--tree]");
                 if (!Directory.Exists(positional[1])) return Fail($"directory '{positional[1]}' does not exist");
                 var added = await ((IWatchedFolderRepository)store).AddAsync(positional[1]);
                 if (!added.IsSuccess) return Fail(added.Error!.Message);
@@ -563,7 +566,25 @@ switch (command)
                     if (!ModePolicy.TryParse(modeArg, out var fm)) return Fail($"unknown mode '{modeArg}'.");
                     await ((ISettingsRepository)store).SetAsync($"watch.mode.{positional[1]}", fm.ToString());
                 }
+                if (flags.Contains("--tree"))
+                    await ((ISettingsRepository)store).SetAsync($"watch.tree.{positional[1]}", "true");
                 Console.WriteLine($"watching {positional[1]}");
+                return 0;
+            }
+            case "tree":
+            {
+                if (positional.Count < 2) return Fail("usage: filemind watch tree <dir> [on|off]");
+                var treeKey = $"watch.tree.{positional[1]}";
+                if (positional.Count < 3)
+                {
+                    var cur = (await ((ISettingsRepository)store).GetAsync(treeKey)).Value;
+                    Console.WriteLine($"tree={(cur == "true" ? "on" : "off")}  {positional[1]}");
+                    return 0;
+                }
+                var onOff = positional[2].ToLowerInvariant();
+                if (onOff is not ("on" or "off")) return Fail($"usage: filemind watch tree <dir> [on|off]");
+                await ((ISettingsRepository)store).SetAsync(treeKey, onOff == "on" ? "true" : "false");
+                Console.WriteLine($"tree={onOff}  {positional[1]}");
                 return 0;
             }
             case "remove":
@@ -578,7 +599,8 @@ switch (command)
                 foreach (var f in folders)
                 {
                     var fm = (await ((ISettingsRepository)store).GetAsync($"watch.mode.{f}")).Value;
-                    Console.WriteLine($"{f,-50} mode={fm ?? ModePolicy.Display(currentMode)}");
+                    var tree = (await ((ISettingsRepository)store).GetAsync($"watch.tree.{f}")).Value == "true";
+                    Console.WriteLine($"{f,-50} mode={fm ?? ModePolicy.Display(currentMode)}  tree={(tree ? "on" : "off")}");
                 }
                 Console.WriteLine($"-- {folders.Count} watched folder(s)");
                 return 0;
@@ -609,17 +631,21 @@ switch (command)
                 var apply = flags.Contains("--apply");
 
                 var folderModes = new Dictionary<string, OrganizationMode>(StringComparer.OrdinalIgnoreCase);
+                var folderTree = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 foreach (var f in folders)
                 {
                     var saved = (await ((ISettingsRepository)store).GetAsync($"watch.mode.{f}")).Value;
                     if (saved is not null && ModePolicy.TryParse(saved, out var fm)) folderModes[f] = fm;
+                    if ((await ((ISettingsRepository)store).GetAsync($"watch.tree.{f}")).Value == "true")
+                        folderTree.Add(f);
                 }
-                (OrganizationMode, bool) Route(WatchEvent e)
+                (OrganizationMode, bool, string?, bool) Route(WatchEvent e)
                 {
                     var owner = folders.FirstOrDefault(f =>
                         e.Path.StartsWith(f, StringComparison.OrdinalIgnoreCase));
-                    return (owner is not null && folderModes.TryGetValue(owner, out var fm)
-                        ? fm : currentMode, apply);
+                    var m = owner is not null && folderModes.TryGetValue(owner, out var fm)
+                        ? fm : currentMode;
+                    return (m, apply, owner, owner is not null && folderTree.Contains(owner));
                 }
 
                 Console.WriteLine($"watching {folders.Count} folder(s)" +

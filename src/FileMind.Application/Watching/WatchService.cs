@@ -38,7 +38,7 @@ public sealed class WatchService(
 
     public async Task<Result<WatchRunResult>> RunAsync(
         OrganizationMode mode, bool apply,
-        Func<WatchEvent, (OrganizationMode Mode, bool Apply)>? router = null,
+        Func<WatchEvent, (OrganizationMode Mode, bool Apply, string? SourceRoot, bool PreserveTree)>? router = null,
         CancellationToken ct = default)
     {
         var received = 0;
@@ -71,11 +71,11 @@ public sealed class WatchService(
 
             foreach (var due in debounce.CollectDue())
             {
-                var (m, a) = router?.Invoke(due) ?? (mode, apply);
+                var (m, a, sr, pt) = router?.Invoke(due) ?? (mode, apply, null, false);
                 if (jobs is null)
                 {
                     processed++;
-                    var result = await orchestrator.ProcessEventAsync(due, m, a, ct);
+                    var result = await orchestrator.ProcessEventAsync(due, m, a, sr, pt, ct);
                     if (!result.IsSuccess)
                     {
                         warnings.Add($"{due.Path}: {result.Error!.Message}");
@@ -86,7 +86,8 @@ public sealed class WatchService(
                 }
                 else
                 {
-                    var payload = new WatchJobPayload(due.Path, due.ChangeKind, m.ToString(), a);
+                    var payload = new WatchJobPayload(due.Path, due.ChangeKind, m.ToString(), a,
+                        SourceRoot: sr, PreserveTree: pt);
                     var enq = await jobs.EnqueueAsync(new JobRequest(
                         WatchJobPayload.JobType, JsonSerializer.Serialize(payload, JsonOpts)), ct);
                     if (!enq.IsSuccess) warnings.Add($"{due.Path}: job persist failed — {enq.Error!.Message}");
@@ -122,7 +123,8 @@ public sealed class WatchService(
                     processed++;
                     var jobMode = ModePolicy.TryParse(p.Mode, out var jm) ? jm : mode;
                     var ev = new WatchEvent(p.Path, p.ChangeKind, clock.UtcNow);
-                    var result = await orchestrator.ProcessEventAsync(ev, jobMode, p.Apply, ct);
+                    var result = await orchestrator.ProcessEventAsync(ev, jobMode, p.Apply,
+                        p.SourceRoot, p.PreserveTree, ct);
                     if (result.IsSuccess)
                     {
                         await jobs.CompleteAsync(job.Id, ct);

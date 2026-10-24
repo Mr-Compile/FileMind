@@ -448,4 +448,60 @@ public sealed class WatchPipelineTests : IDisposable
         var running = await ((IJobRepository)_store).GetByStatusAsync("running");
         Assert.Empty(running.Value!);
     }
+
+    // ---- Preserve-tree (PLAN-018) ----
+
+    [Fact]
+    public async Task Orchestrator_PreserveTree_RecreatesSubdirUnderDest()
+    {
+        var f = WriteFile("inbox/receipts/jan/IT421_notes.pdf");
+        var result = await Orchestrator().ProcessEventAsync(
+            new WatchEvent(f, "Created", DateTimeOffset.UtcNow),
+            OrganizationMode.Automatic,
+            sourceRoot: _scanRoot, preserveTree: true);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        var act = Assert.Single(result.Value!.Actions);
+        Assert.Equal("Execute", act.Route);
+        Assert.True(File.Exists(Path.Combine(
+            _destRoot, "School", "IT421", "receipts", "jan", "IT421_notes.pdf")));
+    }
+
+    [Fact]
+    public async Task Orchestrator_NoPreserveTree_FlattensAsBefore()
+    {
+        var f = WriteFile("inbox/receipts/jan/IT421_notes.pdf");
+        var result = await Orchestrator().ProcessEventAsync(
+            new WatchEvent(f, "Created", DateTimeOffset.UtcNow),
+            OrganizationMode.Automatic,
+            sourceRoot: _scanRoot, preserveTree: false);
+
+        Assert.True(result.IsSuccess, result.Error?.Message);
+        Assert.True(File.Exists(Path.Combine(_destRoot, "School", "IT421", "IT421_notes.pdf")));
+    }
+
+    [Fact]
+    public async Task WatchService_RouterPreserveTree_ThreadsThroughJobPayload()
+    {
+        var f = WriteFile("inbox/receipts/jan/IT421_hw.pdf");
+        var src = new FakeEventSource();
+        var jq = new SqliteJobQueue((IJobRepository)_store);
+        var orch = Orchestrator(new FileStabilityChecker(_adapter, 2, TimeSpan.FromMilliseconds(10)));
+        var svc = new WatchService(src, new WatcherEventQueue(), new DebounceService(_clock,
+            TimeSpan.FromMilliseconds(10)), orch, _clock, pollMs: 5, jobs: jq);
+
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        var runTask = svc.RunAsync(OrganizationMode.Automatic, apply: true,
+            router: _ => (OrganizationMode.Automatic, true, _scanRoot, true), ct: cts.Token);
+        await Task.Delay(50);
+        src.Emit(f, "Created");
+        _clock.UtcNow = _clock.UtcNow.AddSeconds(5);
+        await Task.Delay(400);
+        cts.Cancel();
+        var run = await runTask;
+
+        Assert.True(run.IsSuccess, run.Error?.Message);
+        Assert.True(File.Exists(Path.Combine(
+            _destRoot, "School", "IT421", "receipts", "jan", "IT421_hw.pdf")));
+    }
 }

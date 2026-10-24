@@ -29,7 +29,8 @@ public sealed class WatchOrchestrator(
     string? destinationRoot = null)
 {
     public async Task<Result<WatchCycleResult>> ProcessEventAsync(
-        WatchEvent ev, OrganizationMode mode, bool apply = false, CancellationToken ct = default)
+        WatchEvent ev, OrganizationMode mode, bool apply = false,
+        string? sourceRoot = null, bool preserveTree = false, CancellationToken ct = default)
     {
         var actions = new List<WatchAction>();
         var warnings = new List<string>();
@@ -109,7 +110,8 @@ public sealed class WatchOrchestrator(
             case ItemRoute.Execute:
             {
                 var dest = destinationRoot ?? paths.Combine(paths.DirectoryOf(ev.Path) ?? ev.Path, "organized");
-                var plan = pipeline.Plan([file], dryRun: false, destinationRoot: dest);
+                var plan = pipeline.Plan([file], dryRun: false, destinationRoot: dest,
+                    sourceRoot: sourceRoot, preserveTree: preserveTree);
                 if (!plan.IsSuccess) return Result<WatchCycleResult>.Fail(plan.Error!);
                 var check = await pipeline.DryRunAsync(plan.Value!, ct);
                 if (!check.IsSuccess || !check.Value!.Allowed)

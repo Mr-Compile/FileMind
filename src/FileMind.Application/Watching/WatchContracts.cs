@@ -28,7 +28,9 @@ public sealed record WatchJobPayload(
     string ChangeKind,
     string Mode,
     bool Apply,
-    int Attempts = 0)
+    int Attempts = 0,
+    string? SourceRoot = null,
+    bool PreserveTree = false)
 {
     public const string JobType = "watch-event";
 }
