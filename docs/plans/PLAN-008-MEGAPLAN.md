@@ -1,6 +1,6 @@
 # PLAN-008 — FileMind Duplicates & Storage Megaplan (F-P6 — fills PLAN-001 milestone gap)
 
-Status: READY
+Status: APPROVED
 Related Feature: F-P6 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24

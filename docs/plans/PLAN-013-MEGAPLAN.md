@@ -1,6 +1,6 @@
 # PLAN-013 — FileMind Advanced Intelligence Megaplan (Backend Roadmap Phase 10 / PLAN-001 M10b)
 
-Status: READY
+Status: APPROVED
 Related Feature: F-P11 (`PROPOSED` — see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24

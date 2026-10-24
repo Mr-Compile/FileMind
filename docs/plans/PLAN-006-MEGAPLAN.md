@@ -1,6 +1,6 @@
 # PLAN-006 — FileMind Backend QA / Hardening Megaplan (Backend Roadmap Phase 4 / PLAN-001 M5)
 
-Status: READY
+Status: APPROVED
 Related Feature: Cross-cutting QA (all backend F-IDs)
 Created: 2026-10-24
 Updated: 2026-10-24

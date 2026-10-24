@@ -1,6 +1,6 @@
 # PLAN-014 — FileMind Windows UI (WinUI 3) Megaplan (UI/UX Foundation Pack — zip 03)
 
-Status: READY
+Status: APPROVED
 Related Feature: F-UI1 (mockup, PLAN-003) + new F-UI2 row for the real Windows UI
 Created: 2026-10-24
 Updated: 2026-10-24

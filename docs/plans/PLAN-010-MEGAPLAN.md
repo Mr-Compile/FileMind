@@ -1,6 +1,6 @@
 # PLAN-010 — FileMind Android Backend Megaplan (Backend Roadmap Phase 7 / PLAN-001 M8)
 
-Status: READY
+Status: APPROVED
 Related Feature: F-P8 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24

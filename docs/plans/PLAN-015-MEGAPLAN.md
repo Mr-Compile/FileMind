@@ -1,6 +1,6 @@
 # PLAN-015 — FileMind Search Megaplan (Backend Roadmap Phase 8 / PLAN-001 M9)
 
-Status: READY
+Status: APPROVED
 Related Feature: F-P9 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24

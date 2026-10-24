@@ -1,6 +1,6 @@
 # PLAN-019 — FileMind Cross-Platform UX Megaplan (Cross-Platform UX Pack — zip 05)
 
-Status: READY
+Status: APPROVED
 Related Feature: F-UI1 (mockup, PLAN-003) + new F-UI3 row for the cross-platform UX layer
 Created: 2026-10-24
 Updated: 2026-10-24

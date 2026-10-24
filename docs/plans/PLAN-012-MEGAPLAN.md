@@ -1,6 +1,6 @@
 # PLAN-012 — FileMind Cross-Platform Profiles Megaplan (Backend Roadmap Phase 9 / PLAN-001 M10a)
 
-Status: READY
+Status: APPROVED
 Related Feature: F-P10 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
