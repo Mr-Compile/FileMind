@@ -1,0 +1,6 @@
+plugins {
+    kotlin("jvm") version "2.2.10" apply false
+    kotlin("plugin.serialization") version "2.2.10" apply false
+    id("com.android.library") version "9.0.1" apply false
+    id("com.google.devtools.ksp") version "2.3.6" apply false
+}
