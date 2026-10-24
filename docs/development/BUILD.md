@@ -6,7 +6,7 @@ Verified on Windows 11, .NET SDK 10.0.402.
 
 ```bash
 dotnet build FileMind.slnx [--artifacts-path <dir>]   # library + host build
-dotnet test  FileMind.slnx --artifacts-path <dir>     # full suite: 82 tests
+dotnet test  FileMind.slnx --artifacts-path <dir>     # full suite: 90 tests
 dotnet build src/FileMind.Windows.Host/FileMind.Windows.Host.csproj --artifacts-path <dir>
 ```
 

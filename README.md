@@ -12,7 +12,7 @@ M0–M3 implemented and verified (see `docs/plans/PLAN-001-MEGAPLAN.md`): domain
 
 ```bash
 dotnet build FileMind.slnx --artifacts-path <outdir>   # 0 warnings, 0 errors
-dotnet test  FileMind.slnx --artifacts-path <outdir>   # 82 tests pass
+dotnet test  FileMind.slnx --artifacts-path <outdir>   # 90 tests pass
 ```
 
 **Note:** `--artifacts-path` is required on machines where Smart App Control / WDAC blocks unsigned binaries under `C:\wamp64\www` or flags new test DLLs (e.g. `--artifacts-path "$env:USERPROFILE\filemind-artifacts"`). `tests/FileMind.Windows.IntegrationTests` is excluded from the solution for this reason — see its README.
