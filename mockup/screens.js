@@ -439,7 +439,7 @@ FM.screen("activity", (m) => {
           <div class="tiny" style="margin-top:2px;color:var(--fm-warning)">${i.reasons.map(esc).join(" ")}</div>
         </div>
         <div style="display:flex;gap:var(--sp-2);flex:none">
-          <button class="btn primary" data-ok="${i.id}">${icon("check", "sm")} Send to School/IT421</button>
+          <button class="btn primary" data-ok="${i.id}">${icon("check", "sm")} Send to ${esc(i.suggestedDest)}</button>
           <button class="btn" data-no="${i.id}">Keep in place</button>
         </div>
       </div>`).join("")
@@ -476,8 +476,8 @@ FM.screen("activity", (m) => {
   m.querySelectorAll("[data-ok]").forEach((b) => (b.onclick = () => {
     const i = FM.store.inbox.find((x) => x.id === b.dataset.ok);
     i.status = "Approved";
-    FM.store.activity.unshift({ t: new Date().toISOString(), text: `Smart Inbox: '${i.fileName}' sent to School/IT421`, opId: null });
-    FM.bus.emit("ops"); FM.toast(`'${i.fileName}' queued for School/IT421`, "success");
+    FM.store.activity.unshift({ t: new Date().toISOString(), text: `Smart Inbox: '${i.fileName}' sent to ${i.suggestedDest}`, opId: null });
+    FM.bus.emit("ops"); FM.toast(`'${i.fileName}' queued for ${i.suggestedDest}`, "success");
     FM.screen("activity")(m, {});
   }));
   m.querySelectorAll("[data-no]").forEach((b) => (b.onclick = () => {

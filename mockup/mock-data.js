@@ -62,7 +62,7 @@ FM_DATA.roots = {
 FM_DATA.protectedPrefixes = ["c:\\windows", "c:\\program files", "c:\\program files (x86)", "c:\\programdata", "c:\\$recycle.bin"];
 /* dest paths that already exist — drives the KeepBoth conflict demo (ConflictPolicy.KeepBoth) */
 FM_DATA.existingPaths = [
-  "c:\\users\\demo\\downloads\\organized\\school\\it421\\it421_lecture_5.mp4",
+  "c:\\users\\demo\\downloads\\organized\\school\\it421\\lectures\\it421_lecture_5.mp4",
 ];
 /* user exclusion patterns from IExclusionRepository (defaults *.tmp/*.part/*.crdownload/desktop.ini/thumbs.db live in the scanner) */
 FM_DATA.exclusions = ["node_modules", "\\bin\\"];
@@ -108,6 +108,7 @@ FM_DATA.fileCandidates = [
   fc(DOC, "family budget.xlsx", ".xlsx", 77_824, "Documents", 60),
   fc(DT, "screenshot 2026-10-20.png", ".png", 1_887_232, "Desktop", 4),
   fc(DT, "alpha roadmap.pdf", ".pdf", 540_672, "Desktop", 6),
+  fc(DT, "alpha demo cut.mp4", ".mp4", 314_572_800, "Desktop", 9),
 ];
 
 /* mirrors SubjectEntry — values identical to `filemind seed-demo` in Program.cs */
@@ -159,7 +160,7 @@ FM_DATA.operations = [
     operationId: "9f3c1a2b7d4e4f01", planId: "5ab81cd02e9f4a77", status: "NeedsAttention",
     createdAt: new Date(Date.now() - 2 * 864e5).toISOString(), committedAt: null, undoOfOperationId: null, error: null,
     items: [
-      item("i1", "Move", `${DL}\\IT421_Lecture_4.mp4`, `${DL}\\organized\\School\\IT421\\IT421_Lecture_4.mp4`, "Committed"),
+      item("i1", "Move", `${DL}\\IT421_Lecture_4.mp4`, `${DL}\\organized\\School/IT421\\IT421_Lecture_4.mp4`, "Committed"),
       item("i2", "Move", `${DL}\\week6.pdf`, `${DL}\\organized\\Files\\Document\\week6.pdf`, "Committed"),
       item("i3", "Move", `${DL}\\backup.mov`, null, "Failed", { code: "Locked", message: "The file is in use by another process.", retrySafe: true, needsReview: true }),
     ],
@@ -168,10 +169,10 @@ FM_DATA.operations = [
     operationId: "2e7d9c41a3b84e55", planId: "c14f6a2b88d34e99", status: "Committed",
     createdAt: new Date(Date.now() - 5 * 864e5).toISOString(), committedAt: new Date(Date.now() - 5 * 864e5 + 42e3).toISOString(), undoOfOperationId: null, error: null,
     items: [
-      item("i4", "Move", `${DL}\\IT421_Lecture_3.mp4`, `${DL}\\organized\\School\\IT421\\IT421_Lecture_3.mp4`, "Committed"),
-      item("i5", "Move", `${DL}\\IT 421 quiz.docx`, `${DL}\\organized\\School\\IT421\\IT 421 quiz.docx`, "Committed"),
-      item("i6", "CreateFolder", `${DL}\\organized\\School\\IT421`, `${DL}\\organized\\School\\IT421`, "Committed"),
-      item("i7", "Move", `${DL}\\alpha brief.docx`, `${DL}\\organized\\Work\\Alpha Rollout\\alpha brief.docx`, "Committed"),
+      item("i4", "Move", `${DL}\\IT421_Lecture_3.mp4`, `${DL}\\organized\\School/IT421\\IT421_Lecture_3.mp4`, "Committed"),
+      item("i5", "Move", `${DL}\\IT 421 quiz.docx`, `${DL}\\organized\\School/IT421\\IT 421 quiz.docx`, "Committed"),
+      item("i6", "CreateFolder", `${DL}\\organized\\School/IT421`, `${DL}\\organized\\School/IT421`, "Committed"),
+      item("i7", "Move", `${DL}\\alpha brief.docx`, `${DL}\\organized\\Work/alpha\\alpha brief.docx`, "Committed"),
       item("i8", "Move", `${DL}\\formulas.xlsx`, `${DL}\\organized\\Files\\Spreadsheet\\formulas.xlsx`, "Committed"),
       item("i9", "Move", `${DL}\\clip.mp4`, `${DL}\\organized\\Files\\Video\\clip.mp4`, "Committed"),
       item("i10", "Move", `${DL}\\notes.md`, `${DL}\\organized\\Files\\Document\\notes.md`, "Committed"),
@@ -184,23 +185,27 @@ FM_DATA.operations = [
   },
 ];
 
-/* mirrors Smart Inbox repository entries (Review decisions pending a human call) */
+/* mirrors Smart Inbox repository entries (Review decisions pending a human call).
+   suggestedDest is UI convenience — the classifier's collection/{Project} template resolved
+   ('alpha' is the project id — ResolveTemplate substitutes ids, not display names).
+   Note: 'alpha roadmap.pdf' is deliberately NOT here — ext pdf matches rule r-alpha-docs, so the
+   real pipeline routes it to 'work' directly and it never reaches review. */
 FM_DATA.smartInbox = [
   {
     id: "si-1", fileName: "alpha meeting notes.txt", sourceUri: `${DL}\\alpha meeting notes.txt`,
-    reasons: ["Confidence 73 requires Smart Inbox review."],
+    reasons: ["Confidence 73 requires Smart Inbox review."], suggestedDest: "Work\\alpha",
     summary: "Document · project alias 'alpha' · band Medium", status: "Pending",
     receivedAt: new Date(Date.now() - 1 * 864e5).toISOString(),
   },
   {
-    id: "si-2", fileName: "alpha roadmap.pdf", sourceUri: `${DT}\\alpha roadmap.pdf`,
-    reasons: ["Confidence 73 requires Smart Inbox review."],
-    summary: "Document · project alias 'alpha' · band Medium", status: "Pending",
+    id: "si-2", fileName: "alpha demo cut.mp4", sourceUri: `${DT}\\alpha demo cut.mp4`,
+    reasons: ["Confidence 73 requires Smart Inbox review."], suggestedDest: "Work\\alpha",
+    summary: "Video · project alias 'alpha' · band Medium", status: "Pending",
     receivedAt: new Date(Date.now() - 2 * 864e5).toISOString(),
   },
   {
     id: "si-3", fileName: "alpha budget review.xlsx", sourceUri: `${DT}\\alpha budget review.xlsx`,
-    reasons: ["Confidence 73 requires Smart Inbox review."],
+    reasons: ["Confidence 73 requires Smart Inbox review."], suggestedDest: "Work\\alpha",
     summary: "Spreadsheet · project alias 'alpha' · band Medium", status: "Pending",
     receivedAt: new Date(Date.now() - 3 * 864e5).toISOString(),
   },

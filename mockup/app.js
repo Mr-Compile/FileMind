@@ -392,7 +392,7 @@ FM.engine = {
       skipped: analyzed.filter((a) => ["NoOp", "Ignore"].includes(a.decision.kind)),
     };
   },
-  destExists: (p) => FM_DATA.existingPaths.includes(p.toLowerCase()),
+  destExists: (p) => FM_DATA.existingPaths.includes(p.toLowerCase().replaceAll("/", "\\")),
 
   safety(analyzed, plan, sourceRoot) { /* mirrors src/FileMind.Domain/Safety/SafetyEngine.cs */
     const blockers = [], warnings = [];
@@ -531,6 +531,9 @@ FM.go = (r) => (location.hash = "#/" + r);
 FM.route = () => {
   const [path, qs] = location.hash.replace(/^#\/?/, "").split("?");
   const params = Object.fromEntries(new URLSearchParams(qs || ""));
+  /* deep-linkable theme/density: #/dashboard?theme=dark&density=compact */
+  if (["system", "light", "dark"].includes(params.theme)) FM.theme.set(params.theme);
+  if (params.density != null) FM.density.set(params.density === "compact");
   const name = path || "dashboard";
   const render = FM.screens[name] || FM.screens._missing;
   document.querySelectorAll(".nav-item").forEach((a) => a.classList.toggle("active", a.dataset.r === name));
