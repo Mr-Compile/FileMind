@@ -1,6 +1,6 @@
 # PLAN-006 — FileMind Backend QA / Hardening Megaplan (Backend Roadmap Phase 4 / PLAN-001 M5)
 
-Status: APPROVED
+Status: IMPLEMENTED
 Related Feature: Cross-cutting QA (all backend F-IDs)
 Created: 2026-10-24
 Updated: 2026-10-24
@@ -41,9 +41,9 @@ README reports "90 tests pass" (Status) vs "82 tests" (Build) — `INCONSISTENT`
 | Integration: SQLite, migrations, Windows adapter, transaction recovery | EXISTING | `SearchTests.Migration_V3_CreatesFtsTable`, `AiInfrastructureTests.SqliteLedger_PersistsAcrossReopen` (v4), `WindowsEndToEndTests` (real FS+SQLite), `TransactionTests.*`, `ResidualCompletionTests.Recovery_*` |
 | Fixture E2E: School, Work, Development, Downloads, Media, duplicates, messy names | PARTIAL | `tests/fixtures/*` corpus + `manifest.json` exist; covered areas: organize E2E, `.crdownload`/`.part` stability, duplicates, messy unicode names. Gap: no automated per-fixture manifest walk — recorded, not silently claimed |
 | Stress: 10k/50k+ indexed files, burst watcher events, cancellation, restart | MISSING→added | `StressTests` — 10k index, 50k plan, cancel mid-index, reopen/restart persistence, watcher queue+debounce burst. **Found:** 10k index took 2m57s — every statement autocommitted (fsync each). Fix: `PRAGMA journal_mode=WAL` + `synchronous=NORMAL` at `FileMindDb.Open`; now inside budget |
-| Failure injection: permission denied, locked, source disappears, disk full, DB failure, crash boundaries, USB removal | PARTIAL→added | `FailureInjectionTests` — readonly-permission (Windows), `LockPaths` locked file, `VanishOn` disappearance, `FreeSpaceOverrides` disk-full, disposed-DB `Persistence` errors, crash-boundary recovery states, simulated USB removal (vanish under watch). Prior: `TransactionTests.Execute_MoveFailure_ItemFailed`, `Execute_SafetyBlock_Fails` |
-| Recovery: resume/reconcile persisted operations and jobs | EXISTING+added | `ResidualCompletionTests.Recovery_*` (Planned→Failed, partial→NeedsAttention, idempotent), `WatchPipelineTests.Recovery_RunningJob_Requeued`, `WatchService_NoDanglingRunningJob` |
-| Release gate: no silent data-loss; ambiguity→review; undo for every mutating op | MISSING→added | Undo coverage audit in `TransactionTests`/`AdapterContractTests` (Move/Copy/Rename/CreateFolder execute+undo); `docs/qa/` evidence — this plan |
+| Failure injection: permission denied, locked, source disappears, disk full, DB failure, crash boundaries, USB removal | PARTIAL→added | `FailureInjectionTests` — `CapabilityOverrides` deny, `LockPaths` at validation + execute, `VanishOn` before/mid move, `FreeSpaceOverrides` disk-full, disposed-DB `PersistenceFailure`, crash-boundary reconciliation on real SQLite, simulated USB removal (stability + enumerate). Prior: `TransactionTests.Execute_MoveFailure_ItemFailed`, `Execute_SafetyBlock_Fails` |
+| Recovery: resume/reconcile persisted operations and jobs | EXISTING+added | `ResidualCompletionTests.Recovery_*` (Planned→Failed, partial→NeedsAttention, idempotent), `WatchPipelineTests.Recovery_RunningJob_Requeued`, `WatchService_NoDanglingRunningJob`, `FailureInjectionTests.Crash_*` on real `SqliteStore` |
+| Release gate: no silent data-loss; ambiguity→review; undo for every mutating op | MISSING→added | `TransactionTests` M4 audit block (Rename-undo, Copy-no-recipe, non-mutating ops); **disclosed gap:** Copy/CreateFolder undo impossible (no Delete op) — `UndoService` fails visibly. Evidence: `docs/qa/QA_EVIDENCE_PLAN-006.md` |
 
 ## Global Constraints
 
@@ -106,13 +106,13 @@ Self-referential: the milestone exit gates are the QA. All suites green via `--a
 
 ## Acceptance Criteria
 
-- [ ] Matrix gap table published; every row has an owner test or a recorded gap
-- [ ] Adapter contract suite runs against both adapters
-- [ ] 10k/50k stress pass with budgets documented
-- [ ] Failure-injection rows produce typed errors / NeedsReview
-- [ ] Crash-recovery reconciliation verified per transaction state
-- [ ] Undo/rollback tested for every mutating OperationType
-- [ ] Release-gate statement: no known silent data-loss path
+- [x] Matrix gap table published; every row has an owner test or a recorded gap
+- [x] Adapter contract suite runs against both adapters
+- [x] 10k/50k stress pass with budgets documented
+- [x] Failure-injection rows produce typed errors / NeedsReview
+- [x] Crash-recovery reconciliation verified per transaction state
+- [x] Undo/rollback tested for every mutating OperationType (Copy/CreateFolder undo gap disclosed in `docs/qa/QA_EVIDENCE_PLAN-006.md`)
+- [x] Release-gate statement: no known silent data-loss path
 
 ## Risks / Regression Areas
 

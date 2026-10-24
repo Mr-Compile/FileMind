@@ -147,6 +147,80 @@ public class TransactionTests
         Assert.False(reverse.IsSuccess);
     }
 
+    // ---- M4: per-OperationType undo coverage audit ----
+
+    [Fact]
+    public async Task Undo_Rename_RecipeReverses()
+    {
+        var (fs, store, engine, ctx) = Setup();
+        fs.SeedFile("D:/in/old.txt", "hello", T0);
+        var fp = FileIdentity.ComputeFingerprint(5, T0);
+        var undo = new UndoService(fs);
+        // RenameAsync combines dir(source) + newName; the recipe's reverse
+        // destination is therefore the original file NAME, not a path.
+        var item = new ActionItem
+        {
+            Operation = OperationType.Rename,
+            Source = "D:/in/old.txt",
+            Destination = "new.txt",
+            Reason = "t",
+            UndoRecipe = new UndoRecipe(OperationType.Rename, "D:/in/new.txt", "old.txt", fp, [])
+        };
+        var record = await engine.ExecuteAsync(Plan(item), ctx);
+        Assert.Equal(OperationStatus.Committed, record.Value!.Status);
+        Assert.Equal("hello", fs.ReadText("D:/in/new.txt"));
+
+        var reverse = await undo.BuildReversePlanAsync(record.Value!);
+        Assert.True(reverse.IsSuccess);
+        Assert.Equal(OperationType.Rename, reverse.Value!.Items[0].Operation);
+        var back = await engine.ExecuteAsync(reverse.Value!, ctx);
+        Assert.Equal(OperationStatus.Committed, back.Value!.Status);
+        Assert.Equal("hello", fs.ReadText("D:/in/old.txt"));
+        Assert.Null(fs.ReadBytes("D:/in/new.txt"));
+    }
+
+    [Fact]
+    public async Task Copy_WithoutRecipe_Executes_UndoNeedsReview()
+    {
+        // Audit finding: no Delete op exists, so a committed Copy can only
+        // be undone if a recipe was attached — planner never emits Copy.
+        var (fs, _, engine, ctx) = Setup();
+        fs.SeedFile("D:/in/a.txt", "data", T0);
+        var item = new ActionItem
+        {
+            Operation = OperationType.Copy,
+            Source = "D:/in/a.txt",
+            Destination = "D:/out/a.txt",
+            Reason = "t"
+        };
+        var record = await engine.ExecuteAsync(Plan(item), ctx);
+        Assert.Equal(OperationStatus.Committed, record.Value!.Status);
+        Assert.NotNull(fs.ReadBytes("D:/in/a.txt"));
+        Assert.NotNull(fs.ReadBytes("D:/out/a.txt"));
+
+        var undo = new UndoService(fs);
+        var reverse = await undo.BuildReversePlanAsync(record.Value!);
+        Assert.False(reverse.IsSuccess); // no reversible items — surfaced, not silent
+    }
+
+    [Fact]
+    public async Task NonMutatingOps_Commit_RequireNoRecipe()
+    {
+        var (fs, _, engine, ctx) = Setup();
+        fs.SeedFile("D:/in/a.txt");
+        var items = new[] { OperationType.Tag, OperationType.Ignore, OperationType.Notify, OperationType.Ask }
+            .Select(op => new ActionItem
+            {
+                Operation = op,
+                Source = "D:/in/a.txt",
+                Reason = "t"
+            }).ToArray();
+        var record = await engine.ExecuteAsync(Plan(items), ctx);
+        Assert.Equal(OperationStatus.Committed, record.Value!.Status);
+        Assert.All(record.Value!.Items, i => Assert.Equal(OperationStatus.Committed, i.Status));
+        Assert.NotNull(fs.ReadBytes("D:/in/a.txt")); // untouched
+    }
+
     [Fact]
     public async Task Rollback_SourceIntact_RolledBack()
     {
