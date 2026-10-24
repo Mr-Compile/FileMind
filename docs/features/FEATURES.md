@@ -2,6 +2,18 @@
 
 Use stable feature IDs where practical. Each feature must clearly distinguish `EXISTING`, `INCOMPLETE`, `BROKEN`, `MISSING`, `PROPOSED`, and `UNVERIFIED` states. A feature document is not proof that implementation exists.
 
+Source of intent: `docs/packs/foundation-pack/02-features/FEATURES_BY_PHASE.md`. All features below are approved intent with no implementation yet.
+
 | ID | Feature | Status | Spec |
 |---|---|---|---|
-| TBD | Audit required | UNVERIFIED | TBD |
+| F-P1 | Core Foundation: scan, type/MIME detect, filename analysis, basic classification, destinations, move/copy/rename, SQLite index, history, undo, conflicts, protected paths, exclusions, dry run, preview | MISSING | `docs/packs/foundation-pack/02-features/` + `docs/packs/backend-roadmap/01-core-engine/` + `02-windows-backend/` |
+| F-P2 | Smart Organization: collections, categories, subjects/aliases/keywords, project aliases, context routing, confidence, Smart Inbox, Manual/Smart/Automatic modes | MISSING | same + `docs/packs/backend-roadmap/01-core-engine/classifier/` |
+| F-P3 | Rule Engine: JSON rules, conditions/actions, priorities, validation, conflicts, test/preview, import/export, templates | MISSING | `docs/packs/backend-roadmap/01-core-engine/rules/` |
+| F-P4 | Windows Automation: watch folders, stable-file/download checks, event queue/debounce, background operation, notifications, external drives, Explorer contracts | MISSING | `docs/packs/backend-roadmap/03-windows-automation/PLAN.md` |
+| F-P5 | File Intelligence: PDF/DOCX/PPTX/TXT extraction, metadata/EXIF/audio/video, content classification, smart rename | MISSING | `docs/packs/backend-roadmap/05-file-intelligence/PLAN.md` |
+| F-P6 | Duplicates & Storage: size prefilter, hashing, duplicate groups, large/old analysis, storage breakdown | MISSING | `docs/packs/foundation-pack/02-features/` P6 |
+| F-P7 | Groq AI: optional provider, ambiguous classification, suggestions, NL rules/search, privacy controls, limits, fallback | MISSING | `docs/packs/backend-roadmap/06-groq-ai/PLAN.md` |
+| F-P8 | Android: SAF/MediaStore, WorkManager, notifications, share target, history/undo, shared formats | MISSING | `docs/packs/backend-roadmap/07-android-backend/PLAN.md` |
+| F-P9 | Search: SQLite FTS5, filters, NL query interpretation | MISSING | `docs/packs/backend-roadmap/08-search/PLAN.md` |
+| F-P10 | Cross-Platform: profile import/export/backup/restore, shared rules/collections/templates | MISSING | `docs/packs/backend-roadmap/09-cross-platform/PLAN.md` |
+| F-P11 | Advanced: local AI, semantic index, correction learning, adaptive confidence | PROPOSED | `docs/packs/backend-roadmap/10-advanced-intelligence/PLAN.md` |
