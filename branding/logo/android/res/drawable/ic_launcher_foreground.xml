@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- FileMind adaptive icon foreground — Option 4 "Folder + Mind".
+     Hand-converted from branding/logo/filemind-mark.svg; mark scaled into
+     the 66dp safe zone (0.62 on 108dp canvas). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+  <group android:scaleX="0.62" android:scaleY="0.62"
+         android:pivotX="54" android:pivotY="54">
+    <path android:pathData="M30,22 H78 Q86,22 86,30 V34 Q86,42 78,42 H30 Q22,42 22,34 V30 Q22,22 30,22 Z">
+      <aapt:attr name="android:fillColor">
+        <gradient android:type="linear" android:startX="22" android:startY="32"
+                  android:endX="86" android:endY="32" android:tileMode="clamp">
+          <item android:offset="0" android:color="#8C4F46E5"/>
+          <item android:offset="1" android:color="#D92563EB"/>
+        </gradient>
+      </aapt:attr>
+    </path>
+    <path android:pathData="M22,36 H46 L56,44 H86 Q94,44 94,52 V78 Q94,86 86,86 H22 Q14,86 14,78 V44 Q14,36 22,36 Z">
+      <aapt:attr name="android:fillColor">
+        <gradient android:type="linear" android:startX="14" android:startY="36"
+                  android:endX="94" android:endY="86" android:tileMode="clamp">
+          <item android:offset="0" android:color="#FF2563EB"/>
+          <item android:offset="0.5" android:color="#FF4F46E5"/>
+          <item android:offset="1" android:color="#FF7C3AED"/>
+        </gradient>
+      </aapt:attr>
+    </path>
+    <path android:fillColor="#FFFFFFFF"
+          android:pathData="M84,55 C85,62.5 88.5,66 96,67 C88.5,68 85,71.5 84,79 C83,71.5 79.5,68 72,67 C79.5,66 83,62.5 84,55 Z"/>
+  </group>
+</vector>

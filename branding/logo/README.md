@@ -15,10 +15,12 @@ Selected candidate: **Option 4 — "Folder + Mind"** (gradient folder + sparkle)
 - `android/png/ic_launcher-{48..192}.png`, `android/png/notification-icon-{24..48}.png`
 
 ## Android handoff (`android/`)
-- `ic_launcher_foreground.svg` — mark inside 66dp adaptive safe zone (scale 0.62 on 108dp canvas)
-- `ic_launcher_monochrome.svg` — themed-icon silhouette
-- `adaptive-icon.xml` — `mipmap-anydpi-v26/ic_launcher.xml` reference
-- `colors.xml` — `ic_launcher_background = #2563EB` (brand primary)
+- `res/` — **drop-in resource tree** for a future Android Studio project (copy `res/` into `app/src/main/`):
+  - `drawable/` VectorDrawables: `ic_launcher_foreground` (brand gradients via `aapt:attr`), `ic_launcher_monochrome`, `ic_notification`, `splash_icon`
+  - `mipmap-anydpi-v26/{ic_launcher,ic_launcher_round}.xml` adaptive icons; `mipmap-*dpi/` PNG fallbacks (legacy squircle, round, foreground 108–432)
+  - `drawable-*dpi/ic_notification.png` (24–96), `values/colors.xml` (`ic_launcher_background=#2563EB`), `values-v31/themes.xml` (`Theme.FileMind.Splash`)
+- Source SVGs: `ic_launcher_foreground.svg`, `ic_launcher_monochrome.svg`, `ic_launcher_round.svg`, `ic_launcher_legacy.svg`; loose references `adaptive-icon.xml`, `colors.xml`
+- `png/` — generic launcher + notification PNGs
 
 ## Regenerating
 `node branding/logo/build.mjs` — uses Edge headless screenshots (`--default-background-color=00000000` for transparency) and hand-assembles the ICO. No npm deps, no network. Edge path is auto-detected; without Edge, export manually from any browser at the listed sizes.

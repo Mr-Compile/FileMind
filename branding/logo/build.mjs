@@ -30,6 +30,19 @@ jobs.push(['splash-dark.svg', 'png/splash-dark.png', 1240, 600]);
 for (const s of LAUNCHER_SIZES) jobs.push(['android/ic_launcher_foreground.svg', `android/png/ic_launcher-${s}.png`, s, s]);
 for (const s of NOTIF_SIZES) jobs.push(['android/ic_launcher_monochrome.svg', `android/png/notification-icon-${s}.png`, s, s]);
 
+// Drop-in res/ tree (density buckets)
+const LAUNCHER_DPI = { mdpi: 48, hdpi: 72, xhdpi: 96, xxhdpi: 144, xxxhdpi: 192 };
+const FG_DPI = { mdpi: 108, hdpi: 162, xhdpi: 216, xxhdpi: 324, xxxhdpi: 432 };
+const NOTIF_DPI = { mdpi: 24, hdpi: 36, xhdpi: 48, xxhdpi: 72, xxxhdpi: 96 };
+for (const [d, s] of Object.entries(LAUNCHER_DPI)) {
+  jobs.push(['android/ic_launcher_legacy.svg', `android/res/mipmap-${d}/ic_launcher.png`, s, s]);
+  jobs.push(['android/ic_launcher_round.svg', `android/res/mipmap-${d}/ic_launcher_round.png`, s, s]);
+}
+for (const [d, s] of Object.entries(FG_DPI))
+  jobs.push(['android/ic_launcher_foreground.svg', `android/res/mipmap-${d}/ic_launcher_foreground.png`, s, s]);
+for (const [d, s] of Object.entries(NOTIF_DPI))
+  jobs.push(['android/ic_launcher_monochrome.svg', `android/res/drawable-${d}/ic_notification.png`, s, s]);
+
 const sleep = ms => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
 const fileUrl = p => 'file:///' + p.replace(/\\/g, '/');
 const wrapDir = join(ROOT, '.tmp-wrap');
@@ -42,17 +55,23 @@ for (const [svg, out, w, h] of jobs) {
   // a wrapper <img> with explicit pixel dims makes scaling deterministic.
   const wrap = join(wrapDir, `${out.replace(/[\\/]/g, '_')}.html`);
   writeFileSync(wrap, `<!doctype html><html><body style="margin:0"><img src="${fileUrl(join(ROOT, svg))}" style="width:${w}px;height:${h}px;display:block"></body></html>`);
-  execFileSync(EDGE, [
-    '--headless', '--disable-gpu', '--hide-scrollbars',
-    `--screenshot=${outAbs}`, `--window-size=${w},${h}`,
-    '--default-background-color=00000000', fileUrl(wrap),
-  ], { stdio: 'pipe' });
-  // Edge writes the screenshot after the main process exits — poll for it.
+  // Edge writes the screenshot after the main process exits — poll for it,
+  // and retry the render if a cold/flaky Edge spawn never produces one.
   let buf;
-  for (let i = 0; i < 60 && !buf; i++) {
-    sleep(500);
-    if (existsSync(outAbs)) {
-      try { buf = readFileSync(outAbs); } catch { /* partial write */ }
+  for (let attempt = 0; attempt < 3 && !buf; attempt++) {
+    rmSync(outAbs, { force: true });
+    try {
+      execFileSync(EDGE, [
+        '--headless', '--disable-gpu', '--hide-scrollbars',
+        `--screenshot=${outAbs}`, `--window-size=${w},${h}`,
+        '--default-background-color=00000000', fileUrl(wrap),
+      ], { stdio: 'pipe', timeout: 60000 });
+    } catch { /* hung Edge — retry */ }
+    for (let i = 0; i < 80 && !buf; i++) {
+      sleep(500);
+      if (existsSync(outAbs)) {
+        try { buf = readFileSync(outAbs); } catch { /* partial write */ }
+      }
     }
   }
   if (!buf) throw new Error(`${out}: screenshot not produced`);
