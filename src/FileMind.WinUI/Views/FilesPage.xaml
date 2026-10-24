@@ -3,10 +3,43 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:c="using:FileMind.WinUI.Controls">
-    <Grid Background="{ThemeResource FmSurfaceBackgroundBrush}">
-        <StackPanel Padding="{StaticResource FmPad6}" Spacing="{StaticResource FmSpace4}">
-            <TextBlock x:Name="PageTitle" Style="{StaticResource FmTextH1}" />
-            <c:FmStateView x:Name="Body" State="Empty" />
+    <Grid Padding="{StaticResource FmPad4}" RowSpacing="{StaticResource FmSpace3}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <StackPanel Orientation="Horizontal" Spacing="{StaticResource FmSpace3}">
+            <TextBlock Text="Files" Style="{StaticResource FmTextH1}" VerticalAlignment="Center" />
+            <TextBox x:Name="FilterBox" PlaceholderText="Filter by name…" Width="280"
+                     TextChanged="FilterBox_TextChanged" />
+            <ComboBox x:Name="ExtFilter" Width="140" Header="Extension" SelectionChanged="ExtFilter_SelectionChanged" />
+            <Button Content="Index folder…" Click="Index_Click" VerticalAlignment="Bottom" />
         </StackPanel>
+        <TextBlock Grid.Row="1" x:Name="Summary" Style="{StaticResource FmTextBodySmall}"
+                   Foreground="{ThemeResource FmTextSecondaryBrush}" />
+        <Grid Grid.Row="2">
+            <ListView x:Name="FileList" SelectionMode="Extended"
+                      ContainerContentChanging="FileList_ContainerContentChanging">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnSpacing="16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="3*" /><ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="100" /><ColumnDefinition Width="160" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1" Text="{Binding Path}" TextTrimming="CharacterEllipsis"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <TextBlock Grid.Column="2" Text="{Binding Size}" />
+                            <TextBlock Grid.Column="3" Text="{Binding Modified}" />
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+            <c:FmStateView x:Name="Empty" State="Empty" Title="Nothing indexed"
+                Body="Index a folder to browse it here."
+                Visibility="Collapsed" />
+            <ProgressRing x:Name="Spinner" IsActive="True" Width="40" Height="40"
+                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+        </Grid>
     </Grid>
 </Page>

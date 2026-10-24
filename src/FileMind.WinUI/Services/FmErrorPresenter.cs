@@ -1,7 +1,9 @@
+using FileMind.Domain.Errors;
+
 namespace FileMind.WinUI.Services;
 
-/// <summary>Mirror of the domain ErrorCode names the UI maps; the M4
-/// backend adapter translates FileMindError.Code → this kind.</summary>
+/// <summary>Error kinds the UI knows how to surface; populated from
+/// FileMindError.Code so the switch stays total in one place.</summary>
 public enum FmErrorKind
 {
     PermissionDenied, ProtectedPath, DestinationConflict, SourceNotFound,
@@ -23,6 +25,25 @@ public sealed record FmFriendlyError(
 /// </summary>
 public static class FmErrorPresenter
 {
+    /// <summary>Domain error → friendly surface (real integration point).</summary>
+    public static FmFriendlyError Present(FileMindError e) =>
+        Present(FromCode(e.Code), e.Message);
+
+    public static FmErrorKind FromCode(ErrorCode code) => code switch
+    {
+        ErrorCode.PermissionDenied => FmErrorKind.PermissionDenied,
+        ErrorCode.ProtectedPath => FmErrorKind.ProtectedPath,
+        ErrorCode.DestinationConflict => FmErrorKind.DestinationConflict,
+        ErrorCode.SourceNotFound => FmErrorKind.SourceNotFound,
+        ErrorCode.Locked => FmErrorKind.Locked,
+        ErrorCode.InsufficientSpace => FmErrorKind.InsufficientSpace,
+        ErrorCode.AiOffline => FmErrorKind.AiOffline,
+        ErrorCode.AiRateLimited => FmErrorKind.AiRateLimited,
+        ErrorCode.Cancelled => FmErrorKind.Cancelled,
+        ErrorCode.VerificationFailed => FmErrorKind.VerificationFailed,
+        _ => FmErrorKind.Unknown
+    };
+
     public static FmFriendlyError Present(FmErrorKind kind, string? technicalDetails = null) =>
         kind switch
     {

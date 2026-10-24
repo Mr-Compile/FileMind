@@ -3,10 +3,58 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:c="using:FileMind.WinUI.Controls">
-    <Grid Background="{ThemeResource FmSurfaceBackgroundBrush}">
+    <ScrollViewer>
         <StackPanel Padding="{StaticResource FmPad6}" Spacing="{StaticResource FmSpace4}">
-            <TextBlock x:Name="PageTitle" Style="{StaticResource FmTextH1}" />
-            <c:FmStateView x:Name="Body" State="Empty" />
+            <TextBlock Text="Dashboard" Style="{StaticResource FmTextH1}" />
+            <c:FmStateView x:Name="LoadingView" State="Loading" Title="Loading" Body="Reading storage and activity…" />
+
+            <StackPanel x:Name="DashContent" Spacing="{StaticResource FmSpace4}" Visibility="Collapsed">
+                <!-- bento row: storage + activity + inbox -->
+                <Grid ColumnSpacing="{StaticResource FmSpace3}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                    </Grid.ColumnDefinitions>
+                    <c:FmBentoCard IconGlyph="&#xE8B7;" Header="Indexed files">
+                        <c:FmBentoCard.CardContent>
+                            <StackPanel>
+                                <TextBlock x:Name="StatFiles" Style="{StaticResource FmTextH1}" />
+                                <TextBlock x:Name="StatBytes" Style="{StaticResource FmTextBodySmall}"
+                                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            </StackPanel>
+                        </c:FmBentoCard.CardContent>
+                    </c:FmBentoCard>
+                    <c:FmBentoCard Grid.Column="1" IconGlyph="&#xE9D9;" Header="Reclaimable">
+                        <c:FmBentoCard.CardContent>
+                            <StackPanel>
+                                <TextBlock x:Name="StatDupes" Style="{StaticResource FmTextH1}" />
+                                <TextBlock Text="duplicate bytes" Style="{StaticResource FmTextBodySmall}"
+                                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            </StackPanel>
+                        </c:FmBentoCard.CardContent>
+                    </c:FmBentoCard>
+                    <c:FmBentoCard Grid.Column="2" IconGlyph="&#xE8F0;" Header="Inbox">
+                        <c:FmBentoCard.CardContent>
+                            <StackPanel>
+                                <TextBlock x:Name="StatInbox" Style="{StaticResource FmTextH1}" />
+                                <TextBlock Text="items need review" Style="{StaticResource FmTextBodySmall}"
+                                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            </StackPanel>
+                        </c:FmBentoCard.CardContent>
+                    </c:FmBentoCard>
+                </Grid>
+
+                <c:FmBentoCard IconGlyph="&#xE81C;" Header="Recent activity">
+                    <c:FmBentoCard.CardContent>
+                        <StackPanel x:Name="RecentList" Spacing="{StaticResource FmSpace2}" />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <StackPanel x:Name="RecoveredNote" Orientation="Horizontal" Spacing="{StaticResource FmSpace2}" Visibility="Collapsed">
+                    <FontIcon Glyph="&#xE7BA;" FontSize="14" Foreground="{ThemeResource FmStatusWarningBrush}" />
+                    <TextBlock x:Name="RecoveredText" Style="{StaticResource FmTextBodySmall}"
+                               Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                </StackPanel>
+            </StackPanel>
         </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </Page>

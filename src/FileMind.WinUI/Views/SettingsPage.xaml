@@ -3,10 +3,45 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:c="using:FileMind.WinUI.Controls">
-    <Grid Background="{ThemeResource FmSurfaceBackgroundBrush}">
-        <StackPanel Padding="{StaticResource FmPad6}" Spacing="{StaticResource FmSpace4}">
-            <TextBlock x:Name="PageTitle" Style="{StaticResource FmTextH1}" />
-            <c:FmStateView x:Name="Body" State="Empty" />
+    <ScrollViewer>
+        <StackPanel Padding="{StaticResource FmPad6}" Spacing="{StaticResource FmSpace4}" MaxWidth="720">
+            <TextBlock Text="Settings" Style="{StaticResource FmTextH1}" />
+
+            <c:FmBentoCard IconGlyph="&#xE771;" Header="Appearance">
+                <c:FmBentoCard.CardContent>
+                    <StackPanel Spacing="{StaticResource FmSpace3}">
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource FmSpace3}">
+                            <TextBlock Text="Theme" Width="120" VerticalAlignment="Center" />
+                            <ComboBox x:Name="ThemePicker" Width="200" SelectionChanged="ThemePicker_SelectionChanged">
+                                <ComboBoxItem Content="System" />
+                                <ComboBoxItem Content="Light" />
+                                <ComboBoxItem Content="Dark" />
+                            </ComboBox>
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="{StaticResource FmSpace3}">
+                            <TextBlock Text="Density" Width="120" VerticalAlignment="Center" />
+                            <ComboBox x:Name="DensityPicker" Width="200" SelectionChanged="DensityPicker_SelectionChanged">
+                                <ComboBoxItem Content="Comfortable" />
+                                <ComboBoxItem Content="Compact" />
+                            </ComboBox>
+                        </StackPanel>
+                        <TextBlock x:Name="MotionNote" Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                    </StackPanel>
+                </c:FmBentoCard.CardContent>
+            </c:FmBentoCard>
+
+            <c:FmBentoCard IconGlyph="&#xE8F0;" Header="Organization">
+                <c:FmBentoCard.CardContent>
+                    <StackPanel Spacing="{StaticResource FmSpace2}">
+                        <TextBlock x:Name="ModeText" Style="{StaticResource FmTextBody}" />
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   Text="Mode changes go through the host `mode` verb — the UI displays the current policy."
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </c:FmBentoCard.CardContent>
+            </c:FmBentoCard>
         </StackPanel>
-    </Grid>
+    </ScrollViewer>
 </Page>

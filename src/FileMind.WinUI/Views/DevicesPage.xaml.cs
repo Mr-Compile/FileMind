@@ -1,22 +1,19 @@
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Navigation;
 
 namespace FileMind.WinUI.Views;
 
+/// <summary>Devices — real local drives via DriveInfo; Android truthful
+/// "Planned" per PLAN-014 (PLAN-010 owns Android).</summary>
 public sealed partial class DevicesPage : Page
 {
     public DevicesPage()
     {
         InitializeComponent();
-        PageTitle.Text = "Devices";
-        Body.Title = "This PC and connected devices";
-        Body.Body = "This PC is real; Android shows as Planned.";
-        Body.ActionLabel = null;
-    }
-
-    protected override void OnNavigatedTo(NavigationEventArgs e)
-    {
-        if (e.Parameter is string q && q.Length > 0 && PageTitle.Text == "Search")
-            Body.Body = $"Results for '{q}' — the search index wires in M4.";
+        PcName.Text = Environment.MachineName;
+        PcDetail.Text = $"{Environment.OSVersion.VersionString} · {Environment.UserName}";
+        DriveList.ItemsSource = DriveInfo.GetDrives()
+            .Where(d => d.IsReady)
+            .Select(d => $"{d.Name}  {d.VolumeLabel}  —  {DashboardPage.FormatBytes(d.AvailableFreeSpace)} free of {DashboardPage.FormatBytes(d.TotalSize)}")
+            .ToList();
     }
 }

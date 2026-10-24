@@ -9,10 +9,16 @@
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <UseWinUI>true</UseWinUI>
-    <!-- Unpackaged + self-contained: runs from the artifacts dir without an
-         MSIX install or a machine-wide Windows App SDK runtime. -->
-    <WindowsPackageType>None</WindowsPackageType>
+    <!-- MSIX single-project packaging: Smart App Control on this box blocks
+         unsigned per-hash image loads (CodeIntegrity 3077), so the dev/test
+         path is a signed MSIX installed per-user. -->
+    <WindowsPackageType>SingleProjectMSIX</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <EnableMsixTooling>true</EnableMsixTooling>
+    <GenerateAppInstallerFile>false</GenerateAppInstallerFile>
+    <AppxPackageSigningEnabled>true</AppxPackageSigningEnabled>
+    <PackageCertificateKeyFile>C:\tmp\fm-dev-sign.pfx</PackageCertificateKeyFile>
+    <PackageCertificatePassword>fmdev</PackageCertificatePassword>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <EnableMsixTooling>false</EnableMsixTooling>
@@ -24,10 +30,16 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
   </ItemGroup>
 
-  <!-- No FileMind.* project references yet: unsigned FileMind.*.dll image
-       loads are blocked by Smart App Control on this dev box (CodeIntegrity
-       3077). M4 backend wiring re-adds refs together with the signed-path
-       story; until then the UI stays self-contained. -->
+  <!-- Smart App Control blocks unsigned FileMind.*.dll image loads
+       (CodeIntegrity 3077). Dev-box remedy: sign build outputs with the
+       local dev cert — see tools/fm-sign.ps1 (documented in PLAN-014). -->
   <ItemGroup>
+    <ProjectReference Include="..\FileMind.Branding\FileMind.Branding.csproj" />
+    <ProjectReference Include="..\FileMind.Domain\FileMind.Domain.csproj" />
+    <ProjectReference Include="..\FileMind.Application\FileMind.Application.csproj" />
+    <ProjectReference Include="..\FileMind.Infrastructure.Sqlite\FileMind.Infrastructure.Sqlite.csproj" />
+    <ProjectReference Include="..\FileMind.Platform.Windows\FileMind.Platform.Windows.csproj" />
+    <ProjectReference Include="..\FileMind.Intelligence.Local\FileMind.Intelligence.Local.csproj" />
+    <ProjectReference Include="..\FileMind.Intelligence.AI\FileMind.Intelligence.AI.csproj" />
   </ItemGroup>
 </Project>
