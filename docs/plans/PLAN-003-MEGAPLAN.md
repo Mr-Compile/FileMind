@@ -1,6 +1,6 @@
 # PLAN-003 — FileMind Interactive UI Mockup Megaplan (Static HTML Preview + Mockup-Sync Rule)
 
-Status: APPROVED
+Status: COMPLETED (mockup shipped via commits `5a85275`, `04422f8`, `b9a865c`, `0061a94`; F-UI1 verified EXISTING 2026-10-24)
 Related Feature: F-UI1 (new row to add in `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
