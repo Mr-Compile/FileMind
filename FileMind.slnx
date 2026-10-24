@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/FileMind.Application/FileMind.Application.csproj" />
+    <Project Path="src/FileMind.Branding/FileMind.Branding.csproj" />
     <Project Path="src/FileMind.Domain/FileMind.Domain.csproj" />
     <Project Path="src/FileMind.Infrastructure.Sqlite/FileMind.Infrastructure.Sqlite.csproj" />
     <Project Path="src/FileMind.Intelligence.AI/FileMind.Intelligence.AI.csproj" />
@@ -10,6 +11,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/FileMind.Application.Tests/FileMind.Application.Tests.csproj" />
+    <Project Path="tests/FileMind.Branding.Tests/FileMind.Branding.Tests.csproj" />
     <Project Path="tests/FileMind.Domain.Tests/FileMind.Domain.Tests.csproj" />
     <Project Path="tests/FileMind.Testing/FileMind.Testing.csproj" />
   </Folder>
