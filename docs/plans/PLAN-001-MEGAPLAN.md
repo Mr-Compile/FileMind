@@ -1,6 +1,6 @@
 # PLAN-001 — FileMind Backend Megaplan (Foundation Pack + Backend Roadmap)
 
-Status: APPROVED
+Status: COMPLETED — M0–M3 verified 2026-10-24 (all acceptance criteria checked below); M4–M10 milestones were activated as separate plans (PLAN-006/008/009/011–018/020); per-feature truth lives in `docs/features/FEATURES.md`
 Related Feature: F-P1 through F-P11 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
