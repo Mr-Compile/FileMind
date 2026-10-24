@@ -1,6 +1,6 @@
 # PLAN-018 — Preserve Source Folder Tree on Organize (Category-Then-Tree)
 
-Status: APPROVED
+Status: IMPLEMENTED (verified 2026-10-24 — `--preserve-tree` on plan/execute, `{RelativeDir}` token, `watch.tree.<dir>` + `watch tree` toggle; category-then-tree output `School\IT421\receipts\jan\f.pdf` verified on real fixture incl. flat regression + undo round-trip; 16 new tests, 224/224 pass)
 Related Feature: F-P1 (Core Foundation — move/organize), F-P4 (watch folders — same pipeline path)
 Created: 2026-10-24
 Updated: 2026-10-24

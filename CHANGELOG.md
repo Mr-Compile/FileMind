@@ -84,3 +84,9 @@ All notable verified project changes should be recorded here. Do not add planned
 - Platform-only settings are excluded end-to-end: export emits only `organization.mode` under `preferences`; imports ignore `settings` blobs (verified — `watch.mode.*` never applied).
 - Malformed JSON, missing/<1/newer `schemaVersion` rejected before writes; backup+restore round-trip verified; import performs no user-file I/O.
 - Verified: 119/119 Application tests pass via sac-test-runner (12 new `ProfileTests`); all `profile` verbs exercised end-to-end on a real DB (export → preview → apply → backup → restore); mockup console synced.
+
+## 2026-10-24 — Preserve source folder tree on organize (PLAN-018)
+- `IPathNormalizer.RelativeTo(path, root)`: `""` for root-equal, `null` when not under, case-insensitive on Windows; implemented by `WindowsPathNormalizer` + test normalizer.
+- `PlanContext` gains `SourceRoot`/`PreserveTree`; `ActionPlanner` adds the `{RelativeDir}` destination-template token (resolves `""` in naming templates) and appends the source-relative directory inside the resolved category template when `PreserveTree` is set — category-then-tree layout. `OrganizerPipeline.Plan` forwards both via optional params; flat default unchanged.
+- Host: `--preserve-tree` on `plan`/`execute`; watch: `watch add <dir> --tree`, `watch tree <dir> [on|off]`, `watch list` shows `tree=`, `Route()` threads owner root + flag through `WatchService`/`WatchJobPayload` to the orchestrator.
+- Verified: `plan`/`execute --preserve-tree` produces `School\IT421\receipts\jan\f.pdf` on a real fixture, flat output identical without the flag, `undo` restores both files to their original subpaths; 16 new tests (RelativeTo, planner token/append, watch orchestrator + job-payload path); 224/224 pass via sac-test-runner; mockup console synced.
