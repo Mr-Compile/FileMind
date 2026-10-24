@@ -7,6 +7,7 @@ using FileMind.Application.UseCases;
 using FileMind.Application.Watching;
 using FileMind.Domain.Classification;
 using FileMind.Domain.Contracts;
+using FileMind.Domain.Errors;
 using FileMind.Domain.Operations;
 using FileMind.Domain.Ports;
 using FileMind.Domain.Rules;
@@ -46,6 +47,16 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
           filemind dupes [<prefix>] [--plan]
           filemind storage [<prefix>]
           filemind search [text] [--name <s>] [--ext <e>] [--kind <k>] [--older-than <d>] [--newer-than <d>] [--limit <n>]
+          filemind ai-status
+          filemind ai-usage [count]
+          filemind ai-key <set <key>|clear|status>
+          filemind ai-suggest <file>
+          filemind ai-rule <natural language>
+          filemind ai-search <natural language>
+          filemind profile export [--out <file>]
+          filemind profile import <file> [--preview|--apply] [--policy merge|skip]
+          filemind profile backup [--dir <dir>]
+          filemind profile restore <file>
           filemind seed-demo
 
         Environment:
@@ -100,11 +111,49 @@ var hashing = new WindowsHashService();
 var indexing = new FileIndexingService(store, hashing, searchIndex: (ISearchIndex)store);
 var searchUseCase = new FileMind.Application.Search.SearchUseCase(
     (ISearchIndex)store, (IFileIndexRepository)store);
+
+var modeSetting = (await ((ISettingsRepository)store).GetAsync(ModePolicy.SettingsKey)).Value;
+var currentMode = modeSetting is not null && ModePolicy.TryParse(modeSetting, out var savedMode)
+    ? savedMode
+    : OrganizationMode.Manual;
+var modePolicy = new ModePolicy(currentMode);
+
+// AI (opt-in, off by default): .env lifts into env vars first; GroqChatClient
+// resolves the key env/.env -> DPAPI secret store. Advisory only.
+FileMind.Intelligence.AI.DotEnv.LoadIntoEnvironment();
+var dpapiSecrets = new WindowsSecretStore();
+var aiClock = new SystemClock();
+var aiOptions = FileMind.Intelligence.AI.GroqOptions.Load((ISettingsRepository)store, null);
+var aiUsageLedger = (IAiUsageLedger)store;
+var aiQuota = new FileMind.Intelligence.AI.AiQuotaGate(aiUsageLedger, aiClock, aiOptions.Quota);
+var aiClient = new FileMind.Intelligence.AI.GroqChatClient(
+    new HttpClient(), aiOptions, dpapiSecrets, aiClock, aiUsageLedger, aiQuota.Observe);
+var aiProvider = new FileMind.Intelligence.AI.GroqProvider(
+    aiOptions, aiClient, aiQuota,
+    new FileMind.Intelligence.AI.AiSuggestionCache(
+        aiClock, ttl: TimeSpan.FromMinutes(aiOptions.Quota.CacheTtlMinutes)),
+    (IAiAuditRepository)store, aiClock);
+var aiGate = new FileMind.Intelligence.AI.AiPrivacyGate(aiOptions, adapter.ProtectedPaths);
+var aiAdvisor = new FileMind.Intelligence.AI.AiAdvisor(
+    aiGate, aiProvider, confidence, () => currentMode, (IAiAuditRepository)store);
 var dupeService = new FileMind.Application.Duplicates.DuplicateDetectionService(
     (IFileIndexRepository)store, hashing, adapter);
 var storageService = new FileMind.Application.Duplicates.StorageAnalysisService(
     (IFileIndexRepository)store);
 var inboxService = new SmartInboxService(store);
+var profileSvc = new FileMind.Application.Profiles.ProfileService(
+    rulesRepo, collectionsRepo, subjectsRepo, projectsRepo, exclusionsRepo,
+    (ISettingsRepository)store, (IProfileRepository)store,
+    writeText: async (p, c, ct) =>
+    {
+        try { await File.WriteAllTextAsync(p, c, ct); return Result<bool>.Ok(true); }
+        catch (Exception e) { return Result<bool>.Fail(FileMindError.Io(e.Message)); }
+    },
+    readText: async (p, ct) =>
+    {
+        try { return Result<string>.Ok(await File.ReadAllTextAsync(p, ct)); }
+        catch (Exception e) { return Result<string>.Fail(FileMindError.Io(e.Message)); }
+    });
 var recoveryService = new StartupRecoveryService(store, store);
 var pipeline = new OrganizerPipeline(
     scanner, classifier, new RuleEngine(), new DecisionMaker(confidence),
@@ -113,13 +162,8 @@ var pipeline = new OrganizerPipeline(
     new UndoService(adapter),
     adapter, paths, adapter.ProtectedPaths,
     rulesRepo, collectionsRepo, opsRepo, opStore, indexing,
-    enricher: new FileMind.Intelligence.Local.Analysis.LocalAnalyzerService());
-
-var modeSetting = (await ((ISettingsRepository)store).GetAsync(ModePolicy.SettingsKey)).Value;
-var currentMode = modeSetting is not null && ModePolicy.TryParse(modeSetting, out var savedMode)
-    ? savedMode
-    : OrganizationMode.Manual;
-var modePolicy = new ModePolicy(currentMode);
+    enricher: new FileMind.Intelligence.Local.Analysis.LocalAnalyzerService(),
+    advisor: aiAdvisor);
 
 var recovered = await recoveryService.ReconcileAsync();
 if (recovered.IsSuccess && recovered.Value!.Reconciled > 0)
@@ -373,6 +417,118 @@ switch (command)
         return 0;
     }
 
+    case "ai-status":
+    {
+        var (key, keySource) = await aiClient.ResolveKeyAsync();
+        var quotaStatus = await aiQuota.StatusAsync();
+        Console.WriteLine($"enabled={aiOptions.Enabled}  model={aiOptions.Model}");
+        Console.WriteLine($"endpoint={aiOptions.Endpoint}");
+        Console.WriteLine($"api-key={(key is null ? "MISSING (set GROQ_API_KEY in .env or `filemind ai key set`)" : $"present ({keySource})")}");
+        Console.WriteLine($"consent: metadata={aiOptions.SendMetadata} extracted-text={aiOptions.SendExtractedText}");
+        Console.WriteLine($"quota: {quotaStatus.RequestsToday}/{quotaStatus.Policy.MaxRequestsPerDay} req/day, " +
+            $"{quotaStatus.TokensToday}/{quotaStatus.Policy.MaxTokensPerDay} tok/day, " +
+            $"{quotaStatus.RequestsLastMinute}/{quotaStatus.Policy.MaxRequestsPerMinute} req/min");
+        if (quotaStatus.ProviderRemainingRequestsDay is { } pr)
+            Console.WriteLine($"provider-reported: {pr} requests left today, {quotaStatus.ProviderRemainingTokensMinute} tokens left this minute");
+        Console.WriteLine($"provider: available={aiProvider.IsAvailable}" +
+            (aiClient.BreakerUntil is { } b ? $"  circuit-breaker until {b:HH:mm:ss}Z" : ""));
+        if (!quotaStatus.Allowed) Console.WriteLine($"quota gate: {quotaStatus.DenyReason}");
+        Console.WriteLine("-- advisory only; AI output never mutates files and never bypasses SafetyEngine");
+        return 0;
+    }
+
+    case "ai-usage":
+    {
+        var limit = positional.Count > 0 && int.TryParse(positional[0], out var n) ? n : 10;
+        var usage = await aiUsageLedger.GetRecentAsync(limit);
+        if (!usage.IsSuccess) return Fail(usage.Error!.Message);
+        foreach (var u in usage.Value!)
+            Console.WriteLine($"{u.At:u}  {u.Purpose,-16} {u.Model,-22} in={u.PromptTokens,5} out={u.CompletionTokens,5}  {u.Outcome}");
+        Console.WriteLine($"-- {usage.Value!.Count} record(s) — metadata only, payload contents are never stored");
+        return 0;
+    }
+
+    case "ai-key":
+    {
+        if (positional.Count < 1) return Fail("usage: filemind ai-key <set <key>|clear|status>");
+        switch (positional[0])
+        {
+            case "set":
+                if (positional.Count < 2) return Fail("usage: filemind ai-key set <key>");
+                var set = await dpapiSecrets.SetAsync(FileMind.Intelligence.AI.GroqOptions.SecretStoreKey, positional[1]);
+                if (!set.IsSuccess) return Fail(set.Error!.Message);
+                Console.WriteLine("Groq API key stored in the DPAPI user store. It never enters the repo or logs.");
+                return 0;
+            case "clear":
+                await dpapiSecrets.DeleteAsync(FileMind.Intelligence.AI.GroqOptions.SecretStoreKey);
+                Console.WriteLine("Groq API key removed from the DPAPI user store.");
+                return 0;
+            case "status":
+                var (key, source) = await aiClient.ResolveKeyAsync();
+                Console.WriteLine(key is null ? "no key configured" : $"key configured (source: {source})");
+                return 0;
+            default:
+                return Fail($"unknown ai-key action '{positional[0]}' — set|clear|status");
+        }
+    }
+
+    case "ai-suggest":
+    {
+        if (positional.Count < 1) return Fail("usage: filemind ai-suggest <file>");
+        var target = Path.GetFullPath(positional[0]);
+        var stat = await adapter.StatAsync(target);
+        if (!stat.IsSuccess || stat.Value!.IsDirectory) return Fail($"'{target}' not found.");
+        var candidate = new FileCandidate
+        {
+            ScanId = "ai-suggest", SourceUri = target,
+            DisplayName = Path.GetFileName(target),
+            Extension = Path.GetExtension(target).TrimStart('.'),
+            SizeBytes = stat.Value.SizeBytes, CreatedAt = stat.Value.CreatedAt,
+            ModifiedAt = stat.Value.ModifiedAt, SourceScope = SourceScope.Other,
+        };
+        var prepared = aiGate.Prepare(candidate);
+        if (!prepared.IsSuccess) return Fail(prepared.Error!.Message);
+        var sug = await aiProvider.SuggestAsync(prepared.Value!);
+        if (!sug.IsSuccess) return Fail($"provider: {sug.Error!.Message}");
+        var s = sug.Value!;
+        Console.WriteLine($"collection={s.Collection ?? "-"} category={s.Category ?? "-"} subject={s.Subject ?? "-"} project={s.Project ?? "-"}");
+        Console.WriteLine($"suggested-name={s.SuggestedName ?? "-"}  confidence={s.ConfidenceHint:0}");
+        Console.WriteLine($"explanation: {s.Explanation}");
+        Console.WriteLine("-- advisory: this suggestion changes nothing unless merged as evidence by the pipeline");
+        return 0;
+    }
+
+    case "ai-rule":
+    {
+        var nl = string.Join(' ', positional);
+        if (nl.Length == 0) return Fail("usage: filemind ai-rule <natural language>");
+        var draft = await FileMind.Intelligence.AI.AiRuleDrafter.DraftAsync(aiProvider, nl);
+        if (!draft.IsSuccess) return Fail($"provider: {draft.Error!.Message}");
+        Console.WriteLine(draft.Value!.RootElement.GetRawText());
+        Console.WriteLine("-- draft only: validate + confirm before any import; nothing was persisted");
+        return 0;
+    }
+
+    case "ai-search":
+    {
+        var nl = string.Join(' ', positional);
+        if (nl.Length == 0) return Fail("usage: filemind ai-search <natural language>");
+        var interpreted = await FileMind.Intelligence.AI.AiQueryInterpreter.InterpretAsync(aiProvider, nl);
+        var q = interpreted.IsSuccess && interpreted.Value is { } iq
+            ? iq with { Text = iq.Text ?? nl }
+            : new FileMind.Application.Search.SearchQuery(Text: nl);
+        if (!interpreted.IsSuccess)
+            Console.WriteLine($"-- interpretation unavailable ({interpreted.Error!.Code}); plain text search");
+        else
+            Console.WriteLine($"-- interpreted: text='{q.Text}' name='{q.NameContains}' ext='{q.Extension}' kind='{q.Kind}' older>{q.OlderThanDays} newer<{q.NewerThanDays}");
+        var res = await searchUseCase.RunAsync(q);
+        if (!res.IsSuccess) return Fail(res.Error!.Message);
+        foreach (var i in res.Value!)
+            Console.WriteLine($"{i.DisplayName,-40} {i.Kind,-10} {FmtBytes(i.SizeBytes),10}  {i.Path}");
+        Console.WriteLine($"-- {res.Value!.Count} result(s)");
+        return 0;
+    }
+
     case "smart-inbox":
     {
         if (positional.Count > 0 && positional[0] == "resolve")
@@ -559,6 +715,78 @@ switch (command)
     case "rules":
     {
         return await RulesVerbAsync();
+    }
+
+    case "profile":
+    {
+        var sub = positional.Count > 0 ? positional[0].ToLowerInvariant() : "";
+        switch (sub)
+        {
+            case "export":
+            {
+                var ex = await profileSvc.ExportAsync();
+                if (!ex.IsSuccess) return Fail(ex.Error!.Message);
+                var outPath = flagValue("--out");
+                if (outPath is null) { Console.WriteLine(ex.Value!); return 0; }
+                await File.WriteAllTextAsync(outPath, ex.Value!);
+                Console.WriteLine($"exported {outPath}");
+                return 0;
+            }
+            case "import":
+            {
+                if (positional.Count < 2) return Fail("usage: filemind profile import <file> [--preview|--apply] [--policy merge|skip]");
+                var file = positional[1];
+                if (!File.Exists(file)) return Fail($"file '{file}' does not exist");
+                var json = await File.ReadAllTextAsync(file);
+                var policyName = flagValue("--policy") ?? "merge";
+                if (policyName is not ("merge" or "skip"))
+                    return Fail($"unknown policy '{policyName}' (merge|skip)");
+                var policy = policyName == "skip"
+                    ? FileMind.Application.Profiles.ProfileImportPolicy.Skip
+                    : FileMind.Application.Profiles.ProfileImportPolicy.Merge;
+
+                if (flags.Contains("--apply"))
+                {
+                    var backup = await profileSvc.BackupAsync(Path.GetDirectoryName(dbPath) is { Length: > 0 } bd ? bd : ".");
+                    if (!backup.IsSuccess) return Fail($"backup failed: {backup.Error!.Message}");
+                    Console.WriteLine($"backup {backup.Value!.Path}");
+                    var res = await profileSvc.ImportAsync(json, policy);
+                    if (!res.IsSuccess) return Fail(res.Error!.Message);
+                    Console.WriteLine($"applied={res.Value!.Applied} skipped={res.Value.Skipped} policy={policyName}");
+                    foreach (var w in res.Value.Warnings) Console.Error.WriteLine($"warn: {w}");
+                    return 0;
+                }
+                // default & --preview: diff only, nothing written
+                var prev = await profileSvc.PreviewAsync(json);
+                if (!prev.IsSuccess) return Fail(prev.Error!.Message);
+                foreach (var d in prev.Value!.Diff)
+                    Console.WriteLine($"{d.Kind,-8} {d.Section,-12} {d.Id}");
+                foreach (var w in prev.Value.Warnings) Console.Error.WriteLine($"warn: {w}");
+                Console.WriteLine($"-- preview only (schema v{prev.Value.SchemaVersion}); re-run with --apply to write ({prev.Value.Diff.Count(d => d.Kind != "same")} change(s))");
+                return 0;
+            }
+            case "backup":
+            {
+                var dir = flagValue("--dir") ?? (Path.GetDirectoryName(dbPath) is { Length: > 0 } bd ? bd : ".");
+                var b = await profileSvc.BackupAsync(dir);
+                if (!b.IsSuccess) return Fail(b.Error!.Message);
+                Console.WriteLine($"backup {b.Value!.Path}");
+                return 0;
+            }
+            case "restore":
+            {
+                if (positional.Count < 2) return Fail("usage: filemind profile restore <file>");
+                var file = positional[1];
+                if (!File.Exists(file)) return Fail($"file '{file}' does not exist");
+                var res = await profileSvc.RestoreAsync(file);
+                if (!res.IsSuccess) return Fail(res.Error!.Message);
+                Console.WriteLine($"restored {file}: applied={res.Value!.Applied} skipped={res.Value.Skipped}");
+                foreach (var w in res.Value.Warnings) Console.Error.WriteLine($"warn: {w}");
+                return 0;
+            }
+            default:
+                return Fail("usage: filemind profile [export|import|backup|restore]");
+        }
     }
 
     default:
