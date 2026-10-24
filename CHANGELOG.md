@@ -23,3 +23,8 @@ All notable verified project changes should be recorded here. Do not add planned
 - `branding/colors.css` extended to all 18 tokens in both themes; mockup links it directly so palette cannot drift.
 - Added `docs/rules/MOCKUP_RULES.md` (linked from `docs/rules/RULES.md` + `AGENTS.md`): mockup must be updated in the same change when UI, contracts, pipeline behavior, host verbs, feature statuses, or tokens change.
 - Verified: 10 routes render over `file://` and HTTP, dark/light/system themes + density, KeepBoth conflict demo, protected-path safety blocker, Smart Inbox truthfulness (rule-routed files never appear in review).
+
+## 2026-10-24 — Android res/ drop-in + mockup logo (PLAN-016)
+- `branding/logo/android/res/` — drop-in Android resource tree: VectorDrawable foreground/monochrome/notification/splash, `mipmap-anydpi-v26` adaptive XMLs, density PNG fallbacks (legacy squircle, round, foreground 108–432, notification 24–96), `values/colors.xml`, `values-v31/themes.xml` splash theme. `build.mjs` extended (density jobs + Edge retry logic).
+- `mockup/` — real Option-4 mark in titlebar + favicon; theme-aware splash overlay on boot (lockup light/dark, ~500ms + fade, no fake progress per BRAND.md); early-theme inline script prevents theme flash.
+- Verified: all res XMLs well-formed, res tree complete, mockup asset paths resolve; PNG dims asserted per render.
