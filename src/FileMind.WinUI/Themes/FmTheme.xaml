@@ -22,6 +22,20 @@
     <x:Double x:Key="FmRadiusXl">18</x:Double>
     <x:Double x:Key="FmRadiusPill">999</x:Double>
 
+    <!-- Thickness/CornerRadius projections of the tokens above (Padding and
+         CornerRadius are structs — the Double tokens can't bind directly) -->
+    <Thickness x:Key="FmPad1">4</Thickness>
+    <Thickness x:Key="FmPad2">8</Thickness>
+    <Thickness x:Key="FmPad3">12</Thickness>
+    <Thickness x:Key="FmPad4">16</Thickness>
+    <Thickness x:Key="FmPad6">24</Thickness>
+    <Thickness x:Key="FmPadChip">8,4</Thickness>
+    <CornerRadius x:Key="FmRadiusSmallValue">6</CornerRadius>
+    <CornerRadius x:Key="FmRadiusMediumValue">10</CornerRadius>
+    <CornerRadius x:Key="FmRadiusLargeValue">14</CornerRadius>
+    <CornerRadius x:Key="FmRadiusXlValue">18</CornerRadius>
+    <CornerRadius x:Key="FmRadiusPillValue">999</CornerRadius>
+
     <!-- DIRECT brand.primary / semantic.* (theme-invariant per colors.json) -->
     <Color x:Key="FmAccentColor">#FF2563EB</Color>
     <Color x:Key="FmStatusInfoColor">#FF0284C7</Color>

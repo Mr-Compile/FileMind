@@ -1,0 +1,27 @@
+<UserControl
+    x:Class="FileMind.WinUI.Controls.FmBentoCard"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- components/02 bento card: surface/primary, radius large,
+         header (icon + title) + content slot + optional footer. -->
+    <Border
+        Background="{ThemeResource FmSurfacePrimaryBrush}"
+        BorderBrush="{ThemeResource FmBorderBrush}"
+        BorderThickness="1"
+        CornerRadius="{StaticResource FmRadiusLargeValue}"
+        Padding="{StaticResource FmPad4}">
+        <Grid RowSpacing="{StaticResource FmSpace3}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="{StaticResource FmSpace2}">
+                <FontIcon x:Name="HeaderIcon" FontSize="14" Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                <TextBlock x:Name="HeaderText" Style="{StaticResource FmTextH3}" />
+            </StackPanel>
+            <ContentPresenter Grid.Row="1" x:Name="Body" />
+            <ContentPresenter Grid.Row="2" x:Name="Footer" />
+        </Grid>
+    </Border>
+</UserControl>

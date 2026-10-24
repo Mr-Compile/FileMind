@@ -1,0 +1,27 @@
+<UserControl
+    x:Class="FileMind.WinUI.Controls.FmStateView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- IMPLEMENTATION_GUIDE component contract: idle|loading|success|
+         empty|warning|error — icon + title + body + optional action. -->
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="StInfo" Color="{ThemeResource FmStatusInfoColor}" />
+        <SolidColorBrush x:Key="StSuccess" Color="{ThemeResource FmStatusSuccessColor}" />
+        <SolidColorBrush x:Key="StWarning" Color="{ThemeResource FmStatusWarningColor}" />
+        <SolidColorBrush x:Key="StError" Color="{ThemeResource FmStatusErrorColor}" />
+        <SolidColorBrush x:Key="StNeutral" Color="{ThemeResource FmStatusNeutralColor}" />
+    </UserControl.Resources>
+    <StackPanel
+        HorizontalAlignment="Center" VerticalAlignment="Center"
+        Spacing="{StaticResource FmSpace3}" MaxWidth="360">
+        <FontIcon x:Name="StateIcon" FontSize="32" HorizontalAlignment="Center" />
+        <ProgressRing x:Name="StateRing" IsActive="False" Visibility="Collapsed"
+                      HorizontalAlignment="Center" />
+        <TextBlock x:Name="StateTitle" Style="{StaticResource FmTextH3}"
+                   HorizontalAlignment="Center" TextAlignment="Center" />
+        <TextBlock x:Name="StateBody" Style="{StaticResource FmTextBody}"
+                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                   HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap" />
+        <Button x:Name="StateAction" Visibility="Collapsed" HorizontalAlignment="Center" />
+    </StackPanel>
+</UserControl>

@@ -4,5 +4,10 @@ namespace FileMind.WinUI;
 
 public sealed partial class MainWindow : Window
 {
-    public MainWindow() => InitializeComponent();
+    public MainWindow()
+    {
+        InitializeComponent();
+        Title = "FileMind";
+        ContentFrame.Navigate(typeof(Views.GalleryPage));
+    }
 }

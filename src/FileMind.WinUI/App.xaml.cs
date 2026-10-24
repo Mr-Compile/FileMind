@@ -6,7 +6,20 @@ public partial class App : Application
 {
     private Window? _window;
 
-    public App() => InitializeComponent();
+    public App()
+    {
+        InitializeComponent();
+        UnhandledException += (_, e) =>
+        {
+            try
+            {
+                System.IO.File.WriteAllText(
+                    System.IO.Path.Combine(System.IO.Path.GetTempPath(), "filemind-winui-crash.txt"),
+                    $"{e.Exception}");
+            }
+            catch { }
+        };
+    }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
