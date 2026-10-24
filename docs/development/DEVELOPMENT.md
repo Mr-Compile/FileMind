@@ -43,6 +43,7 @@ dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch-
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll enrich <dir> [--shallow]
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll dupes [<prefix>] [--plan] [--apply] [--dest <root>]
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll storage [<prefix>]
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll search [text] [--name <s>] [--ext <e>] [--kind <k>] [--older-than <d>] [--newer-than <d>] [--limit <n>]
 ```
 
 `enrich` runs the local-intelligence analyzers (OOXML/PDF/EXIF/ID3/video/archive/code) and prints extracted metadata + evidence per file; extraction is bounded (`ExtractionBudget`) and fail-safe.
@@ -50,6 +51,8 @@ dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll storag
 `watch run` consumes `FileSystemWatcher` events through a bounded queue + `IClock` debounce, re-stats each path (`FileStabilityChecker` — `.crdownload/.part/.partial/.download/.tmp` never move), then routes through `ModePolicy` per watched folder (`watch add --mode` persists `watch.mode.<path>` in settings). Removable-drive attach/detach pauses/resumes watchers on affected roots.
 
 `dupes` reads the file index and groups exact duplicates via size → partial-hash → full-hash (over-cap files stay partial-only, flagged unconfirmed) plus similar/version candidates with evidence; advisory only. `dupes --plan` builds a review-first quarantine plan (`duplicates-review`, Move + KeepBoth, SafetyEngine-validated, preview-only); `--apply` executes through `TransactionEngine` and is undoable. `storage` prints kind/age-band breakdown, largest/oldest, and the duplicate-reclaimable estimate.
+
+`search` queries the schema-v3 `file_content_index` FTS5 table (populated incrementally by `scan`/`analyze`; deleting an index row clears its FTS row). Query text is escaped into quoted terms before MATCH; `--name/--ext/--kind/--older-than/--newer-than` filter index payloads; `--limit` pages. Local-only — no provider in the retrieval path.
 
 If SAC blocks the host dll too, launch it via `dotnet fsi tools/sac-run.fsx -- <path-to-host.dll> <verb> ...`.
 

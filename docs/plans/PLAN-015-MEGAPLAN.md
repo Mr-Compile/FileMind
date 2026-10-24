@@ -1,9 +1,15 @@
 # PLAN-015 — FileMind Search Megaplan (Backend Roadmap Phase 8 / PLAN-001 M9)
 
-Status: APPROVED
+Status: IMPLEMENTED (verified 2026-10-24)
 Related Feature: F-P9 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
+
+## Verification Result
+
+- 72 Application tests pass incl. 8 new `SearchTests` (v3 migration, name+content FTS hits, ext/kind/age/name filters, injection-safe escaping, delete-clears-FTS, empty truthfulness, graceful no-searchIndex path).
+- Host e2e: `search report` → 5 hits w/ kind/size/rank; `--name quarterly` → 2; unmatched term → honest `0 result(s)` hint.
+- FTS5 confirmed in bundled e_sqlite3. Existing file_index rows backfill on next `scan` (incremental by design). NL interpretation deferred — `SearchUseCase` has no provider dependency in retrieval path.
 
 ## Request / Goal
 

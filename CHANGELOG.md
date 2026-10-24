@@ -2,6 +2,14 @@
 
 All notable verified project changes should be recorded here. Do not add planned work as released work.
 
+## 2026-10-24 — Search (PLAN-015)
+- Schema v3 migration: `file_content_index` FTS5 virtual table (`unicode61`; `path UNINDEXED`, `display_name`, `collection`, `subject`, `project`, `kind`, `content`) — bundled `e_sqlite3` includes FTS5.
+- `SqliteStore` implements `ISearchIndex` (upsert/remove/escaped-`MATCH` search with bm25 rank); `file_index` delete clears the FTS row so watcher-driven removals stay consistent.
+- `FileIndexingService` takes optional `ISearchIndex` — every scan/analyze populates FTS incrementally with `ExtractedTextRef` content (bounded, local-only).
+- `FileMind.Application/Search`: `SearchQuery`/`SearchResultItem`/`SearchUseCase` — FTS over-fetch + payload post-filters (name/ext/kind/older/newer); user text regex-extracted to quoted terms (no operator injection).
+- Host `search [text] [--name/--ext/--kind/--older-than/--newer-than/--limit]` verb; truthful empty state.
+- Verified: 8 new `SearchTests` (migration, hits, filters, injection-safety, delete-consistency), 72/72 Application suite; e2e on real fixture. Existing indexes backfill FTS on next scan. NL interpretation deferred to PLAN-009 (retrieval has no provider dependency).
+
 ## 2026-10-24 — Duplicates & Storage (PLAN-008)
 - New Domain contracts (`Duplicates.cs`): `DuplicateGroup`/`DuplicateFile` (per-file size+mtime for undo recipes), `SimilarityCandidate` (score + evidence reasons), `StorageReport`/`StorageBucket`/`StorageFileEntry`, `DuplicatesReport` (groups + similar + warnings + `TotalReclaimable`).
 - `FileMind.Application/Duplicates`: `DuplicateDetectionService` — exact dupes via size prefilter → partial hash → full hash; index hashes reused when deep enough, files re-statted before hashing (size drift removes the stale row); over-`maxFullHashBytes` groups stay `Confirmed=false` partial-only and are never planned. Similarity candidates via same-extension + normalized-name token overlap (Jaccard) + size proximity, capped 50.
