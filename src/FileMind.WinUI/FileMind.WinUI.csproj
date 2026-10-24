@@ -24,8 +24,10 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.4654" />
   </ItemGroup>
 
+  <!-- No FileMind.* project references yet: unsigned FileMind.*.dll image
+       loads are blocked by Smart App Control on this dev box (CodeIntegrity
+       3077). M4 backend wiring re-adds refs together with the signed-path
+       story; until then the UI stays self-contained. -->
   <ItemGroup>
-    <ProjectReference Include="..\FileMind.Branding\FileMind.Branding.csproj" />
-    <ProjectReference Include="..\FileMind.Domain\FileMind.Domain.csproj" />
   </ItemGroup>
 </Project>

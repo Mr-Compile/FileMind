@@ -1,0 +1,86 @@
+<Page
+    x:Class="FileMind.WinUI.Shell"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:FileMind.WinUI.Controls">
+    <!-- platforms/windows.md shell: titlebar, left rail, content,
+         breadcrumbs, command/search, global operation-center entry. -->
+    <Grid Background="{ThemeResource FmSurfaceBackgroundBrush}">
+
+        <!-- Custom titlebar row -->
+        <Grid x:Name="TitleBar" Height="48" VerticalAlignment="Top"
+              ColumnSpacing="{StaticResource FmSpace2}" Padding="8,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <FontIcon Glyph="&#xE8F0;" FontSize="16" VerticalAlignment="Center"
+                      Foreground="{ThemeResource FmAccentBrush}" Margin="4,0" />
+            <TextBlock Grid.Column="1" Text="FileMind"
+                       Style="{StaticResource FmTextLabel}" VerticalAlignment="Center" />
+            <!-- drag region -->
+            <Rectangle Grid.Column="2" Fill="Transparent" />
+            <AutoSuggestBox Grid.Column="3" x:Name="GlobalSearch"
+                PlaceholderText="Search files…" QueryIcon="Find"
+                VerticalAlignment="Center" QuerySubmitted="GlobalSearch_QuerySubmitted" />
+            <Button Grid.Column="4" x:Name="OpCenterButton"
+                VerticalAlignment="Center" ToolTipService.ToolTip="Operation center"
+                Click="OpCenterButton_Click">
+                <FontIcon Glyph="&#xE81C;" FontSize="16" />
+            </Button>
+        </Grid>
+
+        <NavigationView
+            x:Name="Nav" Margin="0,48,0,0"
+            IsBackButtonVisible="Collapsed"
+            IsSettingsVisible="False"
+            PaneDisplayMode="LeftCompact"
+            SelectionChanged="Nav_SelectionChanged"
+            OpenPaneLength="200">
+            <NavigationView.MenuItems>
+                <NavigationViewItem Content="Dashboard" Tag="dashboard">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE80F;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Files" Tag="files">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8B7;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Organizer" Tag="organizer">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8F0;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Tools" Tag="tools">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8C7;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Search" Tag="search">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE721;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Devices" Tag="devices">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xEDA2;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Activity" Tag="activity">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE81C;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.MenuItems>
+            <NavigationView.FooterMenuItems>
+                <NavigationViewItem Content="Component gallery" Tag="gallery">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE8FD;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+                <NavigationViewItem Content="Settings" Tag="settings">
+                    <NavigationViewItem.Icon><FontIcon Glyph="&#xE713;" /></NavigationViewItem.Icon>
+                </NavigationViewItem>
+            </NavigationView.FooterMenuItems>
+
+            <!-- content column: breadcrumb + page -->
+            <Grid RowSpacing="{StaticResource FmSpace2}" Padding="{StaticResource FmPad3}">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <BreadcrumbBar x:Name="Crumbs" />
+                <Frame Grid.Row="1" x:Name="ContentFrame" />
+            </Grid>
+        </NavigationView>
+    </Grid>
+</Page>

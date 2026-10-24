@@ -1,3 +1,4 @@
+using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 
 namespace FileMind.WinUI;
@@ -8,6 +9,15 @@ public sealed partial class MainWindow : Window
     {
         InitializeComponent();
         Title = "FileMind";
-        ContentFrame.Navigate(typeof(Views.GalleryPage));
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppShell.TitleBarElement);
+
+        // windows.md: resizable with a minimum usable size
+        if (AppWindow.Presenter is OverlappedPresenter p)
+        {
+            p.PreferredMinimumWidth = 720;
+            p.PreferredMinimumHeight = 480;
+        }
+        AppWindow.Resize(new Windows.Graphics.SizeInt32(1200, 760));
     }
 }

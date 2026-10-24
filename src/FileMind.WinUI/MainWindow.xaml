@@ -3,6 +3,6 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid>
-        <Frame x:Name="ContentFrame" />
+        <local:Shell x:Name="AppShell" xmlns:local="using:FileMind.WinUI" />
     </Grid>
 </Window>

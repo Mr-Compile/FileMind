@@ -1,4 +1,3 @@
-using FileMind.Domain.Errors;
 using FileMind.WinUI.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -16,7 +15,7 @@ public sealed partial class GalleryPage : Page
     private void RenderFriendlyError()
     {
         var err = FmErrorPresenter.Present(
-            new FileMindError(ErrorCode.InsufficientSpace, "ENOSPC: no space left on device", false, false));
+            FmErrorKind.InsufficientSpace, "ENOSPC: no space left on device");
         ErrorSample.Children.Add(new TextBlock
         {
             Text = err.Title, Style = (Style)Application.Current.Resources["FmTextH3"]

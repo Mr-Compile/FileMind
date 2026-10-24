@@ -1,0 +1,12 @@
+<Page
+    x:Class="FileMind.WinUI.Views.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:FileMind.WinUI.Controls">
+    <Grid Background="{ThemeResource FmSurfaceBackgroundBrush}">
+        <StackPanel Padding="{StaticResource FmPad6}" Spacing="{StaticResource FmSpace4}">
+            <TextBlock x:Name="PageTitle" Style="{StaticResource FmTextH1}" />
+            <c:FmStateView x:Name="Body" State="Empty" />
+        </StackPanel>
+    </Grid>
+</Page>
