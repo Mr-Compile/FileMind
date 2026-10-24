@@ -1,4 +1,5 @@
 using FileMind.Application.Decisions;
+using FileMind.Application.Indexing;
 using FileMind.Application.Ports;
 using FileMind.Application.Scanning;
 using FileMind.Domain.Classification;
@@ -32,7 +33,8 @@ public sealed class OrganizerPipeline(
     IRuleRepository rules,
     ICollectionRepository collections,
     IOperationRepository operations,
-    IOperationStore operationStore)
+    IOperationStore operationStore,
+    FileIndexingService? indexing = null)
 {
     public async IAsyncEnumerable<FileCandidate> ScanAsync(
         string root, bool recursive = true,
@@ -117,6 +119,12 @@ public sealed class OrganizerPipeline(
 
     public Task<Result<IReadOnlyList<OperationRecord>>> RecentOperationsAsync(int limit, CancellationToken ct = default) =>
         operations.GetRecentAsync(limit, ct);
+
+    public async Task<Result<IndexResult>> IndexAsync(
+        IReadOnlyList<FileCandidate> candidates, CancellationToken ct = default) =>
+        indexing is null
+            ? Result<IndexResult>.Ok(new IndexResult(0, 0, []))
+            : await indexing.IndexAsync(candidates, ct);
 
     private async Task<SafetyContext> BuildSafetyContextAsync(ActionPlan plan, CancellationToken ct)
     {

@@ -6,7 +6,7 @@ namespace FileMind.Infrastructure.Sqlite;
 
 public sealed class FileMindDb : IDisposable
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
 
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -76,6 +76,14 @@ public sealed class FileMindDb : IDisposable
             Exec("INSERT INTO schema_migrations(version, applied_at) VALUES(1, $at)",
                 ("$at", DateTimeOffset.UtcNow.ToString("O")));
         }
+
+        if (applied < 2)
+        {
+            foreach (var statement in V2.Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                Exec(statement);
+            Exec("INSERT INTO schema_migrations(version, applied_at) VALUES(2, $at)",
+                ("$at", DateTimeOffset.UtcNow.ToString("O")));
+        }
     }
 
     private const string V1 = """
@@ -123,6 +131,11 @@ public sealed class FileMindDb : IDisposable
 
         CREATE TABLE ai_audit(
             request_hash TEXT NOT NULL, outcome TEXT NOT NULL, at TEXT NOT NULL)
+        """;
+
+    private const string V2 = """
+        ALTER TABLE file_index ADD COLUMN content_hash TEXT;
+        ALTER TABLE file_index ADD COLUMN hash_state TEXT NOT NULL DEFAULT 'NotComputed'
         """;
 
     public void Dispose() => _connection.Dispose();

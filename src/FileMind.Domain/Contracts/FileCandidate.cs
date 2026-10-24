@@ -17,6 +17,7 @@ public sealed record FileCandidate
         ReadOnlyDictionary<string, string>.Empty;
     public string? ExtractedTextRef { get; init; }
     public HashState HashState { get; init; } = HashState.NotComputed;
+    public string? ContentHash { get; init; }
     public PermissionCapabilities Capabilities { get; init; } = PermissionCapabilities.Default;
     public IReadOnlyDictionary<string, string> PlatformHints { get; init; } =
         ReadOnlyDictionary<string, string>.Empty;

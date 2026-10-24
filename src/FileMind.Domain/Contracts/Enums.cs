@@ -87,3 +87,12 @@ public enum DecisionKind
     Ignore,
     NoOp
 }
+
+public enum OrganizationMode
+{
+    Manual,
+    Smart,
+    Automatic,
+    AiAssisted,
+    LocalOnly
+}

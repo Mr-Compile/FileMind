@@ -199,13 +199,14 @@ public sealed class SqliteStore(FileMindDb db) :
         Task.FromResult(Try(() =>
         {
             db.Exec("""
-                INSERT INTO file_index(path,stable_id,fingerprint,scan_id,payload_json,scanned_at)
-                VALUES($p,$sid,$fp,$scan,$payload,$at)
-                ON CONFLICT(path) DO UPDATE SET stable_id=$sid,fingerprint=$fp,scan_id=$scan,payload_json=$payload,scanned_at=$at
+                INSERT INTO file_index(path,stable_id,fingerprint,scan_id,payload_json,scanned_at,content_hash,hash_state)
+                VALUES($p,$sid,$fp,$scan,$payload,$at,$ch,$hs)
+                ON CONFLICT(path) DO UPDATE SET stable_id=$sid,fingerprint=$fp,scan_id=$scan,payload_json=$payload,scanned_at=$at,content_hash=$ch,hash_state=$hs
                 """,
                 ("$p", candidate.SourceUri), ("$sid", identity.StableId),
                 ("$fp", identity.Fingerprint), ("$scan", candidate.ScanId),
-                ("$payload", Ser(candidate)), ("$at", Iso(DateTimeOffset.UtcNow)));
+                ("$payload", Ser(candidate)), ("$at", Iso(DateTimeOffset.UtcNow)),
+                ("$ch", candidate.ContentHash), ("$hs", candidate.HashState.ToString()));
             return Result<bool>.Ok(true);
         }));
 
