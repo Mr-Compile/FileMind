@@ -1,13 +1,16 @@
 # FileMind UI Mockup
 
-Static, offline, dependency-free HTML/CSS/JS preview of the FileMind app. **Open `index.html` directly in a browser** — no server, no build step, no network. It runs from `file://` on any machine.
+Static, offline, dependency-free HTML/CSS/JS preview of the FileMind app. **Open `index.html` (Windows) or `android.html` (Android) directly in a browser** — no server, no build step, no network. Both run from `file://` on any machine.
 
 ## What it is
 
 - The **canonical visual reference** of the approved UI (`docs/packs/ui-ux-foundation/`) until a real WinUI/Android project ships. Binding rule: `docs/rules/MOCKUP_RULES.md`.
-- An **interactive demo of how the codebase works**: mock data mirrors the real domain contracts, and the mock engine (`FM.engine` in `app.js`) mirrors the real pipeline — `FileScanner → ClassifierEngine → RuleEngine → DecisionMaker → ActionPlanner → SafetyEngine → TransactionEngine → UndoService` — including the same scores, caps, bands, decision ordering, templates, and `KeepBoth` conflict handling.
-- A **console simulator** replicating `src/FileMind.Windows.Host/Program.cs` verbs and output formats against the same dataset.
-- An **architecture view** of the verified modules and their `EXISTING`/`INCOMPLETE`/`MISSING` status per `docs/features/FEATURES.md`.
+- Two platform shells over one engine:
+  - `index.html` — Windows desktop shell (Fluent Minimal Utility): titlebar, sidebar nav, desktop density.
+  - `android.html` — Android phone shell (Material 3 Minimal Utility, PLAN-021 presentation): bottom navigation, 48dp rows, modal bottom sheets, contextual selection bar, SAF-style folder grants, permission explanation before access.
+- An **interactive demo of how the codebase works**: mock data mirrors the real domain contracts, and the mock engine (`FM.engine` in `app.js`) mirrors the real pipeline — `FileScanner → ClassifierEngine → RuleEngine → DecisionMaker → ActionPlanner → SafetyEngine → TransactionEngine → UndoService` — including the same scores, caps, bands, decision ordering, templates, and `KeepBoth` conflict handling. Both shells drive the same engine and store.
+- A **console simulator** replicating `src/FileMind.Windows.Host/Program.cs` verbs and output formats against the same dataset (Windows shell only).
+- An **architecture view** of the verified modules and their `EXISTING`/`INCOMPLETE`/`MISSING` status per `docs/features/FEATURES.md` (Windows shell only).
 
 Nothing here touches real files. Every "operation" mutates in-memory mock state only.
 
@@ -15,12 +18,15 @@ Nothing here touches real files. Every "operation" mutates in-memory mock state 
 
 | File | Responsibility |
 |---|---|
-| `index.html` | App shell: titlebar, command box, sidebar nav, content region, dialog/toast roots |
-| `styles.css` | Layout + components per the UI/UX foundation pack; extended `--fm-*` vars derived from `branding/colors.json` |
-| `app.js` | Icons, theme (System/Light/Dark), hash router, runtime store, mock engine (`FM.engine`), shared UI helpers |
-| `mock-data.js` | Mock dataset mirroring `src/FileMind.Domain/Contracts/*` field-for-field |
-| `screens.js` | The 7 approved screens: Dashboard, Files, Tools, Search, Devices, Activity, Settings |
-| `flows.js` | Organizer operation flow, Console simulator, Architecture screen |
+| `index.html` | Windows app shell: titlebar, command box, sidebar nav, content region, dialog/toast roots |
+| `styles.css` | Windows layout + components per the UI/UX foundation pack; extended `--fm-*` vars derived from `branding/colors.json` |
+| `app.js` | Icons, theme (System/Light/Dark), hash router, runtime store, mock engine (`FM.engine`), shared UI helpers — used by both shells |
+| `mock-data.js` | Mock dataset mirroring `src/FileMind.Domain/Contracts/*` field-for-field — shared |
+| `screens.js` | The 7 approved Windows screens: Dashboard, Files, Tools, Search, Devices, Activity, Settings |
+| `flows.js` | Windows Organizer operation flow, Console simulator, Architecture screen |
+| `android.html` | Android phone frame: status/system bars, M3 top app bar, selection bar, bottom nav, dialog/toast roots |
+| `android.css` | M3 Minimal Utility styling on the same `--fm-*` tokens: sheets, FAB, bottom nav, 48dp rows, chips, stepper |
+| `android-screens.js` | Android screens on `FM.screen`: Home, Files (long-press selection), Search, Organizer (permission → scope → plan → run), Activity, Devices, Tools, Settings, Help |
 
 ## Token contract
 

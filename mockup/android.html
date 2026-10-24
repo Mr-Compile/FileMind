@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FileMind — Android UI Mockup</title>
+<link rel="icon" type="image/png" href="../branding/logo/png/icon-32.png">
+<script>
+/* early theme resolution — same as index.html (mirrors FM.theme) */
+try{var m=localStorage.getItem("fm-theme")||"system";var d=m==="system"?matchMedia("(prefers-color-scheme: dark)").matches:m==="dark";document.documentElement.dataset.theme=d?"dark":"";}catch(e){}
+</script>
+<!-- Canonical brand tokens: single source of truth (docs/rules/MOCKUP_RULES.md) -->
+<link rel="stylesheet" href="../branding/colors.css">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="android.css">
+</head>
+<body class="android-mockup">
+<a class="skip" href="#main">Skip to content</a>
+<div class="stage">
+  <div class="desktop-note">
+    <strong>FileMind — Android UI mockup</strong>
+    <span>Material 3 Minimal Utility · phone frame · mock data only, no real files touched ·
+    <a href="index.html">Windows mockup →</a></span>
+  </div>
+  <div class="phone" role="application" aria-label="FileMind Android app preview">
+    <div class="statusbar" aria-hidden="true">
+      <span id="sb-time">9:41</span>
+      <span class="sb-icons">󰤨  󰤮  󰁹</span>
+    </div>
+    <header class="appbar" id="appbar">
+      <button class="icon-btn" id="back-btn" title="Back" aria-label="Back" hidden>
+        <span data-icon="back"></span>
+      </button>
+      <div class="appbar-title" id="appbar-title">FileMind</div>
+      <div class="appbar-actions">
+        <button class="icon-btn" id="search-btn" title="Search" aria-label="Search"><span data-icon="search"></span></button>
+        <button class="icon-btn" id="opcenter-btn" title="Operation center" aria-label="Operation center">
+          <span data-icon="activity"></span><span class="badge-count" id="opcount" hidden></span>
+        </button>
+        <button class="icon-btn" id="theme-btn" title="Theme" aria-label="Change theme"><span data-icon="theme"></span></button>
+      </div>
+    </header>
+    <!-- contextual selection app bar (long-press select, ANDROID_UX) -->
+    <div class="selbar" id="selbar" hidden>
+      <button class="icon-btn" id="sel-close" aria-label="Clear selection"><span data-icon="cancel"></span></button>
+      <div class="sel-count" id="sel-count">0 selected</div>
+      <button class="icon-btn" id="sel-sheet" title="Actions" aria-label="Selection actions"><span data-icon="dots"></span></button>
+    </div>
+    <main class="content" id="main" tabindex="-1"></main>
+    <nav class="bnav" id="bottomnav" aria-label="Primary"></nav>
+    <div class="sysbar" aria-hidden="true"><span class="gesture"></span></div>
+    <div id="dialog-root"></div>
+    <div id="toast-root" aria-live="polite"></div>
+  </div>
+</div>
+<!-- elements the shared app.js boot binds; visually hidden in the Android shell -->
+<div id="sidebar" hidden></div>
+<button id="command-box" hidden></button>
+<button id="density-btn" hidden></button>
+<div id="splash" hidden></div>
+<script src="mock-data.js"></script>
+<script src="app.js"></script>
+<script src="android-screens.js"></script>
+</body>
+</html>

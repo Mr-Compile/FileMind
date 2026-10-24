@@ -16,7 +16,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -102,7 +102,7 @@ fun OrganizerScreen(app: FileMindApp, nav: NavHostController) {
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Icon(Icons.Filled.ArrowForward, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                     }
                 }
 
@@ -120,7 +120,7 @@ fun OrganizerScreen(app: FileMindApp, nav: NavHostController) {
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        Icon(Icons.Filled.ArrowForward, contentDescription = null)
+                        Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                     }
                 }
 
@@ -135,7 +135,7 @@ fun OrganizerScreen(app: FileMindApp, nav: NavHostController) {
                                 Text(shortPath(tree, 56),
                                     style = MaterialTheme.typography.bodyMedium,
                                     maxLines = 1, modifier = Modifier.weight(1f))
-                                Icon(Icons.Filled.ArrowForward, contentDescription = null)
+                                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null)
                             }
                         }
                     }
