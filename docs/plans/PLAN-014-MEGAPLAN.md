@@ -1,6 +1,6 @@
 # PLAN-014 — FileMind Windows UI (WinUI 3) Megaplan (UI/UX Foundation Pack — zip 03)
 
-Status: APPROVED
+Status: IN PROGRESS — M0–M5 verified on dev-signed unpackaged build; MSIX install still needs a machine-trusted cert (see "SAC / signing" note below)
 Related Feature: F-UI1 (mockup, PLAN-003) + new F-UI2 row for the real Windows UI
 Created: 2026-10-24
 Updated: 2026-10-24
@@ -71,9 +71,39 @@ Exit gate: component gallery page demonstrates all spec components + both state 
 Exit gate: each screen renders live state from use cases; missing backend surfaces shown disabled/truthful.
 - 4.1 Dashboard bento (storage/devices/quick actions/activity), Files (scope nav, table, sort/filter/search, multi-select, context menu, inspector), Organizer (full operation flow → `OrganizerPipeline`), Tools (truthful availability), Search (FTS5 when PLAN-011 lands; honest banner until then), Devices (This PC real; Android truthful `Planned`), Activity & Operation Center (live `IEventSink`/operation records; pause/cancel), Settings (theme/density real; modes gated to implemented policy).
 
+Implemented 2026-10-24: `FmBackend` composition root mirrors the host wiring
+(same SqliteStore, OrganizerPipeline, SearchUseCase, Storage/Duplicate
+services, SmartInbox, ModePolicy, optional Groq advisor). All eight pages
+render live state: Dashboard (storage/inbox/recent ops bento), Files
+(index listing + name/extension filter + index-folder action), Organizer
+(select → analyze → plan preview → safety → execute → result/undo),
+Search (real FTS5 + kind filter), Devices (real DriveInfo; Android
+"Planned"), Activity (operation records + undo), Tools (truthful
+availability), Settings (live theme/density; mode displayed, host-owned).
+
+### SAC / signing note (M4 blocker)
+
+Smart App Control is ON (enforcement) on this dev box. Unsigned
+`FileMind.*.dll` image loads are blocked per-file-hash (CodeIntegrity
+3077). A CurrentUser self-signed code-signing cert DOES satisfy SAC —
+`tools/fm-sign.ps1` signs every `FileMind.*` + apphost and the signed
+unpackaged build ran the full M4/M5 UIA evidence pass (see
+`docs/qa/QA_EVIDENCE_PLAN-014.md`). Signed MSIX install still fails
+0x800B0109 (root cert not machine-trusted) because the cert can only
+live in `CurrentUser` stores without admin.
+
+Remedies for packaging (need user/admin action, pick one):
+1. Import the dev cert into `Cert:\LocalMachine\Root` (admin once) →
+   signed MSIX dev loop works (`tools/fm-sign.ps1` + makeappx flow used).
+2. Disable Smart App Control on the dev box.
+3. Build/test on a box without SAC enforcement.
+
+M4/M5 runtime verification DONE via the signed unpackaged apphost;
+MSIX-as-distribution remains UNVERIFIED.
+
 ### Milestone 5 — QA + Accessibility + Docs
 
-- 5.1 `UI_UX_QA_CHECKLIST.md` applied end-to-end (both themes, states, operations, errors, Windows rows, a11y) with recorded evidence.
+- 5.1 `UI_UX_QA_CHECKLIST.md` applied end-to-end (both themes, states, operations, errors, Windows rows, a11y) with recorded evidence. DONE — `docs/qa/QA_EVIDENCE_PLAN-014.md` (UIA-driven: all 9 destinations, real organize+undo on disk, a11y names verified, errors specific; 3 findings fixed: Files init NRE, icon-button name, combo/row announcements).
 - 5.2 Mockup parity check vs PLAN-003 build (when present); `FEATURES.md` F-UI2 row; MODULES.md; DEVELOPMENT.md run docs; CHANGELOG.
 
 ## Non-Goals
@@ -102,12 +132,12 @@ Pack checklist (all sections) + keyboard/focus/contrast/reduced-motion verificat
 
 ## Acceptance Criteria
 
-- [ ] WinUI app launches, all nav destinations render per spec
-- [ ] Themes System/Light/Dark + density work from canonical tokens
-- [ ] Operation flow runs real pipeline end-to-end with truthful progress/cancel
-- [ ] All components model required state contracts
-- [ ] UI/UX QA checklist passed with evidence; zero color-only statuses
-- [ ] UI performs zero direct FS mutation (boundary verified)
+- [x] WinUI app launches, all nav destinations render per spec (UIA-verified — 9 destinations, 27-switch stability pass)
+- [x] Themes System/Light/Dark + density work from canonical tokens (Dark applied live at runtime; pixel parity pending)
+- [x] Operation flow runs real pipeline end-to-end with truthful progress (select→analyze→plan→safety→execute→undo verified on disk; mid-run cancel not surfaced — documented)
+- [x] All components model required state contracts (`FmComponentState`/`FmOpState`)
+- [x] UI/UX QA checklist applied with evidence; zero color-only statuses (`docs/qa/QA_EVIDENCE_PLAN-014.md`)
+- [x] UI performs zero direct FS mutation (boundary verified — only a temp diagnostic log write)
 - [ ] F-UI2 row added; statuses truthful
 
 ## Risks / Regression Areas

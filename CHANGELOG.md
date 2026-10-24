@@ -2,6 +2,15 @@
 
 All notable verified project changes should be recorded here. Do not add planned work as released work.
 
+## 2026-10-24 — Windows App (PLAN-014)
+- `src/FileMind.WinUI` — native WinUI 3 desktop app (Windows App SDK 1.8, `net10.0-windows10.0.19041.0`, win-x64): canonical theme dictionaries (`Themes/FmTheme.xaml` light/dark/system + `FmTypography.xaml`), icon abstraction over Segoe Fluent, `FmBentoCard`/`FmStateView`/`FmStatusChip` controls (all `FmComponentState`/`FmOpState` contract states), `FmErrorPresenter` mapping every `ErrorCode` to friendly title+explanation+recovery, shell (custom title bar, nav rail, global search, operation center, breadcrumbs, min-size), component gallery.
+- `FmBackend` composition root mirrors the host wiring — same SqliteStore, `OrganizerPipeline`, `SearchUseCase`, storage/duplicates, SmartInbox, `ModePolicy`, optional Groq advisor. All 9 destinations render live state; zero user-file mutation from UI (only a temp diagnostic crash-log write).
+- Operation flow verified on disk via UI Automation: source→analyze→"2 planned actions, safety passed"→execute (files moved)→"Undo last run" (files restored). Files screen: sort/multi-select/context menu/inspector. Devices shows real `DriveInfo`; Android truthful "Planned".
+- `tests/FileMind.WinUI.Tests`: `BackendSmokeTests` 3/3 via SAC byte-load runner.
+- Fixes found by runtime QA: Files `ApplyFilters` init-order NRE (crash on first nav), icon-only op-center button lacked accessible name, Settings combos unlabeled (now `LabeledBy`), list rows announced record literals (now readable `ToString`), relative destinations resolved against process CWD (now organize-in-place), `Validation`/`TransientIo`/`PersistenceFailure` error codes fell through to generic copy.
+- Smart App Control: unsigned `FileMind.*.dll` blocked per-hash; dev-signed apphost satisfies SAC (see `tools/fm-sign.ps1`). MSIX packaging verified; install needs machine-trusted cert (`0x800B0109`) — admin step, tracked in the plan.
+- Mockup status badges synced to reality (F-P5/P6/P7/P10 no longer "Planned").
+
 ## 2026-10-24 — Android Backend (PLAN-010)
 - `android/` Gradle project (wrapper-pinned Gradle 9.1.0, AGP 9.0.1 built-in Kotlin 2.2.10, KSP 2.3.6, compileSdk 36/minSdk 26, JBR 21 toolchain documented in `docs/development/BUILD.md`).
 - `android/core`: faithful Kotlin port of the shared engine — contracts (`@Serializable`, `schemaVersion` on rules), normalizer/subject/project matchers/confidence bands/context-over-type bonus, rule engine (nesting ≤3, priority/specificity ordering, stop-processing, conflict detection, schema validation), safety engine, action planner (templates + `{RelativeDir}`/preserve-tree), transaction + undo + rollback, app pipeline (scanner/exclusions/mime/decision/mode/organizer). `Instant.utcTicks` matches .NET `UtcTicks` — golden fingerprint `400:8de541cd86c9000` asserted on both sides.

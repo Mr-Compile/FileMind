@@ -6,7 +6,7 @@ Document only verified platform targets, shared abstractions, platform-specific 
 
 | Target | Stack | Storage access | Persistence | Background work | Verified |
 |---|---|---|---|---|---|
-| Windows | .NET 10, `FileMind.Windows.Host` console + `FileMind.Platform.Windows` adapters | NTFS paths, `FileSystemWatcher`, DriveInfo | `SqliteStore` (schema v4) | in-process watch loop + `SqliteJobQueue` | 2026-10-24 |
+| Windows | .NET 10, `FileMind.WinUI` desktop app (WinUI 3 / Windows App SDK 1.8) + `FileMind.Windows.Host` console + `FileMind.Platform.Windows` adapters | NTFS paths, `FileSystemWatcher`, DriveInfo | `SqliteStore` (schema v4) | in-process watch loop + `SqliteJobQueue` | 2026-10-24 |
 | Android | Kotlin, `android/core` (pure JVM) + `android/platform` (AGP 9.0.1 library, minSdk 26, compileSdk 36) | SAF persisted tree grants (`takePersistableUriPermission`), MediaStore rows/RELATIVE_PATH, app-private `file://` only — no unrestricted path access | Room `FileMindDatabase` (schema v2, `MIGRATION_1_2` adds `ai_usage`) | WorkManager `ScanWorker`/`OrganizeWorker`, cooperative cancel | compile + JVM tests 2026-10-24; instrumented UNVERIFIED (no device) |
 
 ## Shared abstractions (identical semantics both platforms)

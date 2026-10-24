@@ -6,7 +6,7 @@
 FileMind organizes files locally using deterministic rules and classification. Optional Groq AI may suggest, but only the deterministic `Decision -> Safety -> ActionPlan -> Platform Adapter -> Verify -> History` pipeline may mutate files. See `docs/packs/foundation-pack/` and `docs/packs/backend-roadmap/` for the approved product and backend intent.
 
 ## Status
-M0–M3 implemented and verified (see `docs/plans/PLAN-001-MEGAPLAN.md`): domain contracts/engines, application pipeline, Windows FS adapter, SQLite persistence, console host. Branding palette adopted per `docs/plans/PLAN-002-MEGAPLAN.md` (`branding/` canonical tokens + `FileMind.Branding` constants). 90 tests pass. Check `docs/features/FEATURES.md` for per-feature status labels. Windows automation/watchers, intelligence, Groq, Android, search, and the real UI app are not implemented yet.
+M0–M3 implemented and verified (see `docs/plans/PLAN-001-MEGAPLAN.md`): domain contracts/engines, application pipeline, Windows FS adapter, SQLite persistence, console host. Branding palette adopted per `docs/plans/PLAN-002-MEGAPLAN.md` (`branding/` canonical tokens + `FileMind.Branding` constants). The native Windows app (`src/FileMind.WinUI`, WinUI 3) is implemented and verified on a dev-signed unpackaged build — see `docs/plans/PLAN-014-MEGAPLAN.md` + `docs/qa/QA_EVIDENCE_PLAN-014.md`. Check `docs/features/FEATURES.md` for per-feature status labels.
 
 **UI preview:** `mockup/` is a dependency-free interactive HTML/CSS/JS mockup of the approved UI — open `mockup/index.html` in a browser (works over `file://`). It drives the real pipeline semantics (scan → analyze → plan → safety → execute → verify → undo) on mock data and must stay in sync with code per `docs/rules/MOCKUP_RULES.md`.
 
@@ -26,6 +26,19 @@ dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll seed-d
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll analyze <dir>
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll execute <dir> --dest <outroot> --dry-run
 ```
+
+Run the Windows app (Smart App Control note):
+
+```bash
+dotnet build src/FileMind.WinUI -c Debug   # produces a self-contained win-x64 apphost
+```
+
+On machines with Smart App Control enforcement, unsigned `FileMind.*.dll`
+loads are blocked — sign the output with the dev cert helper
+`powershell tools/fm-sign.ps1 <output-dir>` (cert generated once per dev
+box, CurrentUser store) before launching `FileMind.WinUI.exe`. MSIX
+packaging (`Package.appxmanifest` + `makeappx`) works but installation
+needs the cert trusted at machine level (`Cert:\LocalMachine\Root`, admin).
 
 ## Documentation
 - `AGENTS.md` — mandatory AI-agent workflow and repository truth rules.

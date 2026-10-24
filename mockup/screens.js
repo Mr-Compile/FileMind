@@ -70,8 +70,8 @@ FM.screen("dashboard", (m) => {
     <div class="card clickable" data-go="tools">
       <h3>${icon("tools")} Cleanup opportunities</h3>
       <div class="list">
-        <div class="li">${icon("copy", "sm")}<span class="grow">${dupes.length} likely duplicate pair(s)</span><span class="badge badge-missing">Planned · F-P6</span></div>
-        <div class="li">${icon("warn", "sm")}<span class="grow">${big.length} file(s) over 3 GB</span><span class="badge badge-missing">Planned · F-P6</span></div>
+        <div class="li">${icon("copy", "sm")}<span class="grow">${dupes.length} likely duplicate pair(s)</span><span class="badge">Host: dupes · F-P6</span></div>
+        <div class="li">${icon("warn", "sm")}<span class="grow">${big.length} file(s) over 3 GB</span><span class="badge">Host: storage · F-P6</span></div>
         <div class="li">${icon("cancel", "sm")}<span class="grow">${leftovers.length} leftover partial download(s)</span><span class="tiny muted">auto-skipped</span></div>
       </div>
     </div>
@@ -263,10 +263,10 @@ FM.screen("tools", (m) => {
     ${tool("t-org", "organize", "Organize a folder", "Scan → classify → plan → safety-check → move files, with a dry-run preview first.", "organizer", null)}
     ${tool("t-inbox", "activity", "Smart Inbox", `${FM.store.inbox.filter((i) => i.status === "Pending").length} file(s) waiting for a human decision.`, "activity", `${FM.store.inbox.filter((i) => i.status === "Pending").length} pending`)}
     ${tool("t-analyze", "db", "Analyze storage", "Where the space went, by file kind.", null, "Demo")}
-    ${tool("t-dupes", "copy", "Find duplicates", "Size prefilter + hashing + duplicate groups.", null, "Planned · F-P6")}
-    ${tool("t-clean", "trash", "Cleanup", "Large/old file analysis and safe removal suggestions.", null, "Planned · F-P6")}
-    ${tool("t-rename", "rename", "Batch rename", "Template-based smart rename after proven extraction.", null, "Planned · F-P5")}
-    ${tool("t-export", "open", "Export profile", "Versioned organizer-profile.json export/import.", null, "Planned · F-P10")}
+    ${tool("t-dupes", "copy", "Find duplicates", "Size prefilter + hashing + duplicate groups.", null, "Host: dupes · F-P6")}
+    ${tool("t-clean", "trash", "Cleanup", "Large/old file analysis and safe removal suggestions.", null, "Host: storage · F-P6")}
+    ${tool("t-rename", "rename", "Batch rename", "Template-based smart rename after proven extraction.", null, "Host: {Title}/{Author} tokens · F-P5")}
+    ${tool("t-export", "open", "Export profile", "Versioned organizer-profile.json export/import.", null, "Host: profile · F-P10")}
   </div>
   <h2>Organizer rules</h2>
   <div class="tiny muted" style="margin-bottom:var(--sp-3)">Mirrors the Rule engine (<span class="mono">IRuleRepository</span>): priority → specificity → stop-processing → conflicts. Toggle a rule and the next analysis changes.</div>
@@ -331,7 +331,7 @@ FM.screen("search", (m) => {
     ];
     m.innerHTML = `
     <div class="page-head"><div><h1>Search</h1><div class="sub">Forgiving search over names, types, scopes and metadata.</div></div></div>
-    ${FM.banner("info", "info", `This searches the <strong>mock index</strong> only. Real full-text search (SQLite FTS5) is <strong>F-P9 — not implemented</strong> in the backend yet.`)}
+    ${FM.banner("info", "info", `This searches the <strong>mock index</strong> only. Real full-text search exists — SQLite FTS5 via <code>search</code>/<code>ai-search</code> verbs and the Windows app (F-P9).`)}
     <div class="filters" style="margin-bottom:var(--sp-3)">
       <input class="input" id="s-q" placeholder="Search files…" value="${esc(st.q)}" style="max-width:340px" autofocus>
     </div>
@@ -510,14 +510,14 @@ FM.screen("settings", (m) => {
     <div class="field"><label>When a destination already exists</label>
       <select class="select" id="st-conflict" style="max-width:280px">${FM_DATA.enums.ConflictPolicy.map((v) => `<option ${v === s.conflictPolicy ? "selected" : ""}>${v}</option>`).join("")}</select>
       <div class="hint">Default is <strong>Keep Both</strong> — FileMind never silently overwrites.</div></div>
-    <div class="field"><label>Organization mode <span class="badge badge-missing">Planned</span></label>
+    <div class="field"><label>Organization mode <span class="badge">${s.organizationMode}</span></label>
       ${radio("st-mode", ["Manual", "Smart", "Automatic"], s.organizationMode, true)}
-      <div class="hint">Mode policies exist in the roadmap; the engine currently runs the Smart flow you see in Organizer.</div></div>`)}
+      <div class="hint">Mode is enforced by the real backend and changed via the host <code>mode</code> verb; the demo runs the Smart flow you see in Organizer.</div></div>`)}
 
   ${sect("Permissions", "What FileMind may touch", `
-    <div class="tiny muted" style="margin-bottom:var(--sp-2)">Watched folders (FileSystemWatcher automation is <strong>F-P4 — not implemented</strong>):</div>
+    <div class="tiny muted" style="margin-bottom:var(--sp-2)">Watched folders (FileSystemWatcher automation exists via the host <code>watch</code> verbs — <strong>F-P4</strong>):</div>
     ${s.watchedFolders.length ? s.watchedFolders.map((f) => `<div class="li"><span class="grow mono tiny">${esc(f)}</span></div>`).join("") : `<div class="tiny muted" style="margin-bottom:var(--sp-2)">No watched folders yet.</div>`}
-    <button class="btn" disabled>${icon("plus", "sm")} Add watched folder</button>`)}
+    <button class="btn" disabled title="Managed via host watch add">${icon("plus", "sm")} Add watched folder</button>`)}
 
   ${sect("Notifications", "Batched, never per-file spam", `
     ${[["operationDone", "Operation completed"], ["warnings", "Warnings and failures"], ["smartInbox", "Smart Inbox arrivals"]].map(([k, l]) =>
@@ -527,10 +527,10 @@ FM.screen("settings", (m) => {
     <dl class="kv">
       <dt>Database</dt><dd class="mono">${esc(s.dbPath)}</dd>
       <dt>Profile schema</dt><dd class="mono">schemaVersion ${s.schemaVersion}</dd>
-      <dt>AI provider</dt><dd>Groq — optional, off by default <span class="badge badge-missing">Planned · F-P7</span></dd>
+      <dt>AI provider</dt><dd>Groq — optional, off by default <span class="badge">Existing · opt-in · F-P7</span></dd>
     </dl>
     <div style="display:flex;gap:var(--sp-2);margin-top:var(--sp-3)">
-      <button class="btn" disabled>${icon("open", "sm")} Export profile</button>
+      <button class="btn" disabled title="Exists via host profile verbs">${icon("open", "sm")} Export profile <span class="badge">Host: profile</span></button>
       <button class="btn destructive" id="st-reset">Reset demo data</button>
     </div>
     <div class="hint" style="margin-top:6px">Reset only clears this session's mock operations and inbox — medium-tier, reversible on reload.</div>`)}
