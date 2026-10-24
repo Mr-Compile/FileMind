@@ -36,6 +36,12 @@ None — untouched intent.
 
 Groq is optional, never organizer authority. Model output never invokes filesystem methods. No hard-coded/shared production API keys in distributed binaries. File contents require explicit privacy settings; prefer extracted/minimized text over whole files. Failure/offline/rate-limit never breaks local organization — deterministic fallback always wins ties. All AI calls audited; budgets enforced.
 
+## Recorded Decisions (2026-10-24, user-directed)
+
+- Default model: `openai/gpt-oss-120b` (Groq-hosted OpenAI open-weight model). Model id is configuration, not a constant — `FILEMIND_GROQ_MODEL` env var or `ai.model` setting.
+- API key for manual runs / connection testing: repo-root `.env` file holding `GROQ_API_KEY=...`. Verified `.env`/`.env.*` are gitignored (`.gitignore` lines 484–486, `.env.example` exempt). `.env.example` documents the variable. `ISecretStore` remains the stored-credential path for real use; `.env` is the dev opt-in.
+- Token/quota budgeting (per-day vs per-week policy, provider-limit headroom): dedicated megaplan `docs/plans/PLAN-020-MEGAPLAN.md` — supersedes the detail of Milestone 2.1 below.
+
 ## Proposed Changes / Implementation Phases
 
 ### Milestone 0 — Contracts + Privacy Gate
@@ -43,18 +49,18 @@ Groq is optional, never organizer authority. Model output never invokes filesyst
 Exit gate: AI request/response schemas + privacy gate compile; gate blocks protected paths and unconsented fields in tests.
 - 0.1 AI request/response JSON schemas (versioned) under `schemas/ai/`; `AiSuggestion` evidence shape mapping to `ClassificationResult.Evidence`.
 - 0.2 `AiPrivacyGate` impl: per-field consent toggles, protected-path exclusion, payload minimizer (metadata/extracted text only), `Local-Only` mode hard-off.
-- 0.3 `ISecretStore` impl (Windows Credential Manager/DPAPI-backed or dev-file opt-in — decide in implementation audit; never in repo).
+- 0.3 `ISecretStore` impl (Windows Credential Manager/DPAPI-backed; never in repo). Dev opt-in: minimal repo-root `.env` loader reading `GROQ_API_KEY` (gitignored; see Recorded Decisions) so a key can be pasted manually for runs/connection tests.
 
 ### Milestone 1 — GroqProvider
 
 Exit gate: provider returns schema-validated suggestions or typed failure; never throws into pipeline.
 - 1.1 `GroqProvider` (HttpClient, bounded timeouts, retry/backoff honoring rate-limit signals).
-- 1.2 Request builder (model/messages/payload shaping per purpose) + response validator against schema → typed error on drift.
+- 1.2 Request builder (model/messages/payload shaping per purpose; default model `openai/gpt-oss-120b`, overridable via `FILEMIND_GROQ_MODEL` / `ai.model` setting) + response validator against schema → typed error on drift.
 - 1.3 Confidence mapper: AI evidence merges at capped weight; review policy preserved.
 
 ### Milestone 2 — Budgets, Cache, Audit
 
-- 2.1 Request budget (per session/day) + rate-limit policy + cache keyed by minimized-payload hash.
+- 2.1 Request budget + rate-limit policy + cache keyed by minimized-payload hash — quota/token budgeting policy detailed in `docs/plans/PLAN-020-MEGAPLAN.md` (supersedes this line's detail).
 - 2.2 `IAiAuditRepository` impl: timestamped audit records (purpose, payload classes sent — never raw contents, model, outcome).
 - 2.3 Offline/disabled paths → deterministic local result unchanged (regression tests).
 
