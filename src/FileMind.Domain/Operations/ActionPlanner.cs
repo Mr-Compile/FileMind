@@ -50,6 +50,8 @@ public sealed class ActionPlanner
         var destination = ResolveTemplate(
             decision.DestinationTemplate ?? "{Collection}/{FileKind}",
             decision.Candidate, decision.Classification, context);
+        if (context.DestinationBase is not null)
+            destination = context.DestinationBase(destination);
         var newName = decision.NamingTemplate is not null
             ? ResolveTemplate(decision.NamingTemplate, decision.Candidate, decision.Classification, context)
             : decision.Candidate.DisplayName;
