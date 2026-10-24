@@ -2,6 +2,15 @@
 
 All notable verified project changes should be recorded here. Do not add planned work as released work.
 
+## 2026-10-24 — Duplicates & Storage (PLAN-008)
+- New Domain contracts (`Duplicates.cs`): `DuplicateGroup`/`DuplicateFile` (per-file size+mtime for undo recipes), `SimilarityCandidate` (score + evidence reasons), `StorageReport`/`StorageBucket`/`StorageFileEntry`, `DuplicatesReport` (groups + similar + warnings + `TotalReclaimable`).
+- `FileMind.Application/Duplicates`: `DuplicateDetectionService` — exact dupes via size prefilter → partial hash → full hash; index hashes reused when deep enough, files re-statted before hashing (size drift removes the stale row); over-`maxFullHashBytes` groups stay `Confirmed=false` partial-only and are never planned. Similarity candidates via same-extension + normalized-name token overlap (Jaccard) + size proximity, capped 50.
+- `StorageAnalysisService` — kind buckets (`FileKindMap`), age bands (0-30/31-90/91-365/>365d), largest/oldest 10, duplicate-reclaimable estimate.
+- `DuplicatePlanBuilder` — review-first quarantine `ActionPlan` (Move + `KeepBoth` + preconditions + `UndoRecipe`s, `RequiresReview`, confirmed groups only). No delete path anywhere.
+- `IFileIndexRepository.GetAllAsync` added; `SqliteStore` explicit impl returns `payload_json` candidates (schema unchanged — V2 columns reused).
+- Host verbs: `dupes [<prefix>] [--plan] [--apply] [--dest]` (report → optional SafetyEngine-validated quarantine preview → apply executes through `TransactionEngine`, undoable) and `storage [<prefix>]`.
+- Verified: 9 new `DuplicatesTests`, 64/64 Application suite via `sac-test-runner.fsx`; live e2e — 3-way exact group detected (62 B reclaimable), similar pair with evidence, `--plan --apply` quarantined 2 copies, `undo` restored both, `history` recorded both ops. `mockup/flows.js` console simulates both verbs.
+
 ## 2026-10-24 — Local File Intelligence (PLAN-007)
 - `FileMind.Intelligence.Local` implemented (was empty scaffold): `IFileAnalyzer` contract, `ExtractionBudget` (byte/char/time caps), `AnalyzerRegistry`, `LocalAnalyzerService` implementing new `ICandidateEnricher` port (Domain.Ports). 8 BCL-only analyzers — zero external deps: plain-text/RTF-strip, OOXML (core.xml props + `w:t`/`a:t` runs via ZipArchive), PDF (Info literals + Tj/TJ incl. FlateDecode inflate), JPEG EXIF IFD0 + PNG IHDR/tEXt, ID3v2 + FLAC Vorbis comments, ISO-BMFF mvhd/tkhd (MP4/MOV), ZIP manifest (listed, never extracted), code language heuristics.
 - `ClassifierEngine.Classify` gains optional `extraEvidence` + `contentTokens`: extracted text re-runs subject/project matchers at 0.35 weight (`content-*` evidence); filename wins conflicts with a warning; enrichment evidence capped at 25.

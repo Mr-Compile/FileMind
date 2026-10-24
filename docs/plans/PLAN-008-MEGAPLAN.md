@@ -1,9 +1,15 @@
 # PLAN-008 — FileMind Duplicates & Storage Megaplan (F-P6 — fills PLAN-001 milestone gap)
 
-Status: APPROVED
+Status: IMPLEMENTED (verified 2026-10-24)
 Related Feature: F-P6 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
+
+## Verification Result
+
+- 64 Application tests pass incl. 9 new `DuplicatesTests` (exact grouping via size→partial→full, unique exclusion, over-cap partial-only groups, stale-index invalidation, cancellation, similarity evidence, storage aggregates, KeepBoth quarantine plan, execute→undo restore).
+- Host e2e: `scan` indexed+hashed 6 fixtures; `dupes` found the 3-way exact group (reclaimable 62 B) + 1 similar pair with evidence; `storage` printed kind/age buckets + largest/oldest; `dupes --plan` previewed 2-item review plan (dry-run, RequiresReview); `dupes --plan --apply` moved extras into `duplicates-review` via `pipeline.ExecuteAsync` (SafetyEngine-validated, KeepBoth); `undo` restored both; `history` shows both ops Committed.
+- No schema change needed — existing V2 `content_hash`/`hash_state` columns reused. No delete path exists; unconfirmed groups never planned.
 
 ## Request / Goal
 
