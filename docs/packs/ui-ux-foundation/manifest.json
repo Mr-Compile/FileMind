@@ -1,0 +1,39 @@
+{
+  "name": "File Organizer UI/UX Foundation Pack",
+  "version": "1.0.0",
+  "platforms": [
+    "windows",
+    "android"
+  ],
+  "windows_design": [
+    "Fluent-inspired",
+    "Minimalism",
+    "Bento Grid",
+    "Dark UI",
+    "restrained Glassmorphism"
+  ],
+  "android_design": [
+    "Material Design 3",
+    "Minimalism",
+    "adaptive Bento Grid",
+    "Dark UI"
+  ],
+  "themes": [
+    "system",
+    "light",
+    "dark"
+  ],
+  "core_ux": [
+    "indicators",
+    "statuses",
+    "icons",
+    "svg-assets",
+    "validation",
+    "restrictions",
+    "friendly-errors",
+    "progress",
+    "accessibility",
+    "routing"
+  ],
+  "rule": "Never present raw technical errors as the primary user-facing error."
+}
