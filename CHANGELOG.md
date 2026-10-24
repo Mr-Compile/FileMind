@@ -2,6 +2,14 @@
 
 All notable verified project changes should be recorded here. Do not add planned work as released work.
 
+## 2026-10-24 — Groq AI + Quota Budgeting (PLAN-009 + PLAN-020)
+- `FileMind.Intelligence.AI` implemented (was empty scaffold): `GroqChatClient` transport (bounded timeout, retry honoring `retry-after`, 429 circuit breaker, auth-fail latch, `x-ratelimit-*` header sink, per-call usage-ledger write — never throws), `GroqProvider` `IAIProvider` (payload-hash `AiSuggestionCache` → `AiQuotaGate` pre-flight → response shape validation; advisory `AiSuggestion`), `AiPrivacyGate` (per-field `AiConsent`: metadata allowlist `ai.consent.metadata.keys` / `content.*` always stripped / extracted text opt-in `ai.consent.text` / protected paths never sent), `AiAdvisor` `IAiAdvisor` (only in `ai-assisted` mode + below-High confidence → merges capped `ai-signal` evidence, never overrides), `AiRuleDrafter` + `AiQueryInterpreter` (NL→rule JSON draft, NL→`SearchQuery`; advisory), `DotEnv`/`EnvSecretStore` (repo `.env` dev opt-in) + `WindowsSecretStore` (DPAPI `CryptProtectData` under `%LOCALAPPDATA%\FileMind\secrets`).
+- PLAN-020 quota: `AiQuotaPolicy` + `AiQuotaGate` — daily (800 req/160k tok) + optional weekly + per-minute token-bucket budgets ~80% under published Groq free-tier limits, all via `ai.quota.*` settings; provider `x-ratelimit-*` headers reconcile counters down; per-request estimate cap; persisted `ai_usage` ledger (schema v4: `at`,`request_hash`,`model`,`purpose`,`prompt_tokens`,`completion_tokens`,`outcome` — no payload contents); cache hits spend zero quota; 429 → breaker + `retry-after` cooldown, auto-recover.
+- Versioned `schemas/ai/ai-request.schema.json` + `ai-response.schema.json` (embedded in schema test suite).
+- Pipeline: `OrganizerPipeline.AnalyzeAsync` accepts optional `IAiAdvisor` — rescored classification feeds rules+decision; null = deterministic-only.
+- Host verbs: `ai-status`, `ai-usage [n]`, `ai-key set|clear|status` (DPAPI), `ai-suggest <file>`, `ai-rule <nl>`, `ai-search <nl>` (interpretation failure → honest plain-text fallback).
+- Verified: 26 new `AiFeatureTests` + 4 AI `SchemaTests`; 195/195 suite via `sac-test-runner.fsx`; host e2e on real db (`ai-status` truthful off-by-default, `ai-suggest`→typed disabled error, `ai-search`→fallback). Live Groq call UNVERIFIED (no key on dev machine) — mocked-HTTP suites cover wire shapes. Mockup console simulates the new verbs.
+
 ## 2026-10-24 — Search (PLAN-015)
 - Schema v3 migration: `file_content_index` FTS5 virtual table (`unicode61`; `path UNINDEXED`, `display_name`, `collection`, `subject`, `project`, `kind`, `content`) — bundled `e_sqlite3` includes FTS5.
 - `SqliteStore` implements `ISearchIndex` (upsert/remove/escaped-`MATCH` search with bm25 rank); `file_index` delete clears the FTS row so watcher-driven removals stay consistent.

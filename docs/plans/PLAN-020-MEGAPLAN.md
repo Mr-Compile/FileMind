@@ -1,9 +1,19 @@
 # PLAN-020 — Groq Quota & Token Budgeting (PLAN-009 companion)
 
-Status: APPROVED
+Status: IMPLEMENTED (verified 2026-10-24)
 Related Feature: F-P7 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
+
+## Verification Result
+
+- `AiQuotaPolicy` + `AiQuotaGate`: daily primary window (800 req/160k tok defaults ≈80% of published free-tier), optional weekly cap (`ai.quota.weekly-requests`, 0=off), per-minute pacing (24 req/6,400 tok), per-request estimate cap (1,024), `max_completion_tokens` bound (512), cache TTL (30m) — all `ai.quota.*` settings.
+- Provider reconciliation: `x-ratelimit-remaining-requests` (daily) + `remaining-tokens` (minute) observed per response; 0-remaining denies; 429 → `retry-after` breaker with auto-recover in `GroqChatClient`.
+- Pre-flight gate in `GroqProvider.CompleteJsonAsync` — quota-blocked calls never reach HTTP (audited `quota-blocked`); `RecordCall` feeds minute counters immediately.
+- `ai_usage` ledger (schema v4): `at`, `request_hash`, `model`, `purpose`, `prompt_tokens`, `completion_tokens`, `outcome`; `IAiUsageLedger` on `SqliteStore`; `ai-usage [n]` verb. Persistence-across-reopen test green.
+- Cache hits spend zero quota (payload-hash `AiSuggestionCache`, test proves 2nd identical call = 0 HTTP).
+- Exhaustion degrades to deterministic local result — `AiAdvisor`/`AiAssistService` call sites return null on any provider failure; regression covered by advisor tests.
+- Tests: 8 `AiQuotaGateTests` + client/provider budget rows inside `AiFeatureTests`.
 
 ## Request / Goal
 

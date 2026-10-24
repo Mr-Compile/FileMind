@@ -1,9 +1,17 @@
 # PLAN-009 — FileMind Groq AI Megaplan (Backend Roadmap Phase 6 / PLAN-001 M7)
 
-Status: APPROVED
+Status: IMPLEMENTED (verified 2026-10-24)
 Related Feature: F-P7 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
+
+## Verification Result
+
+- Implemented `FileMind.Intelligence.AI`: `GroqChatClient` (bounded timeout, retry honoring `retry-after` ≤ `RetryAfterCeiling`, 429 breaker, auth-fail latch, `x-ratelimit-*` sink, ledger writes), `GroqProvider` (`IAIProvider`: `AiSuggestionCache` → `AiQuotaGate` → shape-validated `AiSuggestion`), `AiPrivacyGate` (per-field `AiConsent`: `ai.consent.metadata.keys` allowlist, `content.*` always stripped, `ai.consent.text` opt-in snippet, protected-path hard exclusion), `AiAdvisor` (`IAiAdvisor` → `OrganizerPipeline.AnalyzeAsync` in `ai-assisted` mode, below-High only, capped 30-pt `ai-signal` evidence), `AiRuleDrafter`/`AiQueryInterpreter`, `DotEnv`/`EnvSecretStore` + `WindowsSecretStore` (DPAPI).
+- Versioned `schemas/ai/{ai-request,ai-response}.schema.json` (wire payload carries `schemaVersion: 1`); validated in `SchemaTests`.
+- Host verbs e2e-verified on real db: `ai-status` (truthful off-by-default, key source, live quota status), `ai-usage`, `ai-key set|clear|status` (DPAPI), `ai-suggest` (typed disabled error), `ai-rule`, `ai-search` (interpretation failure → honest plain-text fallback).
+- Tests: 26 `AiFeatureTests` (gate consent/protected/minimize, quota budgets/rollover/reconcile, client 200/429/401/bad-JSON/offline-retry, provider cache/quota-block/validation, advisor mode/confidence/unavailable/merge, secret stores, cache TTL, ledger reopen persistence) + 4 AI `SchemaTests` — 195/195 suite via `tools/sac-test-runner.fsx`.
+- Live Groq API call UNVERIFIED (no key on dev machine); wire shapes covered by mocked `HttpMessageHandler`. Two-generation in-flight draft converged: `GroqProvider`/`GroqBudget`/`IAiUsageRepository` removed in favor of `GroqChatClient`/`AiQuotaGate`/`IAiUsageLedger`.
 
 ## Request / Goal
 
