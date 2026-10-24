@@ -890,7 +890,7 @@ FM.screen("architecture", (m) => {
     ["FileMind.Intelligence.AI", "Groq provider + privacy gate + quota gate + usage ledger + NL draft/interpret. Advisory only.", "F-P7", "EXISTING"],
     ["Watchers/automation", "FileSystemWatcher, bounded queue + debounce, stability checks, persisted jobs, drive pause/resume.", "F-P4", "EXISTING"],
     ["Search (FTS5)", "file_content_index FTS5 (schema v3) populated by indexing; search verb: text + name/ext/kind/age filters; local-only, escaped MATCH.", "F-P9", "EXISTING"],
-    ["Android", "Kotlin/Room/SAF backend.", "F-P8", "MISSING"],
+    ["Android", "Kotlin/Room/SAF backend — adapters, grants, Room, WorkManager, share intake; on-device run unverified.", "F-P8", "IMPLEMENTED"],
     ["mockup/", "This preview — canonical visual reference of the approved UI.", "F-UI1", "EXISTING"],
   ];
   const chip = (s) => `<span class="chip ${s === "EXISTING" ? "success" : "offline"}"><span class="dot"></span>${s}</span>`;

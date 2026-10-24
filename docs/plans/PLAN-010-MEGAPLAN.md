@@ -1,9 +1,9 @@
 # PLAN-010 — FileMind Android Backend Megaplan (Backend Roadmap Phase 7 / PLAN-001 M8)
 
-Status: APPROVED
+Status: IMPLEMENTED — verified 2026-10-24
 Related Feature: F-P8 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
-Updated: 2026-10-24
+Updated: 2026-10-24 (implemented + verified)
 
 ## Request / Goal
 
@@ -95,12 +95,12 @@ JUnit unit + instrumented tests where emulator allows; parity fixtures vs Window
 
 ## Acceptance Criteria
 
-- [ ] Kotlin engine parity suite green against shared fixtures
-- [ ] SAF/MediaStore scan respects granted scopes only
-- [ ] Operations persist + undo where provider supports reversal
-- [ ] WorkManager jobs + notifications contracts working
-- [ ] Share input routes into pipeline
-- [ ] F-P8 status updated after verification
+- [x] Kotlin engine parity suite green against shared fixtures — `:core:test` 9/9 (`ManifestParityTest`, `RuleParityTest`, `ProfileParityTest`) against `tests/fixtures/manifest.json` + `rules-parity.json` + `profile-parity.json`; same manifest asserted on Windows by `ManifestParityTests` (96/96 via `sac-test-runner.fsx`), incl. golden fingerprint `400:8de541cd86c9000` matching .NET `UtcTicks`.
+- [x] SAF/MediaStore scan respects granted scopes only — `AndroidFileSystemAdapter` gates all SAF access on `UriGrantStore` persisted-permission coverage (`GrantCoverage`), `checkCapabilities`/`AndroidCapabilityModel` models per-URI permissions, grant-less SAF URIs return `PermissionDenied`; covered by `UriModelTest`/`SafPathNormalizerTest`/`ProtectedPathsTest` (18/18 JVM) + instrumented `GrantAndAdapterTest` (compiled; device run UNVERIFIED).
+- [x] Operations persist + undo where provider supports reversal — Room `FileMindDatabase` v2 mirrors all repository ports + `OperationStore`; `TransactionEngine`/`UndoService` reused unchanged; SAF `moveDocument` and MediaStore RELATIVE_PATH moves are reversible; copy/no-recipe/foreign-provider ops surface `NeedsAttention`/review; no deletes.
+- [x] WorkManager jobs + notifications contracts working — `ScanWorker`/`OrganizeWorker` + `FileMindWorkScheduler` (unique-work, battery/storage constraints, cooperative cancel), `NotificationContracts` 3-channel contract + `AndroidNotificationService`; contract pinned by `WorkContractTest`. Runtime behavior on-device UNVERIFIED.
+- [x] Share input routes into pipeline — headless `ShareIntakeActivity` (manifest SEND/SEND_MULTIPLE) → `ShareIntake` persists read grants best-effort → `SmartInboxItem` rows → review notification.
+- [x] F-P8 status updated after verification — `FEATURES.md` = IMPLEMENTED; `PLATFORM.md`/`MODULES.md`/`BUILD.md`/`CHANGELOG.md` updated; mockup F-P8 chip updated (IMPLEMENTED, offline-styled pending device run).
 
 ## Risks / Regression Areas
 

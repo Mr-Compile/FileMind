@@ -41,6 +41,35 @@ Integrity policy. Consequences observed 2026-10-24:
 - Other remedies: Authenticode-sign test binaries, or turn SAC off
   (Settings → App & browser control → Smart App Control; irreversible on Win11).
 
+## Android backend (`android/`)
+
+Verified on Windows 11 with Android Studio (bundled JBR 21.0.10), Android SDK
+`platforms;android-36` + `build-tools;36.0.0`, Gradle 9.1.0 (wrapper-pinned),
+AGP 9.0.1 (built-in Kotlin 2.2.10), KSP 2.3.6.
+
+```bash
+cd android
+JAVA_HOME="C:/Program Files/Android/Android Studio/jbr" ./gradlew.bat \
+  assembleDebug testDebugUnitTest :core:test
+```
+
+- `:core` — pure-JVM Kotlin port of the domain engine + app pipeline. JUnit 5
+  parity tests consume `tests/fixtures/manifest.json` directly (the same file
+  drives `FileMind.Domain.Tests/ManifestParityTests.cs` on Windows).
+- `:platform` — `com.android.library`: SAF/MediaStore adapter, persisted URI
+  grants, Room persistence (schema JSON exported to `platform/schemas/`),
+  WorkManager jobs, notification contract, share-target intake.
+- JVM unit tests: `./gradlew.bat :platform:testDebugUnitTest`
+  (URI model, capabilities, path normalizer, protected paths, work contract).
+- Instrumented tests (`platform/src/androidTest`): Room `MIGRATION_1_2` and
+  adapter round-trip — require a device/emulator; none was attached when this
+  was verified (2026-10-24), so they compile but are marked `UNVERIFIED`
+  on-device.
+- Kotlin metadata note: `kotlin-stdlib` and `kotlinx-*` deps are pinned to
+  versions compiled by Kotlin ≤2.2 so AGP 9's built-in Kotlin can read them;
+  `androidx.core` is pinned to 1.17.x because 1.19.x requires compileSdk 37 /
+  AGP 9.1, above the installed SDK.
+
 ## Host runtime configuration
 
 - `FILEMIND_DB` — SQLite path (default `%LOCALAPPDATA%\FileMind\filemind.db`)
