@@ -6,6 +6,7 @@ namespace FileMind.Domain.Classification;
 public sealed record NormalizedTokens(string Original, IReadOnlyList<string> Tokens)
 {
     public string Joined => string.Join(' ', Tokens);
+    public string Compact => string.Concat(Tokens);
 }
 
 public static class Normalizer
@@ -33,5 +34,5 @@ public static class Normalizer
     }
 
     public static bool Equivalent(string a, string b) =>
-        Normalize(a).Joined == Normalize(b).Joined;
+        Normalize(a).Compact == Normalize(b).Compact;
 }

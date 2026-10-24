@@ -32,7 +32,7 @@ public sealed class ClassifierEngine(
     ProjectMatcher projectMatcher,
     ConfidenceEngine confidence)
 {
-    public const double ContextOverTypeBonus = 15;
+    public const double ContextOverTypeBonus = 20;
 
     public ClassificationResult Classify(FileCandidate candidate)
     {

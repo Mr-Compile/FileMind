@@ -4,8 +4,8 @@ namespace FileMind.Domain.Classification;
 
 public sealed class ProjectMatcher(IProjectCatalog catalog)
 {
-    public const double AliasMatchScore = 35;
-    public const double NameMatchScore = 25;
+    public const double AliasMatchScore = 55;
+    public const double NameMatchScore = 55;
     public const double KeywordMatchScore = 12;
 
     public ProjectMatchResult Match(NormalizedTokens candidate)

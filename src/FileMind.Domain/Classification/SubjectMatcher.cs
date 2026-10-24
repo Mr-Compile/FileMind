@@ -4,8 +4,8 @@ namespace FileMind.Domain.Classification;
 
 public sealed class SubjectMatcher(ISubjectCatalog catalog)
 {
-    public const double CodeMatchScore = 40;
-    public const double NameAliasMatchScore = 30;
+    public const double CodeMatchScore = 65;
+    public const double NameAliasMatchScore = 45;
     public const double KeywordMatchScore = 15;
     public const double AmbiguityPenalty = 10;
 
