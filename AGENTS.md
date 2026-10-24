@@ -47,4 +47,7 @@ After implementation and QA, update only documentation affected by verified chan
 Use logical commits such as `feat(scope): ...`, `fix(scope): ...`, `refactor(scope): ...`, `test(scope): ...`, `docs(scope): ...`, `chore(scope): ...`. Avoid vague commits such as `update project`. Do not mix unrelated work into one commit.
 
 ## Auto-Commit
-When a feature, plan task, or milestone is verified complete (implementation done, relevant QA checks run and passing, affected documentation updated), commit it immediately in a logical feature-scoped commit without waiting for an explicit commit instruction. Never auto-commit incomplete, unverified, or out-of-scope work. Never push unless the user explicitly asks.
+When a feature, plan task, or milestone is verified complete (implementation done, relevant QA checks run and passing, affected documentation updated), commit it immediately in a logical feature-scoped commit without waiting for an explicit commit instruction. Never auto-commit incomplete, unverified, or out-of-scope work.
+
+## Remote Sync
+Every commit must be synced to `origin/main` immediately after it is created (`git push origin HEAD:main`). Do not batch commits for a later push. Do not push to any other remote or branch unless the user explicitly asks.
