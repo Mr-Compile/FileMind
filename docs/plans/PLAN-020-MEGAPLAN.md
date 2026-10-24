@@ -1,6 +1,6 @@
 # PLAN-020 — Groq Quota & Token Budgeting (PLAN-009 companion)
 
-Status: DRAFT
+Status: APPROVED
 Related Feature: F-P7 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
