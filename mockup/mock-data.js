@@ -199,9 +199,9 @@ FM_DATA.smartInbox = [
     receivedAt: new Date(Date.now() - 2 * 864e5).toISOString(),
   },
   {
-    id: "si-3", fileName: "it-421 summary.txt", sourceUri: `${DL}\\it-421 summary.txt`,
-    reasons: ["Confidence 83 requires Smart Inbox review."],
-    summary: "Document · subject alias 'IT-421' · band Medium", status: "Pending",
+    id: "si-3", fileName: "alpha budget review.xlsx", sourceUri: `${DT}\\alpha budget review.xlsx`,
+    reasons: ["Confidence 73 requires Smart Inbox review."],
+    summary: "Spreadsheet · project alias 'alpha' · band Medium", status: "Pending",
     receivedAt: new Date(Date.now() - 3 * 864e5).toISOString(),
   },
 ];
