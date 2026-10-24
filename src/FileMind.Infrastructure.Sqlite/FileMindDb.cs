@@ -28,6 +28,13 @@ public sealed class FileMindDb : IDisposable
         var connection = new SqliteConnection($"Data Source={path};Pooling=False");
         connection.Open();
         var db = new FileMindDb(connection);
+        // WAL + NORMAL: batch writes (indexing, job churn) otherwise pay one
+        // fsync per statement. WAL keeps durability across process crashes.
+        if (path != ":memory:")
+        {
+            db.Exec("PRAGMA journal_mode=WAL");
+            db.Exec("PRAGMA synchronous=NORMAL");
+        }
         db.Migrate();
         return db;
     }
