@@ -77,3 +77,10 @@ All notable verified project changes should be recorded here. Do not add planned
 - `branding/logo/android/res/` — drop-in Android resource tree: VectorDrawable foreground/monochrome/notification/splash, `mipmap-anydpi-v26` adaptive XMLs, density PNG fallbacks (legacy squircle, round, foreground 108–432, notification 24–96), `values/colors.xml`, `values-v31/themes.xml` splash theme. `build.mjs` extended (density jobs + Edge retry logic).
 - `mockup/` — real Option-4 mark in titlebar + favicon; theme-aware splash overlay on boot (lockup light/dark, ~500ms + fade, no fake progress per BRAND.md); early-theme inline script prevents theme flash.
 - Verified: all res XMLs well-formed, res tree complete, mockup asset paths resolve; PNG dims asserted per render.
+
+## 2026-10-24 — Cross-platform profiles (PLAN-012)
+- `ProfileService` (`FileMind.Application.Profiles`): portable `organizer-profile.json` (schema v1) export, preview diff (`added`/`changed`/`same` per section+id), explicit-policy import (`merge` upserts all, `skip` keeps existing), timestamped `profile-backup-<ts>.json` before apply, and restore.
+- `IExclusionRepository.AddAsync` added so profiles can import exclusion patterns.
+- Platform-only settings are excluded end-to-end: export emits only `organization.mode` under `preferences`; imports ignore `settings` blobs (verified — `watch.mode.*` never applied).
+- Malformed JSON, missing/<1/newer `schemaVersion` rejected before writes; backup+restore round-trip verified; import performs no user-file I/O.
+- Verified: 119/119 Application tests pass via sac-test-runner (12 new `ProfileTests`); all `profile` verbs exercised end-to-end on a real DB (export → preview → apply → backup → restore); mockup console synced.
