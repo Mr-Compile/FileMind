@@ -24,4 +24,11 @@
     <ProjectReference Include="..\FileMind.Testing\FileMind.Testing.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="..\..\schemas\rules\rule.schema.json"
+                      LogicalName="FileMind.Domain.Tests.schemas.rules.rule.schema.json" />
+    <EmbeddedResource Include="..\..\schemas\profiles\organizer-profile.schema.json"
+                      LogicalName="FileMind.Domain.Tests.schemas.profiles.organizer-profile.schema.json" />
+  </ItemGroup>
+
 </Project>

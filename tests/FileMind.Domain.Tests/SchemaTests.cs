@@ -9,14 +9,18 @@ public class SchemaTests
     private static readonly ConcurrentDictionary<string, JsonSchema> Cache = new();
     private static readonly object LoadLock = new();
 
-    private static string RepoPath(string relative) =>
-        Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", relative));
-
     private static JsonSchema LoadSchema(string relative)
     {
         lock (LoadLock)
         {
-            return Cache.GetOrAdd(relative, r => JsonSchema.FromText(File.ReadAllText(RepoPath(r))));
+            return Cache.GetOrAdd(relative, r =>
+            {
+                var name = "FileMind.Domain.Tests." + r.Replace('/', '.');
+                using var stream = typeof(SchemaTests).Assembly.GetManifestResourceStream(name)
+                    ?? throw new FileNotFoundException($"Embedded schema '{name}' not found.");
+                using var reader = new StreamReader(stream);
+                return JsonSchema.FromText(reader.ReadToEnd());
+            });
         }
     }
 
