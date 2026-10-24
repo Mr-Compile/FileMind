@@ -18,6 +18,9 @@ From `docs/packs/backend-roadmap/AGENTS.md` and `docs/packs/foundation-pack/09-a
 - Implement only the active phase; preserve module boundaries; small interfaces, explicit result/error types, deterministic local logic, versioned schemas, migrations, idempotent jobs, structured logs.
 - No hard-coded API keys.
 
+## Approved Mockup Rule
+`mockup/` is the canonical visual reference of the approved UI and must be updated in the same change whenever UI-relevant code, contracts, host verbs, feature statuses, brand tokens, or ui-ux-foundation intent change. See `docs/rules/MOCKUP_RULES.md`.
+
 ## Fact Labels
 Use: `EXISTING`, `MISSING`, `BROKEN`, `INCOMPLETE`, `INCONSISTENT`, `LEGACY`, `PROPOSED`, `UNVERIFIED`.
 

@@ -41,7 +41,7 @@ Agents MUST NOT mark a plan `APPROVED` themselves. Approval must come from the u
 Implementation is not complete because code compiles. Validate against `docs/qa/`, the plan acceptance criteria, existing behavior, regressions, errors, edge cases, and relevant platform behavior. Never claim a check passed unless it was actually run or otherwise verified.
 
 ## Documentation Rule
-After implementation and QA, update only documentation affected by verified changes. Preserve the distinction between implemented, planned, and proposed behavior.
+After implementation and QA, update only documentation affected by verified changes. Preserve the distinction between implemented, planned, and proposed behavior. When UI-relevant code, contracts, host verbs, feature statuses, or brand tokens change, `mockup/` must be updated in the same change per `docs/rules/MOCKUP_RULES.md`.
 
 ## Git Rule
 Use logical commits such as `feat(scope): ...`, `fix(scope): ...`, `refactor(scope): ...`, `test(scope): ...`, `docs(scope): ...`, `chore(scope): ...`. Avoid vague commits such as `update project`. Do not mix unrelated work into one commit.
