@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://filemind.dev/schemas/ai/ai-request.schema.json",
+  "title": "FileMind AI Minimized Request Payload",
+  "description": "The privacy-gate-minimized payload embedded in the Groq user message. Produced only after AiPrivacyGate consent checks; never contains protected-path data and never whole file contents.",
+  "type": "object",
+  "required": ["schemaVersion", "name", "ext"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "ext": { "type": "string" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "maxLength": 200 }
+    },
+    "snippet": { "type": ["string", "null"], "maxLength": 8192 }
+  }
+}

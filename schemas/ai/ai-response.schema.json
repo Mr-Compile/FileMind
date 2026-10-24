@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://filemind.dev/schemas/ai/ai-response.schema.json",
+  "title": "FileMind AI Suggestion Response",
+  "description": "The structured suggestion a provider must return. Merged as capped ai-signal evidence only — advisory, never a verdict. Unknown/extra fields are ignored by the mapper; required shape drift is rejected as AiInvalidResponse.",
+  "type": "object",
+  "required": ["confidenceHint"],
+  "additionalProperties": true,
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "collection": { "type": ["string", "null"] },
+    "category": { "type": ["string", "null"] },
+    "subject": { "type": ["string", "null"] },
+    "project": { "type": ["string", "null"] },
+    "suggestedName": { "type": ["string", "null"] },
+    "confidenceHint": { "type": "number", "minimum": 0, "maximum": 100 },
+    "explanation": { "type": "string" }
+  }
+}

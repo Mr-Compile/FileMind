@@ -29,6 +29,10 @@
                       LogicalName="FileMind.Domain.Tests.schemas.rules.rule.schema.json" />
     <EmbeddedResource Include="..\..\schemas\profiles\organizer-profile.schema.json"
                       LogicalName="FileMind.Domain.Tests.schemas.profiles.organizer-profile.schema.json" />
+    <EmbeddedResource Include="..\..\schemas\ai\ai-request.schema.json"
+                      LogicalName="FileMind.Domain.Tests.schemas.ai.ai-request.schema.json" />
+    <EmbeddedResource Include="..\..\schemas\ai\ai-response.schema.json"
+                      LogicalName="FileMind.Domain.Tests.schemas.ai.ai-response.schema.json" />
   </ItemGroup>
 
 </Project>

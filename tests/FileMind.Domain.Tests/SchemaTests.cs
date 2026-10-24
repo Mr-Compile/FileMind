@@ -81,4 +81,44 @@ public class SchemaTests
         var schema = LoadSchema("schemas/profiles/organizer-profile.schema.json");
         Assert.False(schema.Evaluate(System.Text.Json.JsonDocument.Parse("{}").RootElement).IsValid);
     }
+
+    [Fact]
+    public void AiRequestSchema_MinimizedPayloadPasses()
+    {
+        var schema = LoadSchema("schemas/ai/ai-request.schema.json");
+        var doc = System.Text.Json.JsonDocument.Parse("""
+            { "schemaVersion": 1, "name": "report.pdf", "ext": "pdf",
+              "metadata": { "author": "Jane" }, "snippet": "first lines" }
+            """).RootElement;
+        Assert.True(schema.Evaluate(doc).IsValid);
+    }
+
+    [Fact]
+    public void AiRequestSchema_UnexpectedFieldFails()
+    {
+        var schema = LoadSchema("schemas/ai/ai-request.schema.json");
+        var doc = System.Text.Json.JsonDocument.Parse("""
+            { "schemaVersion": 1, "name": "a.pdf", "ext": "pdf", "rawContents": "leak" }
+            """).RootElement;
+        Assert.False(schema.Evaluate(doc).IsValid);
+    }
+
+    [Fact]
+    public void AiResponseSchema_SuggestionPasses()
+    {
+        var schema = LoadSchema("schemas/ai/ai-response.schema.json");
+        var doc = System.Text.Json.JsonDocument.Parse("""
+            { "collection": "school", "subject": "IT421", "confidenceHint": 80,
+              "explanation": "networks content" }
+            """).RootElement;
+        Assert.True(schema.Evaluate(doc).IsValid);
+    }
+
+    [Fact]
+    public void AiResponseSchema_ConfidenceOutOfRangeFails()
+    {
+        var schema = LoadSchema("schemas/ai/ai-response.schema.json");
+        var doc = System.Text.Json.JsonDocument.Parse("""{ "confidenceHint": 140 }""").RootElement;
+        Assert.False(schema.Evaluate(doc).IsValid);
+    }
 }
