@@ -278,9 +278,16 @@ Usage:
   filemind scan <dir> [--shallow]
   filemind analyze <dir> [--shallow]
   filemind plan <dir> [--dest <root>] [--shallow]
-  filemind execute <dir> [--dest <root>] [--dry-run] [--shallow]
+  filemind execute <dir> [--dest <root>] [--dry-run] [--apply] [--shallow]
   filemind undo <operationId>
   filemind history [count]
+  filemind smart-inbox [resolve <id>]
+  filemind mode [<manual|smart|automatic|ai-assisted|local-only>]
+  filemind rules [list]
+  filemind rules show <id>
+  filemind rules test <id|rule.json> <dir>
+  filemind rules import <file>
+  filemind rules export <id> [--out <file>]
   filemind seed-demo
 
 Environment:
@@ -314,7 +321,7 @@ Environment:
         if (needDir()) return;
         const kept = filesIn(root).filter((f) => !FM.engine.excluded(f));
         for (const c of kept) print(`${pad(c.displayName, 40)} ${String(FM.n0(c.sizeBytes)).padStart(10)}  ${c.sourceScope}`);
-        print(`-- ${kept.length} file(s)`);
+        print(`-- ${kept.length} file(s); indexed ${kept.length}, hashed ${kept.length}`);
         return;
       }
       case "analyze": {
@@ -327,21 +334,42 @@ Environment:
         }
         return;
       }
-      case "plan": case "execute": {
+      case "plan": {
         if (needDir()) return;
         const res = FM.engine.analyze(filesIn(root).filter((f) => !FM.engine.excluded(f)));
         const dest = flagVal("--dest") || `${root}\\organized`;
-        const dry = cmd === "plan" ? true : flags.has("--dry-run");
-        const p = FM.engine.plan(res, dry, dest);
+        const p = FM.engine.plan(res, true, dest);
         print(planLine(p));
         print(itemLines(p));
-        if (cmd === "plan") return;
-        const sf = FM.engine.safety(res, p, root);
+        return;
+      }
+      case "execute": {
+        if (needDir()) return;
+        const res = FM.engine.analyze(filesIn(root).filter((f) => !FM.engine.excluded(f)));
+        /* mirrors ModePolicy: Manual needs --apply; Review/needsReview -> Smart Inbox; NoOp/Ignore -> skip */
+        const mode = (FM.store.settings.organizationMode || "Manual").toLowerCase();
+        const apply = flags.has("--apply");
+        const previewOnly = mode === "manual" && !apply;
+        const route = (a) => {
+          if (a.decision.kind === "NoOp" || a.decision.kind === "Ignore") return "Skip";
+          if (mode === "manual" && !(apply || previewOnly)) return "PreviewOnly";
+          if (mode === "automatic") return "Execute";
+          return (a.decision.kind === "Review" || a.classification.needsReview) ? "SmartInbox" : "Execute";
+        };
+        const executable = res.filter((a) => route(a) === "Execute");
+        print(`-- mode=${mode}; ${executable.length} item(s) routed to execute`);
+        const dest = flagVal("--dest") || `${root}\\organized`;
+        const dry = flags.has("--dry-run") || previewOnly;
+        const p = FM.engine.plan(executable, dry, dest);
+        print(planLine(p));
+        print(itemLines(p));
+        const sf = FM.engine.safety(executable, p, root);
         sf.warnings.forEach((w) => print(`  warn: ${w}`, "dim"));
         if (!sf.allowed) {
           sf.blockers.forEach((x) => print(`  blocked: ${x}`, "err"));
           return err("Safety validation failed; nothing executed.");
         }
+        if (previewOnly) return print("-- mode=manual: preview only. Re-run with --apply to execute.", "dim");
         if (p.dryRun) return print("-- dry-run: no changes made.", "dim");
         print(`  <running staged pipeline: Validating → Executing → Verifying>`, "dim");
         const rec = await FM.engine.execute(p, null, null);
@@ -373,6 +401,72 @@ Environment:
         FM.store.ops.slice(0, n).forEach((r) =>
           print(`${r.operationId}  ${pad(r.status, 15)} ${FM.utc(r.createdAt)}  plan=${r.planId}  items=${r.items.length}`));
         return;
+      }
+      case "smart-inbox": {
+        if (pos[0] === "resolve") {
+          if (!pos[1]) return err("usage: filemind smart-inbox resolve <id>");
+          const it = FM.store.inbox.find((i) => i.id === pos[1] && i.status === "Pending");
+          if (!it) return err(`could not resolve '${pos[1]}'`);
+          it.status = "Resolved";
+          FM.bus.emit("ops");
+          return;
+        }
+        const open = FM.store.inbox.filter((i) => i.status === "Pending");
+        for (const i of open) {
+          const conf = (i.reasons.join(" ").match(/Confidence (\d+)/) || [null, "-"])[1];
+          print(`${i.id}  conf=${String(conf).padStart(4)}  ${i.sourceUri}\n    reason: ${i.reasons.join("; ")}`);
+        }
+        print(`-- ${open.length} open item(s)`);
+        return;
+      }
+      case "mode": {
+        const okModes = ["manual", "smart", "automatic", "ai-assisted", "local-only"];
+        const display = (m) => m.toLowerCase() === "aiassisted" ? "ai-assisted" : m.toLowerCase() === "localonly" ? "local-only" : m.toLowerCase();
+        if (!pos[0]) {
+          print(`mode=${display(FM.store.settings.organizationMode || "Manual")}`);
+          print("modes: manual (preview until --apply), smart (organize confident, rest to Smart Inbox),");
+          print("       automatic (execute all safety-passed), ai-assisted (smart + AI, needs PLAN-009), local-only (smart, AI off)");
+          return;
+        }
+        const req = pos[0] === "set" && pos[1] ? pos[1] : pos[0];
+        if (!okModes.includes(req)) return err(`unknown mode '${req}'.`);
+        const enumName = { "ai-assisted": "AiAssisted", "local-only": "LocalOnly" };
+        FM.store.settings.organizationMode = enumName[req] ?? (req[0].toUpperCase() + req.slice(1));
+        print(`mode=${req}`);
+        return;
+      }
+      case "rules": {
+        const sub = pos[0] ?? "list";
+        const countConds = (g) => (g?.conditions?.length ?? 0) + (g?.groups ?? []).reduce((s, x) => s + countConds(x), 0);
+        if (sub === "list") {
+          [...FM.store.rules].sort((a, b) => b.priority - a.priority).forEach((r) =>
+            print(`${pad(r.id, 16)} ${pad(r.name, 30)} priority=${String(r.priority).padStart(4)} enabled=${r.enabled} provenance=${r.provenance} conditions=${countConds(r.conditionRoot)}`));
+          return print(`-- ${FM.store.rules.length} rule(s)`);
+        }
+        if (sub === "show" || sub === "export") {
+          if (!pos[1]) return err(`usage: filemind rules ${sub} <id>${sub === "export" ? " [--out <file>]" : ""}`);
+          const r = FM.store.rules.find((x) => x.id === pos[1]);
+          if (!r) return err(`rule '${pos[1]}' not found`);
+          if (sub === "export" && flagVal("--out")) return print(`exported ${r.id} -> ${flagVal("--out")} (demo: nothing written)`);
+          return print(JSON.stringify(r, null, 2));
+        }
+        if (sub === "test") {
+          if (!pos[1] || !pos[2]) return err("usage: filemind rules test <id|rule.json> <dir>");
+          const r = FM.store.rules.find((x) => x.id === pos[1]);
+          if (!r) return err(`rule '${pos[1]}' not found (demo loads stored rules only)`);
+          const tRoot = findRoot(pos[2]);
+          if (!tRoot) return err(`directory '${pos[2]}' does not exist`);
+          const res = FM.engine.analyze(filesIn(tRoot).filter((f) => !FM.engine.excluded(f)));
+          let matched = 0;
+          for (const a of res) {
+            const hit = FM.engine.evalGroup(r.conditionRoot, a.candidate, a.classification);
+            if (hit) matched++;
+            print(`${(hit ? "MATCH" : "SKIP ").padEnd(6)} ${pad(a.candidate.displayName, 40)} ${hit ? r.actions.map((x) => x.kind).join(", ") : "-"}`);
+          }
+          return print(`-- rule ${r.id}: ${matched}/${res.length} candidate(s) matched (test only, nothing changed)`);
+        }
+        if (sub === "import") return err("demo: import reads a real .json file — host validates then upserts with provenance=Imported");
+        return err("usage: filemind rules [list|show|test|import|export]");
       }
       default:
         return err(`Unknown command '${cmd}'. Run 'filemind --help'.`);
@@ -411,15 +505,15 @@ FM.screen("architecture", (m) => {
   ];
   const modules = [
     ["FileMind.Domain", "Contracts, engines, rules, safety, planning, transactions, undo. Zero I/O.", "77 unit tests", "EXISTING"],
-    ["FileMind.Application", "Scanner, DecisionMaker, OrganizerPipeline, app ports.", "wiring + E2E", "EXISTING"],
-    ["FileMind.Infrastructure.Sqlite", "WAL SQLite, schema v1 + migrations, all repositories incl. IOperationStore.", "E2E-verified", "EXISTING"],
+    ["FileMind.Application", "Scanner, DecisionMaker, OrganizerPipeline, indexing, startup recovery, Smart Inbox, ModePolicy.", "wiring + E2E", "EXISTING"],
+    ["FileMind.Infrastructure.Sqlite", "WAL SQLite, schema v2 + migrations, all repositories incl. IOperationStore + file_index hash.", "E2E-verified", "EXISTING"],
     ["FileMind.Platform.Windows", "Real FS adapter, path normalizer, protected paths, SHA256.", "E2E-verified", "EXISTING"],
-    ["FileMind.Windows.Host", "Console verbs: scan/analyze/plan/execute/undo/history/seed-demo.", "the app today", "EXISTING"],
+    ["FileMind.Windows.Host", "Console verbs: scan/analyze/plan/execute/undo/history/smart-inbox/mode/rules/seed-demo.", "the app today", "EXISTING"],
     ["FileMind.Branding", "Canonical palette tokens as C# consts + parity tests.", "8 tests", "EXISTING"],
     ["FileMind.Intelligence.Local", "Local content extraction (PDF/DOCX/EXIF…).", "F-P5", "MISSING"],
     ["FileMind.Intelligence.AI", "Groq provider + privacy gate. Advisory only.", "F-P7", "MISSING"],
     ["Watchers/automation", "FileSystemWatcher, debounce, background jobs.", "F-P4", "MISSING"],
-    ["Search (FTS5)", "file_content_index prepared in schema v1, not populated.", "F-P9", "MISSING"],
+    ["Search (FTS5)", "No FTS index in schema yet — PLAN-015 adds it.", "F-P9", "MISSING"],
     ["Android", "Kotlin/Room/SAF backend.", "F-P8", "MISSING"],
     ["mockup/", "This preview — canonical visual reference of the approved UI.", "F-UI1", "EXISTING"],
   ];
