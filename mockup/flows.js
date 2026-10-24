@@ -300,6 +300,12 @@ Usage:
   filemind dupes [<prefix>] [--plan] [--apply] [--dest <root>]
   filemind storage [<prefix>]
   filemind search [text] [--name <s>] [--ext <e>] [--kind <k>] [--older-than <d>] [--newer-than <d>] [--limit <n>]
+  filemind ai-status
+  filemind ai-usage [count]
+  filemind ai-key <set <key>|clear|status>
+  filemind ai-suggest <file>
+  filemind ai-rule <natural language>
+  filemind ai-search <natural language>
   filemind seed-demo
 
 Environment:
@@ -642,6 +648,57 @@ Environment:
         }
         return print(`-- ${events} event(s), ${processed} processed, ${actions} action(s)`);
       }
+      case "ai-status": {
+        const st = FM.store.settings;
+        print(`enabled=${st.aiEnabled === true}  model=openai/gpt-oss-120b`);
+        print("endpoint=https://api.groq.com/openai/v1/chat/completions");
+        print(`api-key=${st.aiKey ? "present (secret-store)" : "MISSING (set GROQ_API_KEY in .env or `filemind ai-key set`)"}`);
+        print("consent: metadata=True extracted-text=False");
+        print(`quota: ${(st.aiUsage ?? []).length}/800 req/day, 0/160000 tok/day, 0/24 req/min`);
+        print(`provider: available=${st.aiEnabled === true && !!st.aiKey}`);
+        print("-- advisory only; AI output never mutates files and never bypasses SafetyEngine", "dim");
+        return;
+      }
+      case "ai-usage": {
+        const n = +pos[0] || 10;
+        const rows = (FM.store.settings.aiUsage ?? []).slice(0, n);
+        rows.forEach((u) => print(`${u.at}  ${pad(u.purpose, 16)} ${pad("gpt-oss-120b", 22)} in=${String(u.pin).padStart(5)} out=${String(u.pout).padStart(5)}  ${u.outcome}`));
+        print(`-- ${rows.length} record(s) — metadata only, payload contents are never stored`, "dim");
+        return;
+      }
+      case "ai-key": {
+        const st = FM.store.settings;
+        const sub = pos[0];
+        if (sub === "set") {
+          if (!pos[1]) return err("usage: filemind ai-key set <key>");
+          st.aiKey = pos[1];
+          return print("Groq API key stored in the DPAPI user store. It never enters the repo or logs.");
+        }
+        if (sub === "clear") { st.aiKey = null; return print("Groq API key removed from the DPAPI user store."); }
+        if (sub === "status") return print(st.aiKey ? "key configured (source: secret-store)" : "no key configured");
+        return err("usage: filemind ai-key <set <key>|clear|status>");
+      }
+      case "ai-suggest": {
+        if (!pos[0]) return err("usage: filemind ai-suggest <file>");
+        if (FM.store.settings.aiEnabled !== true) return err("AI disabled (ai.enabled not set).");
+        return err("No Groq API key — set GROQ_API_KEY (env or .env) or `filemind ai-key set <key>`.");
+      }
+      case "ai-rule": {
+        if (FM.store.settings.aiEnabled !== true) return err("AI disabled (ai.enabled not set).");
+        return err("No Groq API key — set GROQ_API_KEY (env or .env) or `filemind ai-key set <key>`.");
+      }
+      case "ai-search": {
+        const nl = pos.join(" ");
+        if (!nl) return err("usage: filemind ai-search <natural language>");
+        if (FM.store.settings.aiEnabled !== true)
+          print("-- interpretation unavailable (AiOffline); plain text search", "dim");
+        const terms = nl.toLowerCase().match(/[\p{L}\p{N}_]+/gu) ?? [];
+        const pool = FM.store.files.filter((f) =>
+          terms.every((t) => f.displayName.toLowerCase().includes(t) || (f.extractedTextRef ?? "").toLowerCase().includes(t)));
+        pool.forEach((f) => print(`${pad(f.displayName, 40)} ${fmtB(f.sizeBytes).padStart(10)}  ${f.sourceUri}`));
+        print(`-- ${pool.length} result(s)`);
+        return;
+      }
       case "watch-status": {
         const watched = FM.store.settings.watchedFolders ?? [];
         const def = FM.store.settings.organizationMode || "Manual";
@@ -678,7 +735,7 @@ FM.screen("architecture", (m) => {
     ["Rule engine", "JSON rules: priority → specificity → stop → conflicts", "Domain/Rules/RuleEngine.cs", "EXISTING"],
     ["Classifier", "subject code>alias>keyword + project match", "SubjectMatcher.cs · ProjectMatcher.cs", "EXISTING"],
     ["Confidence", "weighted evidence, per-kind caps, bands 95/70", "ConfidenceEngine.cs", "EXISTING"],
-    ["AI (optional)", "Groq suggestions — advisory only, never mutates", "Intelligence.AI (empty)", "MISSING"],
+    ["AI (optional)", "Groq suggestions — advisory only, never mutates", "Intelligence.AI · AiAdvisor merge", "EXISTING"],
     ["Decision", "Organize / Review(Smart Inbox) / Ignore / NoOp", "Application/Decisions/DecisionMaker.cs", "EXISTING"],
     ["Safety", "protected paths deny-by-default, pre-checks, conflicts", "Domain/Safety/SafetyEngine.cs", "EXISTING"],
     ["ActionPlan", "immutable items + undo recipes + fingerprints", "Domain/Operations/ActionPlanner.cs", "EXISTING"],
@@ -691,11 +748,11 @@ FM.screen("architecture", (m) => {
     ["FileMind.Application", "Scanner, DecisionMaker, OrganizerPipeline, indexing, startup recovery, Smart Inbox, ModePolicy, watch pipeline (queue/debounce/stability/orchestrator), duplicates + storage analysis.", "wiring + E2E", "EXISTING"],
     ["FileMind.Infrastructure.Sqlite", "WAL SQLite, schema v2 + migrations, all repositories incl. IOperationStore + file_index hash + persisted job queue.", "E2E-verified", "EXISTING"],
     ["FileMind.Platform.Windows", "Real FS adapter, path normalizer, protected paths, SHA256, FileSystemWatcher, drive attach/detach, console notifications.", "E2E-verified", "EXISTING"],
-    ["FileMind.Windows.Host", "Console verbs: scan/analyze/plan/execute/undo/history/smart-inbox/mode/rules/watch/watch-status/enrich/dupes/storage/seed-demo.", "the app today", "EXISTING"],
+    ["FileMind.Windows.Host", "Console verbs: scan/analyze/plan/execute/undo/history/smart-inbox/mode/rules/watch/watch-status/enrich/dupes/storage/search/ai-*/seed-demo.", "the app today", "EXISTING"],
     ["FileMind.Branding", "Canonical palette tokens as C# consts + parity tests.", "8 tests", "EXISTING"],
     ["FileMind.Intelligence.Local", "Analyzer registry + extractors: OOXML/PDF/text/EXIF/ID3/video/archive-manifest/code-signals; bounded + fail-safe; feeds classification + {Title}/{Author}/{Year} rename tokens.", "F-P5", "EXISTING"],
     ["Duplicates & storage", "size→partial→full hash gating over file_index; advisory similarity candidates; kind/age breakdown; review-first quarantine plan (KeepBoth, undoable).", "F-P6", "EXISTING"],
-    ["FileMind.Intelligence.AI", "Groq provider + privacy gate. Advisory only.", "F-P7", "MISSING"],
+    ["FileMind.Intelligence.AI", "Groq provider + privacy gate + quota gate + usage ledger + NL draft/interpret. Advisory only.", "F-P7", "EXISTING"],
     ["Watchers/automation", "FileSystemWatcher, bounded queue + debounce, stability checks, persisted jobs, drive pause/resume.", "F-P4", "EXISTING"],
     ["Search (FTS5)", "file_content_index FTS5 (schema v3) populated by indexing; search verb: text + name/ext/kind/age filters; local-only, escaped MATCH.", "F-P9", "EXISTING"],
     ["Android", "Kotlin/Room/SAF backend.", "F-P8", "MISSING"],
