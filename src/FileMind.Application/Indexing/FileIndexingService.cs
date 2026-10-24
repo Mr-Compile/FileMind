@@ -10,7 +10,8 @@ public sealed record IndexResult(int Indexed, int Hashed, IReadOnlyList<string> 
 public sealed class FileIndexingService(
     IFileIndexRepository index,
     IHashService? hash = null,
-    long hashSizeCapBytes = 64L * 1024 * 1024)
+    long hashSizeCapBytes = 64L * 1024 * 1024,
+    ISearchIndex? searchIndex = null)
 {
     public const long DefaultHashSizeCapBytes = 64L * 1024 * 1024;
 
@@ -65,7 +66,16 @@ public sealed class FileIndexingService(
                 Fingerprint = fingerprint
             };
             var upsert = await index.UpsertAsync(candidate, identity, ct);
-            if (upsert.IsSuccess) indexed++;
+            if (upsert.IsSuccess)
+            {
+                indexed++;
+                if (searchIndex is not null)
+                {
+                    var fts = await searchIndex.IndexAsync(candidate, candidate.ExtractedTextRef, ct);
+                    if (!fts.IsSuccess)
+                        warnings.Add($"{candidate.DisplayName}: search index failed ({fts.Error!.Message})");
+                }
+            }
             else warnings.Add($"{candidate.DisplayName}: index failed ({upsert.Error!.Message})");
         }
 

@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using FileMind.Application.Ports;
+using FileMind.Domain.Classification;
 using FileMind.Domain.Contracts;
 using FileMind.Domain.Errors;
 using FileMind.Domain.Ports;
@@ -11,7 +12,8 @@ public sealed class SqliteStore(FileMindDb db) :
     IRuleRepository, ICollectionRepository, ISubjectRepository, IProjectRepository,
     IOperationRepository, IOperationStore, ISmartInboxRepository, IExclusionRepository,
     IProtectedPathRepository, IWatchedFolderRepository, ISettingsRepository,
-    IJobRepository, IAiAuditRepository, IProfileRepository, IFileIndexRepository
+    IJobRepository, IAiAuditRepository, IProfileRepository, IFileIndexRepository,
+    ISearchIndex
 {
     private static JsonSerializerOptions Json => FileMindDb.JsonOptions;
 
@@ -219,8 +221,68 @@ public sealed class SqliteStore(FileMindDb db) :
                 }, ("$fp", fingerprint)).ToList())));
 
     public Task<Result<bool>> RemoveAsync(string path, CancellationToken ct = default) =>
+        Task.FromResult(Try(() =>
+        {
+            var removed = db.Exec("DELETE FROM file_index WHERE path=$p", ("$p", path)) > 0;
+            db.Exec("DELETE FROM file_content_index WHERE path=$p", ("$p", path));
+            return Result<bool>.Ok(removed);
+        }));
+
+    // ---- ISearchIndex (FTS5 file_content_index, added in schema v3) ----
+
+    Task<Result<bool>> ISearchIndex.IndexAsync(FileCandidate candidate, string? extractedText, CancellationToken ct) =>
+        Task.FromResult(Try(() =>
+        {
+            db.Exec("DELETE FROM file_content_index WHERE path=$p", ("$p", candidate.SourceUri));
+            db.Exec("""
+                INSERT INTO file_content_index(path,display_name,collection,subject,project,kind,content)
+                VALUES($p,$n,$c,$s,$j,$k,$t)
+                """,
+                ("$p", candidate.SourceUri), ("$n", candidate.DisplayName),
+                ("$c", candidate.Metadata.TryGetValue("collection", out var col) ? col : ""),
+                ("$s", candidate.Metadata.TryGetValue("subject", out var sub) ? sub : ""),
+                ("$j", candidate.Metadata.TryGetValue("project", out var proj) ? proj : ""),
+                ("$k", FileKindMap.FromExtension(candidate.Extension).ToString()),
+                ("$t", extractedText ?? ""));
+            return Result<bool>.Ok(true);
+        }));
+
+    Task<Result<bool>> ISearchIndex.RemoveAsync(string path, CancellationToken ct) =>
         Task.FromResult(Try(() => Result<bool>.Ok(
-            db.Exec("DELETE FROM file_index WHERE path=$p", ("$p", path)) > 0)));
+            db.Exec("DELETE FROM file_content_index WHERE path=$p", ("$p", path)) > 0)));
+
+    Task<Result<IReadOnlyList<SearchHit>>> ISearchIndex.SearchAsync(string query, int limit, CancellationToken ct) =>
+        Task.FromResult(Try<IReadOnlyList<SearchHit>>(() =>
+        {
+            var match = ToSafeMatch(query);
+            if (match is null) return Result<IReadOnlyList<SearchHit>>.Ok([]);
+            return Result<IReadOnlyList<SearchHit>>.Ok(
+                db.Query("""
+                    SELECT path, collection, subject, bm25(file_content_index) AS rank
+                    FROM file_content_index
+                    WHERE file_content_index MATCH $q
+                    ORDER BY rank LIMIT $n
+                    """,
+                    r => new SearchHit(r.GetString(0),
+                        string.IsNullOrEmpty(r.GetString(1)) ? null : r.GetString(1),
+                        string.IsNullOrEmpty(r.GetString(2)) ? null : r.GetString(2),
+                        r.GetDouble(3)),
+                    ("$q", match), ("$n", Math.Clamp(limit, 1, 1000))).ToList());
+        }));
+
+    // Escape user text into a safe FTS5 MATCH expression: each word becomes a
+    // quoted term so input can never inject operators or column filters.
+    private static string? ToSafeMatch(string query)
+    {
+        var terms = System.Text.RegularExpressions.Regex
+            .Matches(query, @"[\p{L}\p{N}_]+")
+            .Select(m => m.Value)
+            .Where(t => t.Length > 0)
+            .Take(16)
+            .Select(t => $"\"{t}\"")
+            .ToList();
+        return terms.Count == 0 ? null : string.Join(" ", terms);
+    }
 
     Task<Result<IReadOnlyList<FileCandidate>>> IFileIndexRepository.GetAllAsync(CancellationToken ct) =>
         Task.FromResult(Try<IReadOnlyList<FileCandidate>>(() => Result<IReadOnlyList<FileCandidate>>.Ok(

@@ -84,6 +84,14 @@ public sealed class FileMindDb : IDisposable
             Exec("INSERT INTO schema_migrations(version, applied_at) VALUES(2, $at)",
                 ("$at", DateTimeOffset.UtcNow.ToString("O")));
         }
+
+        if (applied < 3)
+        {
+            foreach (var statement in V3.Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                Exec(statement);
+            Exec("INSERT INTO schema_migrations(version, applied_at) VALUES(3, $at)",
+                ("$at", DateTimeOffset.UtcNow.ToString("O")));
+        }
     }
 
     private const string V1 = """
@@ -136,6 +144,21 @@ public sealed class FileMindDb : IDisposable
     private const string V2 = """
         ALTER TABLE file_index ADD COLUMN content_hash TEXT;
         ALTER TABLE file_index ADD COLUMN hash_state TEXT NOT NULL DEFAULT 'NotComputed'
+        """;
+
+    // FTS5 external-free content table: every indexed field is stored here so
+    // search never needs to touch payloads. `content` holds bounded extracted
+    // text only (local, never leaves the DB).
+    private const string V3 = """
+        CREATE VIRTUAL TABLE file_content_index USING fts5(
+            path UNINDEXED,
+            display_name,
+            collection,
+            subject,
+            project,
+            kind,
+            content,
+            tokenize='unicode61')
         """;
 
     public void Dispose() => _connection.Dispose();

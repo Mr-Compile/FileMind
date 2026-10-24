@@ -45,6 +45,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
           filemind enrich <dir> [--shallow]
           filemind dupes [<prefix>] [--plan]
           filemind storage [<prefix>]
+          filemind search [text] [--name <s>] [--ext <e>] [--kind <k>] [--older-than <d>] [--newer-than <d>] [--limit <n>]
           filemind seed-demo
 
         Environment:
@@ -96,7 +97,9 @@ var scanner = new FileScanner(adapter, paths,
 
 var safety = new SafetyEngine(adapter, paths);
 var hashing = new WindowsHashService();
-var indexing = new FileIndexingService(store, hashing);
+var indexing = new FileIndexingService(store, hashing, searchIndex: (ISearchIndex)store);
+var searchUseCase = new FileMind.Application.Search.SearchUseCase(
+    (ISearchIndex)store, (IFileIndexRepository)store);
 var dupeService = new FileMind.Application.Duplicates.DuplicateDetectionService(
     (IFileIndexRepository)store, hashing, adapter);
 var storageService = new FileMind.Application.Duplicates.StorageAnalysisService(
@@ -342,6 +345,31 @@ switch (command)
             foreach (var f in s.Oldest)
                 Console.WriteLine($"  {f.AgeDays,5}d  {f.Path}");
         }
+        return 0;
+    }
+
+    case "search":
+    {
+        var searchArgs = positional.Where(p => !string.Equals(p, dest, StringComparison.OrdinalIgnoreCase)).ToList();
+        var flagsWithValues = new[] { "--name", "--ext", "--kind", "--older-than", "--newer-than", "--limit" }
+            .Select(flagValue).Where(v => v is not null).ToHashSet();
+        var text = searchArgs.FirstOrDefault(a => !flagsWithValues.Contains(a));
+        int? OptInt(string n) =>
+            int.TryParse(flagValue(n), out var v) ? v : null;
+        var q = new FileMind.Application.Search.SearchQuery(
+            Text: text,
+            NameContains: flagValue("--name"),
+            Extension: flagValue("--ext"),
+            Kind: flagValue("--kind"),
+            OlderThanDays: OptInt("--older-than"),
+            NewerThanDays: OptInt("--newer-than"),
+            Limit: OptInt("--limit") ?? 50);
+        var res = await searchUseCase.RunAsync(q);
+        if (!res.IsSuccess) return Fail(res.Error!.Message);
+        foreach (var i in res.Value!)
+            Console.WriteLine($"{i.DisplayName,-40} {i.Kind,-10} {FmtBytes(i.SizeBytes),10}  rank={i.Rank,7:0.000}  {i.Path}");
+        Console.WriteLine($"-- {res.Value!.Count} result(s)" +
+            (res.Value.Count == 0 ? " — nothing indexed matches; run `scan`/`enrich` to populate the index" : ""));
         return 0;
     }
 

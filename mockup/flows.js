@@ -299,6 +299,7 @@ Usage:
   filemind enrich <dir> [--shallow]
   filemind dupes [<prefix>] [--plan] [--apply] [--dest <root>]
   filemind storage [<prefix>]
+  filemind search [text] [--name <s>] [--ext <e>] [--kind <k>] [--older-than <d>] [--newer-than <d>] [--limit <n>]
   filemind seed-demo
 
 Environment:
@@ -561,6 +562,25 @@ Environment:
           .forEach((f) => print(`  ${String(days(f)).padStart(5)}d  ${f.sourceUri}`));
         return;
       }
+      case "search": {
+        const flagVals = ["--name", "--ext", "--kind", "--older-than", "--newer-than", "--limit"]
+          .map(flagVal).filter(Boolean);
+        const text = pos.find((a) => !flagVals.includes(a));
+        const kindOf = (f) => FM.engine.analyze([f])[0]?.classification.fileKind ?? "Other";
+        const days = (f) => Math.floor((Date.now() - new Date(f.modifiedAt).getTime()) / 864e5);
+        const terms = (text ?? "").toLowerCase().match(/[\p{L}\p{N}_]+/gu) ?? [];
+        let pool = FM.store.files.filter((f) =>
+          terms.every((t) => f.displayName.toLowerCase().includes(t) || (f.extractedTextRef ?? "").toLowerCase().includes(t)));
+        if (flagVal("--name")) pool = pool.filter((f) => f.displayName.toLowerCase().includes(flagVal("--name").toLowerCase()));
+        if (flagVal("--ext")) pool = pool.filter((f) => f.extension.toLowerCase() === "." + flagVal("--ext").replace(/^\./, "").toLowerCase());
+        if (flagVal("--kind")) pool = pool.filter((f) => kindOf(f).toLowerCase() === flagVal("--kind").toLowerCase());
+        if (flagVal("--older-than")) pool = pool.filter((f) => days(f) > +flagVal("--older-than"));
+        if (flagVal("--newer-than")) pool = pool.filter((f) => days(f) <= +flagVal("--newer-than"));
+        pool = pool.slice(0, +(flagVal("--limit") ?? 50));
+        pool.forEach((f) => print(`${pad(f.displayName, 40)} ${pad(kindOf(f), 10)} ${fmtB(f.sizeBytes).padStart(10)}  rank=-0.000  ${f.sourceUri}`));
+        print(`-- ${pool.length} result(s)` + (pool.length ? "" : " — nothing indexed matches; run `scan`/`enrich` to populate the index"));
+        return;
+      }
       case "watch": {
         const watched = (FM.store.settings.watchedFolders ??= []);
         const sub = pos[0] ?? "run";
@@ -677,7 +697,7 @@ FM.screen("architecture", (m) => {
     ["Duplicates & storage", "size→partial→full hash gating over file_index; advisory similarity candidates; kind/age breakdown; review-first quarantine plan (KeepBoth, undoable).", "F-P6", "EXISTING"],
     ["FileMind.Intelligence.AI", "Groq provider + privacy gate. Advisory only.", "F-P7", "MISSING"],
     ["Watchers/automation", "FileSystemWatcher, bounded queue + debounce, stability checks, persisted jobs, drive pause/resume.", "F-P4", "EXISTING"],
-    ["Search (FTS5)", "No FTS index in schema yet — PLAN-015 adds it.", "F-P9", "MISSING"],
+    ["Search (FTS5)", "file_content_index FTS5 (schema v3) populated by indexing; search verb: text + name/ext/kind/age filters; local-only, escaped MATCH.", "F-P9", "EXISTING"],
     ["Android", "Kotlin/Room/SAF backend.", "F-P8", "MISSING"],
     ["mockup/", "This preview — canonical visual reference of the approved UI.", "F-UI1", "EXISTING"],
   ];

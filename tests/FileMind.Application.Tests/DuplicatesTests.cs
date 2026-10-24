@@ -222,7 +222,7 @@ public class DuplicatesTests
         var record = (await tx.ExecuteAsync(plan, ctx)).Value!;
         Assert.Equal(OperationStatus.Committed, record.Status);
         Assert.Null(fs.ReadText("d:/f/copy.bin"));
-        Assert.Equal("same-content", fs.ReadText(record.Items[0].ResultingLocation));
+        Assert.Equal("same-content", fs.ReadText(record.Items[0].ResultingLocation!));
 
         var reverse = (await new UndoService(fs).BuildReversePlanAsync(record)).Value!;
         var undoRecord = (await tx.ExecuteAsync(reverse, ctx)).Value!;
