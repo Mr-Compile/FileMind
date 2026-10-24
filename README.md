@@ -6,7 +6,7 @@
 FileMind organizes files locally using deterministic rules and classification. Optional Groq AI may suggest, but only the deterministic `Decision -> Safety -> ActionPlan -> Platform Adapter -> Verify -> History` pipeline may mutate files. See `docs/packs/foundation-pack/` and `docs/packs/backend-roadmap/` for the approved product and backend intent.
 
 ## Status
-M0–M3 implemented and verified (see `docs/plans/PLAN-001-MEGAPLAN.md`): domain contracts/engines, application pipeline, Windows FS adapter, SQLite persistence, console host. 82 tests pass. Check `docs/features/FEATURES.md` for per-feature status labels. Windows automation/watchers, intelligence, Groq, Android, search, and UI are not implemented yet.
+M0–M3 implemented and verified (see `docs/plans/PLAN-001-MEGAPLAN.md`): domain contracts/engines, application pipeline, Windows FS adapter, SQLite persistence, console host. Branding palette adopted per `docs/plans/PLAN-002-MEGAPLAN.md` (`branding/` canonical tokens + `FileMind.Branding` constants). 90 tests pass. Check `docs/features/FEATURES.md` for per-feature status labels. Windows automation/watchers, intelligence, Groq, Android, search, and UI are not implemented yet.
 
 ## Build & Test (verified on Windows 11 + .NET SDK 10.0.402)
 
@@ -29,6 +29,8 @@ dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll execut
 - `AGENTS.md` — mandatory AI-agent workflow and repository truth rules.
 - `docs/packs/foundation-pack/` — approved product/architecture/safety intent (source pack).
 - `docs/packs/backend-roadmap/` — approved backend implementation intent (contracts, engines, phases, test matrices).
+- `docs/packs/branding-palette/` + `docs/packs/ui-ux-foundation/` — branding + UI/UX intent packs.
+- `branding/` — canonical brand color tokens (`colors.json`, `colors.css`) and brand rules.
 - `docs/product/` — purpose, users, scope, terminology.
 - `docs/rules/` — non-negotiable project rules.
 - `docs/architecture/` — verified system architecture (updated as code lands).

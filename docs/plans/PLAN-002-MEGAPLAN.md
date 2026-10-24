@@ -89,10 +89,10 @@ Parity test fails build on token drift; malformed hex rejected by format test; d
 
 ## Acceptance Criteria
 - [x] Packs extracted, trees match zip contents
-- [ ] `branding/colors.json` parses, `schemaVersion: 1`, all 18 tokens + 3 gradient stops
-- [ ] `dotnet build`/`dotnet test` green incl. parity suite
-- [ ] `FileMind.Branding` has no package/OS-API references
-- [ ] FEATURES.md statuses accurate; logo deferred explicitly
+- [x] `branding/colors.json` parses, `schemaVersion: 1`, all 18 tokens + 3 gradient stops
+- [x] `dotnet build` (FileMind.slnx: 0 warnings, 0 errors, 12 projects) / `dotnet test` green incl. parity suite (8/8)
+- [x] `FileMind.Branding` has no package/OS-API references
+- [x] FEATURES.md statuses accurate; logo deferred explicitly (F-B2 blocked on candidate selection)
 
 ## Risks / Regression Areas
 Token drift → parity tests; css/json asymmetry → documented + test compares declared props only; schemaVersion deviation from pack copy → documented; unrelated M3 changes → scoped staging.
