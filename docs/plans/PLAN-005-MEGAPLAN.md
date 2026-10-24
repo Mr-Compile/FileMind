@@ -1,9 +1,18 @@
 # PLAN-005 — FileMind Windows Automation Megaplan (Backend Roadmap Phase 3 / PLAN-001 M4)
 
-Status: READY
+Status: IMPLEMENTED (verified 2026-10-24)
 Related Feature: F-P4 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
+
+## Verification Result
+
+- M0–M4 implemented: `src/FileMind.Application/Watching/` (contracts, `WatcherEventQueue`, `DebounceService`, `FileStabilityChecker`, `WatchOrchestrator`, `WatchService`), `src/FileMind.Platform.Windows/` (`WindowsWatcherEventSource`, `WindowsRemovableStorageEvents`, `ConsoleNotificationService`, `SystemClock`), `src/FileMind.Infrastructure.Sqlite/SqliteJobQueue.cs`, host `watch` + `watch-status` verbs, startup recovery requeues `running` jobs.
+- Tests: 17 new watch-pipeline tests in `tests/FileMind.Application.Tests/WatchPipelineTests.cs`; full suite 125/125 via `tools/sac-test-runner.fsx` (SAC blocks normal `dotnet test`).
+- Host E2E verified: `watch add --mode automatic`, `watch list`, `watch-status`, `watch remove`, and `watch run --seconds` organizing a dropped `.txt` to `dest/Docs/Document/` with `[notify]` + `Committed` op; `.crdownload` never moved; unclassifiable file indexed-only (NoOp).
+- Jobs: each due event persists a `watch-event` job (pending→running→done/failed); RetrySafe failures reschedule with exponential backoff (250ms·2^n, ≤5s, max 3) — retry scheduling covered by unit contract, natural-transient-failure injection UNVERIFIED.
+- Removable-drive attach/detach pause/resume wired in `watch run` (`DriveInfo` polling); physical USB attach/detach UNVERIFIED (no device on dev machine).
+- Remaining gaps (out of scope or future): Explorer/shell integration MISSING; tray/background-service host MISSING (PLAN-014); Android watchers MISSING (PLAN-010).
 
 ## Request / Goal
 

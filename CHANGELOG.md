@@ -2,6 +2,13 @@
 
 All notable verified project changes should be recorded here. Do not add planned work as released work.
 
+## 2026-10-24 — Windows Automation (PLAN-005)
+- Watch pipeline in `FileMind.Application/Watching`: normalized `WatchEvent`/`WatchEventKind`, bounded `WatcherEventQueue` (dedupe newest-wins + overflow flag), `DebounceService` (`IClock`-driven per-path windows), `FileStabilityChecker` (re-stat; `.crdownload/.part/.partial/.download/.tmp` never stable; still-changing detection), `WatchOrchestrator` (per-folder `ModePolicy` routing: Execute / Smart Inbox / Skip / index-only; Deleted → index removal; Error → rescan warning), `WatchService` drive loop.
+- Windows adapters: `WindowsWatcherEventSource` (FileSystemWatcher, overflow→Error event), `WindowsRemovableStorageEvents` (DriveInfo polling), `ConsoleNotificationService`, `SystemClock`.
+- `SqliteJobQueue` over `IJobRepository`: pending→running→done/failed; due events persist `watch-event` jobs before processing; RetrySafe failures reschedule with exponential backoff (max 3); `StartupRecoveryService` requeues `running` jobs on boot.
+- Host verbs: `watch add|remove|list|run [--seconds N] [--apply]` + `watch-status`; per-folder mode persisted via `watch.mode.<path>` setting; drive attach/detach pauses/resumes watchers during `watch run`.
+- Verified: 125 tests pass via `tools/sac-test-runner.fsx`; live E2E — drop file → organized → `[notify]` → Committed op; `.crdownload` untouched. Physical removable-drive attach/detach UNVERIFIED. Explorer integration remains MISSING (PLAN-014 scope).
+
 ## 2026-10-24 — Branding Palette (PLAN-002)
 - Extracted `docs/_zips/04_filemind-branding-palette-pack.zip` → `docs/packs/branding-palette/` and `03_file-organizer-ui-ux-foundation-pack.zip` → `docs/packs/ui-ux-foundation/` as intent sources.
 - Added canonical token store `branding/` (`colors.json` with `schemaVersion: 1`, `colors.css`, `BRAND.md`, README, candidate board).

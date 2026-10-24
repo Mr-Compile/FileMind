@@ -35,7 +35,14 @@ dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll undo <
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll smart-inbox [resolve <id>]
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll mode [manual|smart|automatic|ai-assisted|local-only]
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll rules [list|show <id>|test <id|file> <dir>|import <file>|export <id> --out <file>]
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch add <dir> [--mode <mode>]
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch remove <dir>
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch list
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch [run] [--seconds N] [--apply]
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch-status
 ```
+
+`watch run` consumes `FileSystemWatcher` events through a bounded queue + `IClock` debounce, re-stats each path (`FileStabilityChecker` — `.crdownload/.part/.partial/.download/.tmp` never move), then routes through `ModePolicy` per watched folder (`watch add --mode` persists `watch.mode.<path>` in settings). Removable-drive attach/detach pauses/resumes watchers on affected roots.
 
 If SAC blocks the host dll too, launch it via `dotnet fsi tools/sac-run.fsx -- <path-to-host.dll> <verb> ...`.
 
