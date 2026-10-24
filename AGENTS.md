@@ -14,7 +14,7 @@ This file governs AI coding agents working in this repository. The repository is
 8. Implement only the approved scope.
 9. Run QA and repair findings within scope.
 10. Update affected documentation to reflect verified final behavior.
-11. Commit in small logical feature-based commits.
+11. Commit in small logical feature-based commits automatically once each feature/task is verified complete.
 
 ## Repository Truth / Anti-Hallucination Rules
 - Never claim a file, feature, service, route, API, dependency, database, module, test, behavior, or rule exists unless verified.
@@ -45,3 +45,6 @@ After implementation and QA, update only documentation affected by verified chan
 
 ## Git Rule
 Use logical commits such as `feat(scope): ...`, `fix(scope): ...`, `refactor(scope): ...`, `test(scope): ...`, `docs(scope): ...`, `chore(scope): ...`. Avoid vague commits such as `update project`. Do not mix unrelated work into one commit.
+
+## Auto-Commit
+When a feature, plan task, or milestone is verified complete (implementation done, relevant QA checks run and passing, affected documentation updated), commit it immediately in a logical feature-scoped commit without waiting for an explicit commit instruction. Never auto-commit incomplete, unverified, or out-of-scope work. Never push unless the user explicitly asks.
