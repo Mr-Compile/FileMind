@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "brand": {
+    "primary": "#2563EB",
+    "secondary": "#4F46E5",
+    "accent": "#7C3AED",
+    "gradient": [
+      "#2563EB",
+      "#4F46E5",
+      "#7C3AED"
+    ]
+  },
+  "light": {
+    "background": "#F8FAFC",
+    "surface": "#FFFFFF",
+    "surfaceElevated": "#F1F5F9",
+    "textPrimary": "#0F172A",
+    "textSecondary": "#64748B",
+    "border": "#E2E8F0"
+  },
+  "dark": {
+    "background": "#0B1120",
+    "surface": "#111827",
+    "surfaceElevated": "#1E293B",
+    "textPrimary": "#F8FAFC",
+    "textSecondary": "#94A3B8",
+    "border": "#334155"
+  },
+  "semantic": {
+    "success": "#16A34A",
+    "info": "#0284C7",
+    "warning": "#D97706",
+    "error": "#DC2626",
+    "destructive": "#B91C1C"
+  }
+}
