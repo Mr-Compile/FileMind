@@ -107,8 +107,16 @@ public sealed class ActionPlanner
             .Replace("{Ext}", c.Extension.TrimStart('.'))
             .Replace("{YYYY}", now.ToString("yyyy"))
             .Replace("{MM}", now.ToString("MM"))
-            .Replace("{DD}", now.ToString("dd"));
+            .Replace("{DD}", now.ToString("dd"))
+            // Extraction tokens: populated only when local intelligence wrote
+            // reliable metadata — absence falls back to neutral values.
+            .Replace("{Author}", MetaOr(c, "author", "Unknown"))
+            .Replace("{Title}", MetaOr(c, "title", StemOf(ctx.Paths.FileName(c.DisplayName))))
+            .Replace("{Year}", MetaOr(c, "year", now.ToString("yyyy")));
     }
+
+    private static string MetaOr(FileCandidate c, string key, string fallback) =>
+        c.Metadata.TryGetValue(key, out var v) && !string.IsNullOrWhiteSpace(v) ? v : fallback;
 
     private static string StemOf(string fileName)
     {

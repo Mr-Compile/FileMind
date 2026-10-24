@@ -34,7 +34,9 @@ public sealed class OrganizerPipeline(
     ICollectionRepository collections,
     IOperationRepository operations,
     IOperationStore operationStore,
-    FileIndexingService? indexing = null)
+    FileIndexingService? indexing = null,
+    ICandidateEnricher? enricher = null,
+    int enrichmentTextLimit = 8192)
 {
     public async IAsyncEnumerable<FileCandidate> ScanAsync(
         string root, bool recursive = true,
@@ -55,10 +57,41 @@ public sealed class OrganizerPipeline(
         var results = new List<AnalyzedFile>(candidates.Count);
         foreach (var candidate in candidates)
         {
-            var classification = classifier.Classify(candidate);
-            var evaluation = ruleEngine.Evaluate(candidate, classification, ruleList.Value);
-            var decision = decisionMaker.Decide(candidate, classification, evaluation, collectionList.Value);
-            results.Add(new AnalyzedFile(candidate, classification, evaluation, decision));
+            var effective = candidate;
+            IReadOnlyList<Evidence>? extraEvidence = null;
+            NormalizedTokens? contentTokens = null;
+            IReadOnlyList<string>? enrichWarnings = null;
+
+            if (enricher is not null)
+            {
+                var enr = await enricher.EnrichAsync(candidate, fs, ct);
+                if (enr.IsSuccess && enr.Value is { } ev)
+                {
+                    effective = candidate with
+                    {
+                        Metadata = ev.Metadata,
+                        ExtractedTextRef = ev.ExtractedText ?? candidate.ExtractedTextRef,
+                    };
+                    extraEvidence = ev.Evidence;
+                    enrichWarnings = ev.Warnings;
+                    if (ev.ExtractedText is { } t)
+                        contentTokens = Normalizer.Normalize(t[..Math.Min(t.Length, enrichmentTextLimit)]);
+                }
+                else if (!enr.IsSuccess)
+                {
+                    enrichWarnings = [$"enrichment failed: {enr.Error!.Message}"];
+                }
+            }
+
+            var classification = classifier.Classify(effective, extraEvidence, contentTokens);
+            if (enrichWarnings is { Count: > 0 })
+                classification = classification with
+                {
+                    Warnings = [.. classification.Warnings, .. enrichWarnings],
+                };
+            var evaluation = ruleEngine.Evaluate(effective, classification, ruleList.Value);
+            var decision = decisionMaker.Decide(effective, classification, evaluation, collectionList.Value);
+            results.Add(new AnalyzedFile(effective, classification, evaluation, decision));
         }
         return Result<IReadOnlyList<AnalyzedFile>>.Ok(results);
     }

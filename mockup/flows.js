@@ -293,6 +293,7 @@ Usage:
   filemind watch list
   filemind watch [run] [--seconds N] [--apply]
   filemind watch-status
+  filemind enrich <dir> [--shallow]
   filemind seed-demo
 
 Environment:
@@ -473,6 +474,19 @@ Environment:
         if (sub === "import") return err("demo: import reads a real .json file — host validates then upserts with provenance=Imported");
         return err("usage: filemind rules [list|show|test|import|export]");
       }
+      case "enrich": {
+        if (needDir()) return;
+        const res = FM.engine.analyze(filesIn(root).filter((f) => !FM.engine.excluded(f)));
+        for (const a of res) {
+          const c = a.classification;
+          const meta = a.candidate.metadata ? Object.entries(a.candidate.metadata).map(([k, v]) => `${k}=${v}`).join(", ") : "-";
+          const evs = c.evidence.filter((e) => e.kind.startsWith("content-") || /extract|title|manifest|id3|exif|ooxml|pdf|code|video|audio|image/.test(e.kind));
+          print(`${pad(a.candidate.displayName, 40)} kind=${pad(c.fileKind, 12)} extracted=${String(a.candidate.extracted?.length ?? 0).padStart(5)}ch meta=[${meta}]`);
+          evs.forEach((e) => print(`    ev ${pad(e.kind, 28)} +${String(e.scoreContribution).padStart(5)}  ${e.detail}`));
+          (c.warnings || []).forEach((w) => print(`    warn: ${w}`, "dim"));
+        }
+        return;
+      }
       case "watch": {
         const watched = (FM.store.settings.watchedFolders ??= []);
         const sub = pos[0] ?? "run";
@@ -566,7 +580,7 @@ FM.screen("architecture", (m) => {
   const stages = [
     ["FileCandidate", "file under consideration — path, size, mime, scope", "Contracts/FileCandidate.cs", "EXISTING"],
     ["Normalize", "NFKC + case-fold + separator unify; 'IT 421'='IT-421'='it421'", "Domain/Classification/Normalizer.cs", "EXISTING"],
-    ["Local signals", "extension → FileKind + MIME (FileKindMap/MimeMap)", "ClassifierEngine.cs · Scanning/MimeMap.cs", "EXISTING"],
+    ["Local signals", "extension → FileKind + MIME; extractors add bounded content/metadata evidence", "ClassifierEngine.cs · Intelligence.Local analyzers", "EXISTING"],
     ["Rule engine", "JSON rules: priority → specificity → stop → conflicts", "Domain/Rules/RuleEngine.cs", "EXISTING"],
     ["Classifier", "subject code>alias>keyword + project match", "SubjectMatcher.cs · ProjectMatcher.cs", "EXISTING"],
     ["Confidence", "weighted evidence, per-kind caps, bands 95/70", "ConfidenceEngine.cs", "EXISTING"],
@@ -585,7 +599,7 @@ FM.screen("architecture", (m) => {
     ["FileMind.Platform.Windows", "Real FS adapter, path normalizer, protected paths, SHA256, FileSystemWatcher, drive attach/detach, console notifications.", "E2E-verified", "EXISTING"],
     ["FileMind.Windows.Host", "Console verbs: scan/analyze/plan/execute/undo/history/smart-inbox/mode/rules/watch/watch-status/seed-demo.", "the app today", "EXISTING"],
     ["FileMind.Branding", "Canonical palette tokens as C# consts + parity tests.", "8 tests", "EXISTING"],
-    ["FileMind.Intelligence.Local", "Local content extraction (PDF/DOCX/EXIF…).", "F-P5", "MISSING"],
+    ["FileMind.Intelligence.Local", "Analyzer registry + extractors: OOXML/PDF/text/EXIF/ID3/video/archive-manifest/code-signals; bounded + fail-safe; feeds classification + {Title}/{Author}/{Year} rename tokens.", "F-P5", "EXISTING"],
     ["FileMind.Intelligence.AI", "Groq provider + privacy gate. Advisory only.", "F-P7", "MISSING"],
     ["Watchers/automation", "FileSystemWatcher, bounded queue + debounce, stability checks, persisted jobs, drive pause/resume.", "F-P4", "EXISTING"],
     ["Search (FTS5)", "No FTS index in schema yet — PLAN-015 adds it.", "F-P9", "MISSING"],

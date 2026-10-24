@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\FileMind.Application\FileMind.Application.csproj" />
     <ProjectReference Include="..\FileMind.Infrastructure.Sqlite\FileMind.Infrastructure.Sqlite.csproj" />
+    <ProjectReference Include="..\FileMind.Intelligence.Local\FileMind.Intelligence.Local.csproj" />
     <ProjectReference Include="..\FileMind.Platform.Windows\FileMind.Platform.Windows.csproj" />
   </ItemGroup>
 

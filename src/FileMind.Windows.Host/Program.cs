@@ -42,6 +42,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
           filemind rules test <id|rule.json> <dir>
           filemind rules import <file>
           filemind rules export <id> [--out <file>]
+          filemind enrich <dir> [--shallow]
           filemind seed-demo
 
         Environment:
@@ -101,7 +102,8 @@ var pipeline = new OrganizerPipeline(
     new TransactionEngine(adapter, store, safety),
     new UndoService(adapter),
     adapter, paths, adapter.ProtectedPaths,
-    rulesRepo, collectionsRepo, opsRepo, opStore, indexing);
+    rulesRepo, collectionsRepo, opsRepo, opStore, indexing,
+    enricher: new FileMind.Intelligence.Local.Analysis.LocalAnalyzerService());
 
 var modeSetting = (await ((ISettingsRepository)store).GetAsync(ModePolicy.SettingsKey)).Value;
 var currentMode = modeSetting is not null && ModePolicy.TryParse(modeSetting, out var savedMode)
@@ -155,6 +157,33 @@ switch (command)
                 $"subject={c.Subject ?? "-"} project={c.Project ?? "-"} -> {a.Decision.Kind}");
             if (a.Decision.Kind == DecisionKind.Review)
                 Console.WriteLine($"    review: {string.Join("; ", a.Decision.Reasons)}");
+        }
+        return 0;
+    }
+
+    case "enrich":
+    {
+        var analyzed = await AnalyzeDirAsync();
+        foreach (var a in analyzed)
+        {
+            var c = a.Classification;
+            var extracted = a.Candidate.ExtractedTextRef;
+            var meta = a.Candidate.Metadata
+                .Where(kv => !kv.Key.StartsWith("text.") && !kv.Key.StartsWith("code."))
+                .Select(kv => $"{kv.Key}={kv.Value}");
+            var metaStr = meta.Any() ? string.Join(", ", meta.Take(6)) : "-";
+            var enrichEv = c.Evidence.Where(e => e.Kind.StartsWith("content-")
+                || e.Kind.Contains("extract") || e.Kind.Contains("title")
+                || e.Kind.Contains("manifest") || e.Kind.Contains("id3")
+                || e.Kind.Contains("exif") || e.Kind.Contains("ooxml")
+                || e.Kind.Contains("pdf") || e.Kind.Contains("code")
+                || e.Kind.Contains("video") || e.Kind.Contains("audio")
+                || e.Kind.Contains("image")).ToList();
+            Console.WriteLine($"{a.Candidate.DisplayName,-40} kind={c.FileKind,-12} " +
+                $"extracted={(extracted?.Length ?? 0),5}ch meta=[{metaStr}]");
+            foreach (var e in enrichEv)
+                Console.WriteLine($"    ev {e.Kind,-28} +{e.ScoreContribution,5:0.##}  {e.Detail}");
+            foreach (var w in c.Warnings) Console.WriteLine($"    warn: {w}");
         }
         return 0;
     }

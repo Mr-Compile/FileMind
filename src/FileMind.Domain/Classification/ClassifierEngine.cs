@@ -34,7 +34,13 @@ public sealed class ClassifierEngine(
 {
     public const double ContextOverTypeBonus = 20;
 
-    public ClassificationResult Classify(FileCandidate candidate)
+    /// <summary>Content-derived match weight relative to filename-derived matches.</summary>
+    public const double ContentMatchWeight = 0.35;
+
+    public ClassificationResult Classify(
+        FileCandidate candidate,
+        IReadOnlyList<Evidence>? extraEvidence = null,
+        NormalizedTokens? contentTokens = null)
     {
         var evidence = new List<Evidence>();
         var warnings = new List<string>();
@@ -57,7 +63,46 @@ public sealed class ClassifierEngine(
         evidence.AddRange(project.Evidence);
         warnings.AddRange(project.Warnings);
 
-        if (subject.SubjectId is not null && fileKind != FileKind.Other)
+        var subjectId = subject.SubjectId;
+        var projectId = project.ProjectId;
+
+        if (contentTokens is { } ct)
+        {
+            var csub = subjectMatcher.Match(ct);
+            foreach (var e in csub.Evidence)
+                evidence.Add(e with
+                {
+                    Kind = "content-" + e.Kind,
+                    ScoreContribution = e.ScoreContribution * ContentMatchWeight
+                });
+            warnings.AddRange(csub.Warnings);
+            if (csub.SubjectId is not null)
+            {
+                if (subjectId is null) subjectId = csub.SubjectId;
+                else if (csub.SubjectId != subjectId)
+                    warnings.Add($"Content suggests subject '{csub.SubjectId}' differing from filename '{subjectId}'.");
+            }
+
+            var cproj = projectMatcher.Match(ct);
+            foreach (var e in cproj.Evidence)
+                evidence.Add(e with
+                {
+                    Kind = "content-" + e.Kind,
+                    ScoreContribution = e.ScoreContribution * ContentMatchWeight
+                });
+            warnings.AddRange(cproj.Warnings);
+            if (cproj.ProjectId is not null)
+            {
+                if (projectId is null) projectId = cproj.ProjectId;
+                else if (cproj.ProjectId != projectId)
+                    warnings.Add($"Content suggests project '{cproj.ProjectId}' differing from filename '{projectId}'.");
+            }
+        }
+
+        if (extraEvidence is not null)
+            evidence.AddRange(extraEvidence);
+
+        if (subjectId is not null && fileKind != FileKind.Other)
             evidence.Add(new Evidence("context-over-type",
                 "Subject context present; context beats generic type routing.",
                 ContextOverTypeBonus, ClassifierSource.Local));
@@ -65,13 +110,13 @@ public sealed class ClassifierEngine(
         var score = confidence.Score(evidence);
         var band = confidence.Band(score);
 
-        var explanation = BuildExplanation(fileKind, subject.SubjectId, project.ProjectId, band, evidence);
+        var explanation = BuildExplanation(fileKind, subjectId, projectId, band, evidence);
 
         return new ClassificationResult
         {
             FileKind = fileKind,
-            Subject = subject.SubjectId,
-            Project = project.ProjectId,
+            Subject = subjectId,
+            Project = projectId,
             Evidence = evidence,
             Confidence = score,
             Sources = [ClassifierSource.Local],

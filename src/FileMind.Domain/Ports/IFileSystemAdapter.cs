@@ -43,6 +43,25 @@ public interface IMetadataExtractor
     Task<Result<IReadOnlyDictionary<string, string>>> ExtractAsync(FileCandidate candidate, CancellationToken ct = default);
 }
 
+/// <summary>Extraction output merged onto a FileCandidate before classification.</summary>
+public sealed record CandidateEnrichment(
+    IReadOnlyDictionary<string, string> Metadata,
+    string? ExtractedText,
+    IReadOnlyList<Evidence> Evidence,
+    IReadOnlyList<string> Warnings,
+    bool Reliable);
+
+/// <summary>
+/// Local (offline) content/metadata enrichment. Implementations must be
+/// bounded by size/time budgets and fail-safe per file — a corrupt or
+/// unsupported file yields warnings, never an abort of the whole scan.
+/// </summary>
+public interface ICandidateEnricher
+{
+    Task<Result<CandidateEnrichment>> EnrichAsync(
+        FileCandidate candidate, IFileSystemAdapter fs, CancellationToken ct = default);
+}
+
 public interface IHashService
 {
     Task<Result<string>> HashAsync(string path, bool full, CancellationToken ct = default);
