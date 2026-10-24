@@ -8,7 +8,7 @@ public enum FmErrorKind
 {
     PermissionDenied, ProtectedPath, DestinationConflict, SourceNotFound,
     Locked, InsufficientSpace, AiOffline, AiRateLimited, Cancelled,
-    VerificationFailed, Unknown
+    VerificationFailed, Validation, TransientIo, Persistence, Unknown
 }
 
 public enum FmErrorSeverity { Info, Warning, Error }
@@ -41,6 +41,9 @@ public static class FmErrorPresenter
         ErrorCode.AiRateLimited => FmErrorKind.AiRateLimited,
         ErrorCode.Cancelled => FmErrorKind.Cancelled,
         ErrorCode.VerificationFailed => FmErrorKind.VerificationFailed,
+        ErrorCode.ValidationFailed => FmErrorKind.Validation,
+        ErrorCode.TransientIo => FmErrorKind.TransientIo,
+        ErrorCode.PersistenceFailure => FmErrorKind.Persistence,
         _ => FmErrorKind.Unknown
     };
 
@@ -96,6 +99,21 @@ public static class FmErrorPresenter
             "We couldn't verify the result.",
             "A file may have changed during the operation.",
             "Check it in Activity before retrying.",
+            FmErrorSeverity.Error, technicalDetails),
+        FmErrorKind.Validation => new(
+            "A field needs attention.",
+            technicalDetails ?? "Check the fields and try again.",
+            "Fix it, then run the operation again.",
+            FmErrorSeverity.Warning, technicalDetails),
+        FmErrorKind.TransientIo => new(
+            "The storage hit a hiccup.",
+            "A file or folder operation failed temporarily.",
+            "Try again — if it repeats, check the folder isn't syncing or locked.",
+            FmErrorSeverity.Warning, technicalDetails),
+        FmErrorKind.Persistence => new(
+            "We couldn't save that.",
+            "FileMind's local store rejected the write.",
+            "Try again; if it repeats, restart the app.",
             FmErrorSeverity.Error, technicalDetails),
         _ => new(
             "Something went wrong.",

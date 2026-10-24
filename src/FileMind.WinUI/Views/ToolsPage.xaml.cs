@@ -7,7 +7,10 @@ namespace FileMind.WinUI.Views;
 public sealed partial class ToolsPage : Page
 {
     private sealed record Tool(string Name, string Glyph, FmOpState State,
-        string StateDetail, string Description);
+        string StateDetail, string Description)
+    {
+        public override string ToString() => $"{Name} — {StateDetail}. {Description}";
+    }
 
     public ToolsPage()
     {

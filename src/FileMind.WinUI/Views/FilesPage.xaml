@@ -12,34 +12,73 @@
             <TextBox x:Name="FilterBox" PlaceholderText="Filter by name…" Width="280"
                      TextChanged="FilterBox_TextChanged" />
             <ComboBox x:Name="ExtFilter" Width="140" Header="Extension" SelectionChanged="ExtFilter_SelectionChanged" />
+            <ComboBox x:Name="SortBox" Width="140" Header="Sort" SelectionChanged="Sort_SelectionChanged">
+                <ComboBoxItem Content="Name" Tag="name" />
+                <ComboBoxItem Content="Size" Tag="size" />
+                <ComboBoxItem Content="Modified" Tag="modified" />
+            </ComboBox>
             <Button Content="Index folder…" Click="Index_Click" VerticalAlignment="Bottom" />
         </StackPanel>
         <TextBlock Grid.Row="1" x:Name="Summary" Style="{StaticResource FmTextBodySmall}"
                    Foreground="{ThemeResource FmTextSecondaryBrush}" />
-        <Grid Grid.Row="2">
-            <ListView x:Name="FileList" SelectionMode="Extended"
-                      ContainerContentChanging="FileList_ContainerContentChanging">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <Grid ColumnSpacing="16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="3*" /><ColumnDefinition Width="120" />
-                                <ColumnDefinition Width="100" /><ColumnDefinition Width="160" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
-                            <TextBlock Grid.Column="1" Text="{Binding Path}" TextTrimming="CharacterEllipsis"
-                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                            <TextBlock Grid.Column="2" Text="{Binding Size}" />
-                            <TextBlock Grid.Column="3" Text="{Binding Modified}" />
-                        </Grid>
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-            <c:FmStateView x:Name="Empty" State="Empty" Title="Nothing indexed"
-                Body="Index a folder to browse it here."
-                Visibility="Collapsed" />
-            <ProgressRing x:Name="Spinner" IsActive="True" Width="40" Height="40"
-                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+        <Grid Grid.Row="2" ColumnSpacing="{StaticResource FmSpace3}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" /><ColumnDefinition Width="300" />
+            </Grid.ColumnDefinitions>
+            <Grid>
+                <ListView x:Name="FileList" SelectionMode="Extended"
+                          SelectionChanged="FileList_SelectionChanged"
+                          ContainerContentChanging="FileList_ContainerContentChanging">
+                    <ListView.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="Show in folder" Click="ShowInFolder_Click" />
+                            <MenuFlyoutItem Text="Copy path" Click="CopyPath_Click" />
+                        </MenuFlyout>
+                    </ListView.ContextFlyout>
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*" /><ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="100" /><ColumnDefinition Width="160" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                <TextBlock Grid.Column="1" Text="{Binding Path}" TextTrimming="CharacterEllipsis"
+                                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                                <TextBlock Grid.Column="2" Text="{Binding Size}" />
+                                <TextBlock Grid.Column="3" Text="{Binding Modified}" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <c:FmStateView x:Name="Empty" State="Empty" Title="Nothing indexed"
+                    Body="Index a folder to browse it here."
+                    Visibility="Collapsed" />
+                <ProgressRing x:Name="Spinner" IsActive="True" Width="40" Height="40"
+                              HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Grid>
+            <Border Grid.Column="1" x:Name="Inspector" Visibility="Collapsed"
+                    Background="{ThemeResource FmSurfaceSecondaryBrush}"
+                    BorderBrush="{ThemeResource FmBorderBrush}" BorderThickness="1"
+                    CornerRadius="{StaticResource FmRadiusMediumValue}"
+                    Padding="{StaticResource FmPad3}">
+                <ScrollViewer>
+                    <StackPanel Spacing="{StaticResource FmSpace2}">
+                        <TextBlock Text="Details" Style="{StaticResource FmTextH3}" />
+                        <TextBlock x:Name="InsName" Style="{StaticResource FmTextBody}"
+                                   FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="InsPath" Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   TextWrapping="Wrap" TextTrimming="CharacterEllipsis" />
+                        <TextBlock x:Name="InsMeta" Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+                        <TextBlock x:Name="InsHash" Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
         </Grid>
     </Grid>
 </Page>

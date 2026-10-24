@@ -16,7 +16,10 @@ public sealed partial class OrganizerPage : Page
     private ActionPlan? _plan;
     private string? _lastOperationId;
 
-    private sealed record PlanRow(string Label, string Detail);
+    private sealed record PlanRow(string Label, string Detail)
+    {
+        public override string ToString() => $"{Label} — {Detail}";
+    }
 
     public OrganizerPage() => InitializeComponent();
 
@@ -93,7 +96,9 @@ public sealed partial class OrganizerPage : Page
         var analyzed = await be.Pipeline.AnalyzeAsync(candidates);
         if (!analyzed.IsSuccess) { ShowError(analyzed.Error!); return; }
 
-        var destRoot = dest.Length > 0 ? dest : null;
+        // No destination picked = organize in place. Passing null would let
+        // the pipeline resolve relative destinations against the process CWD.
+        var destRoot = dest.Length > 0 ? dest : source;
         var plan = be.Pipeline.Plan(analyzed.Value!, dryRun: false,
             destinationRoot: destRoot, sourceRoot: source,
             preserveTree: PreserveTree.IsChecked == true);

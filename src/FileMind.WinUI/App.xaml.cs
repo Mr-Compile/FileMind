@@ -20,11 +20,13 @@ public partial class App : Microsoft.UI.Xaml.Application
         InitializeComponent();
         UnhandledException += (_, e) =>
         {
+            // Debug aid: stowed XAML exceptions don't surface a managed stack
+            // otherwise. Writes only a temp diagnostic file — not user files.
             try
             {
-                System.IO.File.WriteAllText(
+                System.IO.File.AppendAllText(
                     System.IO.Path.Combine(System.IO.Path.GetTempPath(), "filemind-winui-crash.txt"),
-                    $"{e.Exception}");
+                    $"{DateTime.Now:HH:mm:ss} {e.Exception}\n\n");
             }
             catch { }
         };

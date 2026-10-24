@@ -9,7 +9,10 @@ namespace FileMind.WinUI.Views;
 /// <summary>Search — real FTS5 + structured filters via SearchUseCase.</summary>
 public sealed partial class SearchPage : Page
 {
-    private sealed record Row(string DisplayName, string Path, string Meta);
+    private sealed record Row(string DisplayName, string Path, string Meta)
+    {
+        public override string ToString() => $"{DisplayName} — {Meta} — {Path}";
+    }
 
     public SearchPage()
     {

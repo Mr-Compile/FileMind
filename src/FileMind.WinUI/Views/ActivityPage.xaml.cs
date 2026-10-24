@@ -8,7 +8,12 @@ namespace FileMind.WinUI.Views;
 /// store; undo flows through OrganizerPipeline.UndoAsync.</summary>
 public sealed partial class ActivityPage : Page
 {
-    private sealed record OpRow(FmOpState State, string Summary, string Detail, string OperationId);
+    private sealed record OpRow(FmOpState State, string Summary, string Detail, string OperationId)
+    {
+        // ListViewItem's accessible name comes from ToString — give screen
+        // readers a sentence, not a record literal.
+        public override string ToString() => $"{State}: {Summary} — {Detail}";
+    }
 
     public ActivityPage()
     {

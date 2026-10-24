@@ -28,6 +28,7 @@
                 VerticalAlignment="Center" QuerySubmitted="GlobalSearch_QuerySubmitted" />
             <Button Grid.Column="4" x:Name="OpCenterButton"
                 VerticalAlignment="Center" ToolTipService.ToolTip="Operation center"
+                AutomationProperties.Name="Operation center"
                 Click="OpCenterButton_Click">
                 <FontIcon Glyph="&#xE81C;" FontSize="16" />
             </Button>

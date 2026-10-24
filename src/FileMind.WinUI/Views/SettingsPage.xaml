@@ -11,16 +11,16 @@
                 <c:FmBentoCard.CardContent>
                     <StackPanel Spacing="{StaticResource FmSpace3}">
                         <StackPanel Orientation="Horizontal" Spacing="{StaticResource FmSpace3}">
-                            <TextBlock Text="Theme" Width="120" VerticalAlignment="Center" />
-                            <ComboBox x:Name="ThemePicker" Width="200" SelectionChanged="ThemePicker_SelectionChanged">
+                            <TextBlock x:Name="ThemeLabel" Text="Theme" Width="120" VerticalAlignment="Center" />
+                            <ComboBox x:Name="ThemePicker" Width="200" AutomationProperties.LabeledBy="{Binding ElementName=ThemeLabel}" SelectionChanged="ThemePicker_SelectionChanged">
                                 <ComboBoxItem Content="System" />
                                 <ComboBoxItem Content="Light" />
                                 <ComboBoxItem Content="Dark" />
                             </ComboBox>
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="{StaticResource FmSpace3}">
-                            <TextBlock Text="Density" Width="120" VerticalAlignment="Center" />
-                            <ComboBox x:Name="DensityPicker" Width="200" SelectionChanged="DensityPicker_SelectionChanged">
+                            <TextBlock x:Name="DensityLabel" Text="Density" Width="120" VerticalAlignment="Center" />
+                            <ComboBox x:Name="DensityPicker" Width="200" AutomationProperties.LabeledBy="{Binding ElementName=DensityLabel}" SelectionChanged="DensityPicker_SelectionChanged">
                                 <ComboBoxItem Content="Comfortable" />
                                 <ComboBoxItem Content="Compact" />
                             </ComboBox>
