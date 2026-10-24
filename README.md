@@ -6,7 +6,9 @@
 FileMind organizes files locally using deterministic rules and classification. Optional Groq AI may suggest, but only the deterministic `Decision -> Safety -> ActionPlan -> Platform Adapter -> Verify -> History` pipeline may mutate files. See `docs/packs/foundation-pack/` and `docs/packs/backend-roadmap/` for the approved product and backend intent.
 
 ## Status
-M0–M3 implemented and verified (see `docs/plans/PLAN-001-MEGAPLAN.md`): domain contracts/engines, application pipeline, Windows FS adapter, SQLite persistence, console host. Branding palette adopted per `docs/plans/PLAN-002-MEGAPLAN.md` (`branding/` canonical tokens + `FileMind.Branding` constants). 90 tests pass. Check `docs/features/FEATURES.md` for per-feature status labels. Windows automation/watchers, intelligence, Groq, Android, search, and UI are not implemented yet.
+M0–M3 implemented and verified (see `docs/plans/PLAN-001-MEGAPLAN.md`): domain contracts/engines, application pipeline, Windows FS adapter, SQLite persistence, console host. Branding palette adopted per `docs/plans/PLAN-002-MEGAPLAN.md` (`branding/` canonical tokens + `FileMind.Branding` constants). 90 tests pass. Check `docs/features/FEATURES.md` for per-feature status labels. Windows automation/watchers, intelligence, Groq, Android, search, and the real UI app are not implemented yet.
+
+**UI preview:** `mockup/` is a dependency-free interactive HTML/CSS/JS mockup of the approved UI — open `mockup/index.html` in a browser (works over `file://`). It drives the real pipeline semantics (scan → analyze → plan → safety → execute → verify → undo) on mock data and must stay in sync with code per `docs/rules/MOCKUP_RULES.md`.
 
 ## Build & Test (verified on Windows 11 + .NET SDK 10.0.402)
 
@@ -38,6 +40,7 @@ dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll execut
 - `docs/plans/` — plan-before-code documents.
 - `docs/qa/` — QA and acceptance validation.
 - `docs/development/` — build, contribution, release, troubleshooting.
+- `mockup/` — interactive static preview of the approved UI (open `index.html`, no build needed).
 
 ## Development Principle
 **Audit → Plan → Approve → Implement → QA → Repair → Document → Commit.**

@@ -14,3 +14,12 @@ All notable verified project changes should be recorded here. Do not add planned
 - Added `branding/logo/`: master SVGs (mark, light/dark lockups, mono silhouette, small-size simple variant, splash compositions) + `build.mjs` regenerator (Edge headless + hand-assembled ICO, no npm deps).
 - Generated: `png/icon-{16..512}.png` + simple variants, `filemind.ico` (7 frames), `png/splash-{light,dark}.png` 1240×600, Android adaptive foreground/monochrome SVGs + `adaptive-icon.xml` + launcher/notification PNGs.
 - Verified: PNG dims asserted per render, ICO header+frames parsed, visual check vs board (hand-recreated approximation disclosed).
+
+## 2026-10-24 — Interactive UI Mockup (PLAN-003)
+- Added `mockup/` — dependency-free static HTML/CSS/JS interactive mockup that opens over `file://`. No build, no external runtime deps.
+- Screens: Dashboard, Files, Tools, Search, Devices, Activity (Operation Center + Smart Inbox), Settings — plus Organizer pipeline wizard, Console host simulator, and an Architecture view with EXISTING/MISSING module truth.
+- Mock engine mirrors real semantics: Normalizer tokenization, FileKindMap/MimeMap, subject/project matchers (code 65 > alias 45 > keyword 15; project 55/12), per-kind confidence caps + 95/70 bands, DecisionMaker ordering (rule > band), ActionPlanner (Review→Ask items, fingerprints, undo recipes, KeepBoth suffixing), SafetyEngine blockers/warnings, staged TransactionEngine states.
+- Console simulator reproduces `FileMind.Windows.Host` verbs and output format on the same mock dataset.
+- `branding/colors.css` extended to all 18 tokens in both themes; mockup links it directly so palette cannot drift.
+- Added `docs/rules/MOCKUP_RULES.md` (linked from `docs/rules/RULES.md` + `AGENTS.md`): mockup must be updated in the same change when UI, contracts, pipeline behavior, host verbs, feature statuses, or tokens change.
+- Verified: 10 routes render over `file://` and HTTP, dark/light/system themes + density, KeepBoth conflict demo, protected-path safety blocker, Smart Inbox truthfulness (rule-routed files never appear in review).
