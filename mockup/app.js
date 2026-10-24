@@ -335,7 +335,7 @@ FM.engine = {
     });
   },
 
-  resolveDest(a, root) { /* mirrors ActionPlanner.ResolveTemplate + Combine + DestinationBase */
+  resolveDest(a, root, relDir = "", preserveTree = false) { /* mirrors ActionPlanner.ResolveTemplate + Combine + DestinationBase */
     const cls = a.classification, c = a.candidate, now = new Date();
     const stem = c.displayName.replace(/\.[^.]+$/, "");
     const rel = (a.decision.destinationTemplate || "{Collection}/{FileKind}")
@@ -348,14 +348,24 @@ FM.engine = {
       .replace("{Name}", stem).replace("{Ext}", c.extension.replace(/^\./, ""))
       .replace("{YYYY}", String(now.getFullYear()))
       .replace("{MM}", String(now.getMonth() + 1).padStart(2, "0"))
-      .replace("{DD}", String(now.getDate()).padStart(2, "0"));
+      .replace("{DD}", String(now.getDate()).padStart(2, "0"))
+      .replace("{RelativeDir}", relDir);
     const name = a.decision.namingTemplate
       ? a.decision.namingTemplate.replace("{Name}", stem).replace("{Ext}", c.extension.replace(/^\./, ""))
       : c.displayName;
-    return `${root}\\${rel}\\${name}`;
+    /* category-then-tree: relDir appended inside the resolved template only when preserve-tree is on */
+    return `${root}\\${rel}${preserveTree && relDir ? "\\" + relDir : ""}\\${name}`;
   },
 
-  plan(analyzed, dryRun, destRoot) { /* mirrors src/FileMind.Domain/Operations/ActionPlanner.cs */
+  /* IPathNormalizer.RelativeTo: "" for root-equal, null when not under */
+  relativeTo(path, root) {
+    const p = path.replaceAll("/", "\\").replace(/\\+$/, "");
+    const r = root.replaceAll("/", "\\").replace(/\\+$/, "");
+    if (p.toLowerCase() === r.toLowerCase()) return "";
+    return p.toLowerCase().startsWith(r.toLowerCase() + "\\") ? p.slice(r.length + 1) : null;
+  },
+
+  plan(analyzed, dryRun, destRoot, srcRoot = null, preserveTree = false) { /* mirrors src/FileMind.Domain/Operations/ActionPlanner.cs */
     const items = [], seen = new Set();
     let requiresReview = false;
     for (const a of analyzed) {
@@ -370,7 +380,9 @@ FM.engine = {
       }
       if (a.decision.kind !== "Organize") continue;
       requiresReview = requiresReview || a.classification.needsReview;
-      let dest = FM.engine.resolveDest(a, destRoot);
+      const dir = a.candidate.sourceUri.slice(0, a.candidate.sourceUri.lastIndexOf("\\"));
+      const relDir = (srcRoot && FM.engine.relativeTo(dir, srcRoot)) || "";
+      let dest = FM.engine.resolveDest(a, destRoot, relDir, preserveTree);
       let n = 2; /* mirrors ConflictPolicy.KeepBoth deterministic suffixing */
       const bi = dest.lastIndexOf(".");
       while (seen.has(dest.toLowerCase()) || FM.engine.destExists(dest))

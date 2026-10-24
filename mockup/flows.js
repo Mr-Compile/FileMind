@@ -280,8 +280,8 @@ Type <span class="dim">--help</span> for usage. Folders: downloads, documents, d
 Usage:
   filemind scan <dir> [--shallow]
   filemind analyze <dir> [--shallow]
-  filemind plan <dir> [--dest <root>] [--shallow]
-  filemind execute <dir> [--dest <root>] [--dry-run] [--apply] [--shallow]
+  filemind plan <dir> [--dest <root>] [--shallow] [--preserve-tree]
+  filemind execute <dir> [--dest <root>] [--dry-run] [--apply] [--shallow] [--preserve-tree]
   filemind undo <operationId>
   filemind history [count]
   filemind smart-inbox [resolve <id>]
@@ -291,9 +291,10 @@ Usage:
   filemind rules test <id|rule.json> <dir>
   filemind rules import <file>
   filemind rules export <id> [--out <file>]
-  filemind watch add <dir> [--mode <mode>]
+  filemind watch add <dir> [--mode <mode>] [--tree]
   filemind watch remove <dir>
   filemind watch list
+  filemind watch tree <dir> [on|off]
   filemind watch [run] [--seconds N] [--apply]
   filemind watch-status
   filemind enrich <dir> [--shallow]
@@ -360,7 +361,7 @@ Environment:
         if (needDir()) return;
         const res = FM.engine.analyze(filesIn(root).filter((f) => !FM.engine.excluded(f)));
         const dest = flagVal("--dest") || `${root}\\organized`;
-        const p = FM.engine.plan(res, true, dest);
+        const p = FM.engine.plan(res, true, dest, root, flags.has("--preserve-tree"));
         print(planLine(p));
         print(itemLines(p));
         return;
@@ -382,7 +383,7 @@ Environment:
         print(`-- mode=${mode}; ${executable.length} item(s) routed to execute`);
         const dest = flagVal("--dest") || `${root}\\organized`;
         const dry = flags.has("--dry-run") || previewOnly;
-        const p = FM.engine.plan(executable, dry, dest);
+        const p = FM.engine.plan(executable, dry, dest, root, flags.has("--preserve-tree"));
         print(planLine(p));
         print(itemLines(p));
         const sf = FM.engine.safety(executable, p, root);
@@ -643,13 +644,22 @@ Environment:
         const watched = (FM.store.settings.watchedFolders ??= []);
         const sub = pos[0] ?? "run";
         if (sub === "add") {
-          if (!pos[1]) return err("usage: filemind watch add <dir> [--mode <mode>]");
+          if (!pos[1]) return err("usage: filemind watch add <dir> [--mode <mode>] [--tree]");
           const wr = findRoot(pos[1]);
           if (!wr) return err(`directory '${pos[1]}' does not exist`);
           if (watched.some((w) => w.path === wr)) return err(`'${wr}' is already watched`);
           const m = flagVal("--mode");
-          watched.push({ path: wr, mode: m ? m[0].toUpperCase() + m.slice(1) : null });
+          watched.push({ path: wr, mode: m ? m[0].toUpperCase() + m.slice(1) : null, tree: flags.has("--tree") });
           return print(`watching ${wr}`);
+        }
+        if (sub === "tree") {
+          if (!pos[1]) return err("usage: filemind watch tree <dir> [on|off]");
+          const w = watched.find((x) => x.path === pos[1]);
+          if (!w) return err(`not watched: '${pos[1]}'`);
+          if (!pos[2]) return print(`tree=${w.tree ? "on" : "off"}  ${w.path}`);
+          if (!["on", "off"].includes(pos[2])) return err("usage: filemind watch tree <dir> [on|off]");
+          w.tree = pos[2] === "on";
+          return print(`tree=${pos[2]}  ${w.path}`);
         }
         if (sub === "remove") {
           if (!pos[1]) return err("usage: filemind watch remove <dir>");
@@ -660,7 +670,7 @@ Environment:
         }
         if (sub === "list") {
           const def = FM.store.settings.organizationMode || "Manual";
-          watched.forEach((w) => print(`${pad(w.path, 50)} mode=${w.mode ?? def}`));
+          watched.forEach((w) => print(`${pad(w.path, 50)} mode=${w.mode ?? def}  tree=${w.tree ? "on" : "off"}`));
           return print(`-- ${watched.length} watched folder(s)`);
         }
         // run — simulate the real loop: source → bounded queue → debounce → stability → orchestrator
@@ -691,7 +701,7 @@ Environment:
           } else {
             actions++;
             const dest = `${watched[0].path}\\organized`;
-            const p = FM.engine.plan(res, false, dest);
+            const p = FM.engine.plan(res, false, dest, wr, watched[0].tree === true);
             const rec = await FM.engine.execute(p, null, null);
             FM.store.ops.unshift(rec);
             FM.bus.emit("ops");
