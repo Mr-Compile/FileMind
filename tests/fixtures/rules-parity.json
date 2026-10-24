@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "description": "Cross-platform rule-engine parity fixture. Rules conform to schemas/rules/rule.schema.json; both engines must produce the listed matches/winners/decisions for each case path.",
+  "rules": [
+    {
+      "schemaVersion": 1,
+      "id": "school-it421",
+      "name": "Route IT421 to school",
+      "enabled": true,
+      "priority": 50,
+      "stopProcessing": false,
+      "mode": "all",
+      "provenance": "Builtin",
+      "conditionRoot": {
+        "operator": "And",
+        "conditions": [
+          { "field": "Subject", "operator": "Equals", "value": "IT421" }
+        ],
+        "groups": []
+      },
+      "actions": [
+        { "kind": "Move", "destinationTemplate": "School/{Subject}", "conflictPolicy": "KeepBoth" }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "ignore-tmp",
+      "name": "Ignore temp files",
+      "enabled": true,
+      "priority": 90,
+      "stopProcessing": true,
+      "mode": "all",
+      "provenance": "Builtin",
+      "conditionRoot": {
+        "operator": "Or",
+        "conditions": [
+          { "field": "Extension", "operator": "In", "value": "tmp,part,crdownload" }
+        ],
+        "groups": []
+      },
+      "actions": [
+        { "kind": "Ignore" }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "ask-big",
+      "name": "Ask on huge files",
+      "enabled": true,
+      "priority": 10,
+      "stopProcessing": false,
+      "mode": "all",
+      "provenance": "User",
+      "conditionRoot": {
+        "operator": "And",
+        "conditions": [
+          { "field": "Size", "operator": "GreaterThan", "value": "100000000" }
+        ],
+        "groups": []
+      },
+      "actions": [
+        { "kind": "Ask" }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "conflict-a",
+      "name": "Conflict A",
+      "enabled": true,
+      "priority": 5,
+      "stopProcessing": false,
+      "mode": "all",
+      "provenance": "User",
+      "conditionRoot": {
+        "operator": "And",
+        "conditions": [
+          { "field": "Keyword", "operator": "Contains", "value": "conflictme" }
+        ],
+        "groups": []
+      },
+      "actions": [
+        { "kind": "Move", "destinationTemplate": "Alpha/{FileKind}", "conflictPolicy": "KeepBoth" }
+      ]
+    },
+    {
+      "schemaVersion": 1,
+      "id": "conflict-b",
+      "name": "Conflict B",
+      "enabled": true,
+      "priority": 4,
+      "stopProcessing": false,
+      "mode": "all",
+      "provenance": "User",
+      "conditionRoot": {
+        "operator": "And",
+        "conditions": [
+          { "field": "Keyword", "operator": "Contains", "value": "conflictme" }
+        ],
+        "groups": []
+      },
+      "actions": [
+        { "kind": "Move", "destinationTemplate": "Beta/{FileKind}", "conflictPolicy": "KeepBoth" }
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "path": "corpus/school-it421/IT421_Lecture_5.mp4",
+      "expectedMatched": ["school-it421"],
+      "expectedWinningRule": "school-it421",
+      "expectedDecision": "Organize",
+      "expectedDestinationPrefix": "School/IT421",
+      "note": "Subject rule routes; default context-over-type destination agrees."
+    },
+    {
+      "path": "corpus/downloads/file.part",
+      "expectedMatched": ["ignore-tmp"],
+      "expectedWinningRule": "ignore-tmp",
+      "expectedDecision": "Ignore",
+      "note": "stop-processing ignore wins over everything."
+    },
+    {
+      "path": "corpus/downloads/huge_backup.zip",
+      "sizeBytes": 200000000,
+      "expectedMatched": ["ask-big"],
+      "expectedWinningRule": "ask-big",
+      "expectedDecision": "Review",
+      "note": "Ask action forces review regardless of confidence."
+    },
+    {
+      "path": "corpus/downloads/conflictme_report.pdf",
+      "expectedMatched": ["conflict-a", "conflict-b"],
+      "expectedWinningRule": "conflict-a",
+      "expectedDecision": "Review",
+      "expectedConflicts": 1,
+      "note": "Two differing Move destinations → conflict → review, no silent winner."
+    },
+    {
+      "path": "corpus/work/invoice_contoso_q3.pdf",
+      "expectedMatched": [],
+      "expectedWinningRule": null,
+      "expectedDecision": "Review",
+      "note": "No rule matches; medium-confidence project match routes to Smart Inbox review (project evidence can reach 73 < 95 High)."
+    }
+  ]
+}

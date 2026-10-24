@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "rules": [],
+  "collections": [
+    {
+      "id": "school",
+      "name": "School",
+      "destinationTemplate": "School/{Subject}",
+      "categories": ["Lectures", "Assignments"]
+    },
+    {
+      "id": "work",
+      "name": "Work",
+      "destinationTemplate": "Work/{Project}",
+      "categories": ["Reports", "Invoices"]
+    }
+  ],
+  "subjects": [
+    {
+      "id": "IT421",
+      "name": "IT421 Networks",
+      "code": "IT421",
+      "aliases": ["IT 421", "IT-421", "IT_421"],
+      "keywords": ["networks", "lecture", "lab"]
+    }
+  ],
+  "projects": [
+    {
+      "id": "alpha",
+      "name": "Project Alpha",
+      "clientName": "Contoso",
+      "aliases": ["alpha"],
+      "keywords": ["status", "report"]
+    }
+  ],
+  "namingTemplates": {
+    "default": "{Name}.{Ext}"
+  },
+  "exclusions": ["*.tmp", "*.part"],
+  "preferences": {
+    "mode": "Smart",
+    "conflictPolicy": "KeepBoth"
+  }
+}

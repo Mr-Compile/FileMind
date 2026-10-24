@@ -10,6 +10,15 @@
       { "id": "acme", "name": "ACME Engagement", "clientName": "ACME", "aliases": ["acme"], "keywords": ["meeting"] }
     ]
   },
+  "exclusions": [
+    "*.tmp",
+    "*.part",
+    "*.crdownload",
+    "desktop.ini",
+    "thumbs.db",
+    "**/node_modules/**",
+    "**/bin/**"
+  ],
   "cases": [
     {
       "path": "corpus/school-it421/IT421_Lecture_5.mp4",

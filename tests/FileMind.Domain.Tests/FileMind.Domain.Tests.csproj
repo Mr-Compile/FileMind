@@ -21,10 +21,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FileMind.Domain\FileMind.Domain.csproj" />
+    <ProjectReference Include="..\..\src\FileMind.Application\FileMind.Application.csproj" />
     <ProjectReference Include="..\FileMind.Testing\FileMind.Testing.csproj" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="..\fixtures\manifest.json"
+                      LogicalName="FileMind.Domain.Tests.fixtures.manifest.json" />
     <EmbeddedResource Include="..\..\schemas\rules\rule.schema.json"
                       LogicalName="FileMind.Domain.Tests.schemas.rules.rule.schema.json" />
     <EmbeddedResource Include="..\..\schemas\profiles\organizer-profile.schema.json"
