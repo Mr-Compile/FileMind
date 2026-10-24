@@ -593,4 +593,7 @@ document.addEventListener("DOMContentLoaded", () => {
   updateOpBadge();
   addEventListener("hashchange", FM.route);
   FM.route();
+  /* splash: brief brand display on boot, then fade (BRAND.md: simple/fast, no fake progress) */
+  const splash = document.getElementById("splash");
+  if (splash) setTimeout(() => { document.body.classList.add("splash-done"); setTimeout(() => splash.remove(), 300); }, 500);
 });

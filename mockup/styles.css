@@ -53,9 +53,18 @@ svg.ic.sm{width:14px;height:14px}
 }
 .brand{display:flex;align-items:center;gap:var(--sp-2);min-width:200px}
 .brand-mark{
-  width:26px;height:26px;border-radius:8px;background:var(--grad);
-  color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center;
+  width:26px;height:26px;display:block;object-fit:contain;
 }
+#splash{
+  position:fixed;inset:0;z-index:1000;display:grid;place-items:center;
+  background:var(--fm-bg);transition:opacity .25s ease;
+}
+#splash .splash-lockup{width:min(420px,72vw)}
+#splash .splash-dark{display:none}
+[data-theme="dark"] #splash .splash-light{display:none}
+[data-theme="dark"] #splash .splash-dark{display:block}
+body.splash-done #splash{opacity:0;pointer-events:none}
+@media (prefers-reduced-motion:reduce){#splash{transition:none}}
 .brand-name{font-weight:600;font-size:15px}
 .cmd{
   flex:1;max-width:520px;display:flex;align-items:center;gap:var(--sp-2);

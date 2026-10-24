@@ -4,16 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>FileMind — UI Mockup</title>
+<link rel="icon" type="image/png" href="../branding/logo/png/icon-32.png">
+<script>
+/* early theme resolution — prevents theme flash before app.js boots (mirrors FM.theme) */
+try{var m=localStorage.getItem("fm-theme")||"system";var d=m==="system"?matchMedia("(prefers-color-scheme: dark)").matches:m==="dark";document.documentElement.dataset.theme=d?"dark":"";}catch(e){}
+</script>
 <!-- Canonical brand tokens: single source of truth (docs/rules/MOCKUP_RULES.md) -->
 <link rel="stylesheet" href="../branding/colors.css">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <img class="splash-lockup splash-light" src="../branding/logo/filemind-lockup-light.svg" alt="">
+  <img class="splash-lockup splash-dark" src="../branding/logo/filemind-lockup-dark.svg" alt="">
+</div>
+<noscript><style>#splash{display:none}</style></noscript>
 <a class="skip" href="#main">Skip to content</a>
 <div class="app">
   <header class="titlebar">
     <div class="brand">
-      <span class="brand-mark" aria-hidden="true">FM</span>
+      <img class="brand-mark" src="../branding/logo/filemind-mark.svg" alt="" aria-hidden="true">
       <span class="brand-name">FileMind</span>
       <span class="badge badge-info">UI mockup</span>
     </div>
