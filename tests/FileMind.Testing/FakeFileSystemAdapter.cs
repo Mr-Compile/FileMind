@@ -120,6 +120,7 @@ public sealed class FakeFileSystemAdapter : IFileSystemAdapter
         if (FailNextMove) { FailNextMove = false; return Task.FromResult(Result<string>.Fail(FileMindError.Io("Injected move failure."))); }
         if (FailMoveMatching?.Invoke(source) == true)
             return Task.FromResult(Result<string>.Fail(FileMindError.Io($"Injected move failure for '{source}'.")));
+        if (VanishOn?.Invoke(source) == true) _fs.TryRemove(Key(source), out _);
         if (!_fs.TryGetValue(Key(source), out var n) || n.IsDirectory)
             return Task.FromResult(Result<string>.Fail(FileMindError.NotFound($"'{source}' not found.")));
         var resolved = ResolveConflict(destination, conflict);
@@ -135,6 +136,7 @@ public sealed class FakeFileSystemAdapter : IFileSystemAdapter
     {
         CallLog.Add($"copy:{source}->{destination}");
         if (LockPaths) return Task.FromResult(Result<string>.Fail(FileMindError.FileLocked($"'{source}' locked.")));
+        if (VanishOn?.Invoke(source) == true) _fs.TryRemove(Key(source), out _);
         if (!_fs.TryGetValue(Key(source), out var n) || n.IsDirectory)
             return Task.FromResult(Result<string>.Fail(FileMindError.NotFound($"'{source}' not found.")));
         var resolved = ResolveConflict(destination, conflict);
@@ -149,6 +151,7 @@ public sealed class FakeFileSystemAdapter : IFileSystemAdapter
     {
         CallLog.Add($"rename:{source}->{newName}");
         if (LockPaths) return Task.FromResult(Result<string>.Fail(FileMindError.FileLocked($"'{source}' locked.")));
+        if (VanishOn?.Invoke(source) == true) _fs.TryRemove(Key(source), out _);
         if (!_fs.TryGetValue(Key(source), out var n) || n.IsDirectory)
             return Task.FromResult(Result<string>.Fail(FileMindError.NotFound($"'{source}' not found.")));
         var dir = DirectoryOf(source);
