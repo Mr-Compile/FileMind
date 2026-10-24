@@ -1,9 +1,19 @@
 # PLAN-007 — FileMind Local File Intelligence Megaplan (Backend Roadmap Phase 5 / PLAN-001 M6)
 
-Status: READY
+Status: IMPLEMENTED (verified 2026-10-24)
 Related Feature: F-P5 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
+
+## Verification Result
+
+- M0–M3 implemented: `IFileAnalyzer`/`ExtractionBudget`/`AnalyzerOutput`, `AnalyzerRegistry`, `LocalAnalyzerService` (`ICandidateEnricher` in `Domain.Ports`), 8 analyzers (plain-text/RTF strip, OOXML core.xml+text runs, PDF Info+Tj/TJ incl. FlateDecode, JPEG EXIF IFD0 + PNG IHDR/tEXt, ID3v2 + FLAC Vorbis comments, ISO-BMFF mvhd/tkhd, ZIP manifest list-only, code language heuristics). Zero external dependencies — BCL only.
+- Evidence → classification: `ClassifierEngine.Classify(candidate, extraEvidence, contentTokens)` — content tokens re-run subject/project matchers at 0.35 weight (`content-*` evidence kinds), filename wins on conflict (warning → NeedsReview); enrichment evidence capped at 25 total.
+- Smart rename: `{Title}`/`{Author}`/`{Year}` template tokens resolve from extracted metadata in `ActionPlanner.ResolveTemplate`; absent metadata falls back (`Unknown`/stem/current year) — metadata presence IS the reliability gate.
+- Host: `enrich <dir>` verb; pipeline wired with `LocalAnalyzerService` as `enricher` in `OrganizerPipeline` (optional — null = pre-PLAN-007 behavior).
+- Tests: 15 in `tests/FileMind.Application.Tests/LocalIntelligenceTests.cs` (hand-crafted DOCX/PDF-deflate/PNG/ID3/zip fixtures, corrupt fail-safety, budget truncation, registry, service merge+cap, pipeline content-subject match, smart rename). 55/55 Application suite via SAC runner.
+- Host e2e verified: `enrich` shows ID3 title/author, OOXML corrupt warning, 55-char txt extraction + `content-subject-code` evidence; `analyze` promotes `.txt` to subject=IT421 via content.
+- Gaps (honest): MKV/WebM/AVI/WAV metadata parsing, ID3v1, OOXML headers/footers beyond `w:t`/`a:t` runs, encrypted-PDF handling (flagged unsupported), OCR — all MISSING/out-of-scope.
 
 ## Request / Goal
 

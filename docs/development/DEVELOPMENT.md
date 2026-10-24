@@ -40,7 +40,10 @@ dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch 
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch list
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch [run] [--seconds N] [--apply]
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll watch-status
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll enrich <dir> [--shallow]
 ```
+
+`enrich` runs the local-intelligence analyzers (OOXML/PDF/EXIF/ID3/video/archive/code) and prints extracted metadata + evidence per file; extraction is bounded (`ExtractionBudget`) and fail-safe.
 
 `watch run` consumes `FileSystemWatcher` events through a bounded queue + `IClock` debounce, re-stats each path (`FileStabilityChecker` — `.crdownload/.part/.partial/.download/.tmp` never move), then routes through `ModePolicy` per watched folder (`watch add --mode` persists `watch.mode.<path>` in settings). Removable-drive attach/detach pauses/resumes watchers on affected roots.
 

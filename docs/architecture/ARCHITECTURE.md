@@ -12,7 +12,9 @@ EXISTING — .NET 10 solution `FileMind.slnx` implementing the approved layering
 - `tests/` — `FileMind.Domain.Tests` (77), `FileMind.Application.Tests` (wiring + Windows E2E on disposable dirs), `FileMind.Testing` (fake FS/clock/paths/AI/inbox stores), `FileMind.Windows.IntegrationTests` (excluded from solution — see its README re: Smart App Control).
 - `schemas/` — versioned JSON schemas (`rule.schema.json`, `organizer-profile.schema.json`, draft 2020-12); embedded as test resources.
 
-NOT IMPLEMENTED YET: content extraction, Groq provider, Android, FTS5 search, UI, `Intelligence.*` assemblies (empty placeholders). Watchers/automation IMPLEMENTED (PLAN-005): `Application/Watching` pipeline + `Platform.Windows` watcher/drive/notification adapters + `watch`/`watch-status` host verbs; crash-recovery reconciler IMPLEMENTED (`StartupRecoveryService` — operations + stuck jobs).
+- `src/FileMind.Intelligence.Local` — `IFileAnalyzer`/`AnalyzerRegistry`/`LocalAnalyzerService` (`ICandidateEnricher`), `ExtractionBudget`, 8 BCL-only analyzers (OOXML, PDF incl. FlateDecode, TXT/RTF, JPEG/PNG, ID3v2/FLAC, MP4/MOV, ZIP manifest, code signals). Fail-safe per file; no external deps.
+
+NOT IMPLEMENTED YET: Groq provider, Android, FTS5 search, UI, `FileMind.Intelligence.AI` (empty placeholder). Watchers/automation IMPLEMENTED (PLAN-005); crash-recovery reconciler IMPLEMENTED (`StartupRecoveryService`); local intelligence IMPLEMENTED (PLAN-007) — `ICandidateEnricher` feeds `ClassifierEngine` content tokens (0.35 weight) + capped evidence; `{Title}`/`{Author}`/`{Year}` rename tokens resolve from extracted metadata.
 
 ## Approved Architecture Intent (PROPOSED until implemented)
 Source: `docs/packs/foundation-pack/01-architecture/` and `docs/packs/backend-roadmap/`.

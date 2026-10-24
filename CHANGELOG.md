@@ -2,6 +2,14 @@
 
 All notable verified project changes should be recorded here. Do not add planned work as released work.
 
+## 2026-10-24 — Local File Intelligence (PLAN-007)
+- `FileMind.Intelligence.Local` implemented (was empty scaffold): `IFileAnalyzer` contract, `ExtractionBudget` (byte/char/time caps), `AnalyzerRegistry`, `LocalAnalyzerService` implementing new `ICandidateEnricher` port (Domain.Ports). 8 BCL-only analyzers — zero external deps: plain-text/RTF-strip, OOXML (core.xml props + `w:t`/`a:t` runs via ZipArchive), PDF (Info literals + Tj/TJ incl. FlateDecode inflate), JPEG EXIF IFD0 + PNG IHDR/tEXt, ID3v2 + FLAC Vorbis comments, ISO-BMFF mvhd/tkhd (MP4/MOV), ZIP manifest (listed, never extracted), code language heuristics.
+- `ClassifierEngine.Classify` gains optional `extraEvidence` + `contentTokens`: extracted text re-runs subject/project matchers at 0.35 weight (`content-*` evidence); filename wins conflicts with a warning; enrichment evidence capped at 25.
+- `FileCandidate.Metadata`/`ExtractedTextRef` merged in `OrganizerPipeline.AnalyzeAsync` (optional `enricher` param); `ExtractedContent` rule conditions now work on real content.
+- Smart rename: `{Title}`/`{Author}`/`{Year}` tokens in `ActionPlanner` resolve from extracted metadata (absent → `Unknown`/stem/current-year fallback).
+- Host: `enrich <dir>` verb; host csproj references Intelligence.Local.
+- Verified: 15 new tests (crafted DOCX/PDF-deflate/PNG/ID3/ZIP fixtures, corruption fail-safety, budgets, cap, content→subject promotion, smart rename); 55/55 Application suite; host e2e (`enrich`/`analyze` on real files). Gaps: MKV/AVI/ID3v1/OOXML-other-parts/encrypted-PDF/OCR remain MISSING.
+
 ## 2026-10-24 — Windows Automation (PLAN-005)
 - Watch pipeline in `FileMind.Application/Watching`: normalized `WatchEvent`/`WatchEventKind`, bounded `WatcherEventQueue` (dedupe newest-wins + overflow flag), `DebounceService` (`IClock`-driven per-path windows), `FileStabilityChecker` (re-stat; `.crdownload/.part/.partial/.download/.tmp` never stable; still-changing detection), `WatchOrchestrator` (per-folder `ModePolicy` routing: Execute / Smart Inbox / Skip / index-only; Deleted → index removal; Error → rescan warning), `WatchService` drive loop.
 - Windows adapters: `WindowsWatcherEventSource` (FileSystemWatcher, overflow→Error event), `WindowsRemovableStorageEvents` (DriveInfo polling), `ConsoleNotificationService`, `SystemClock`.
