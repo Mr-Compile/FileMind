@@ -322,6 +322,12 @@ public sealed class SqliteStore(FileMindDb db) :
                 r => new Job(r.GetString(0), new JobRequest(r.GetString(1), r.GetString(2)),
                     r.GetString(3), ParseIso(r.GetString(4)))).ToList())));
 
+    public Task<Result<IReadOnlyList<Job>>> GetByStatusAsync(string status, CancellationToken ct = default) =>
+        Task.FromResult(Try<IReadOnlyList<Job>>(() => Result<IReadOnlyList<Job>>.Ok(
+            db.Query("SELECT id,type,payload,status,queued_at FROM jobs WHERE status=$s ORDER BY queued_at",
+                r => new Job(r.GetString(0), new JobRequest(r.GetString(1), r.GetString(2)),
+                    r.GetString(3), ParseIso(r.GetString(4))), ("$s", status)).ToList())));
+
     public Task<Result<bool>> UpdateStatusAsync(string jobId, string status, CancellationToken ct = default) =>
         Task.FromResult(Try(() => Result<bool>.Ok(
             db.Exec("UPDATE jobs SET status=$s WHERE id=$id", ("$s", status), ("$id", jobId)) > 0)));

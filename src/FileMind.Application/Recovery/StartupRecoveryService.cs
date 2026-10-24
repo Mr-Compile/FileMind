@@ -1,3 +1,4 @@
+using FileMind.Application.Ports;
 using FileMind.Domain.Contracts;
 using FileMind.Domain.Errors;
 using FileMind.Domain.Ports;
@@ -8,9 +9,10 @@ public sealed record RecoveryReport(
     int Reconciled,
     int FailedPristine,
     int NeedsAttention,
-    IReadOnlyList<string> OperationIds);
+    IReadOnlyList<string> OperationIds,
+    int JobsRequeued = 0);
 
-public sealed class StartupRecoveryService(IOperationStore store)
+public sealed class StartupRecoveryService(IOperationStore store, IJobRepository? jobs = null)
 {
     public async Task<Result<RecoveryReport>> ReconcileAsync(CancellationToken ct = default)
     {
@@ -24,6 +26,8 @@ public sealed class StartupRecoveryService(IOperationStore store)
         foreach (var record in incomplete.Value!)
         {
             ct.ThrowIfCancellationRequested();
+            if (record.Status is OperationStatus.NeedsAttention or OperationStatus.Failed)
+                continue; // already reconciled by a previous run
             var anyApplied = record.Items.Any(i => i.Status == OperationStatus.Committed);
             var ambiguous = anyApplied
                 || record.Status is OperationStatus.Executing
@@ -52,6 +56,20 @@ public sealed class StartupRecoveryService(IOperationStore store)
             ids.Add(record.OperationId);
         }
 
-        return Result<RecoveryReport>.Ok(new RecoveryReport(ids.Count, failed, attention, ids));
+        var requeued = 0;
+        if (jobs is not null)
+        {
+            var running = await jobs.GetByStatusAsync("running", ct);
+            if (!running.IsSuccess) return Result<RecoveryReport>.Fail(running.Error!);
+            foreach (var job in running.Value!)
+            {
+                ct.ThrowIfCancellationRequested();
+                var reset = await jobs.UpdateStatusAsync(job.Id, "pending", ct);
+                if (!reset.IsSuccess) return Result<RecoveryReport>.Fail(reset.Error!);
+                requeued++;
+            }
+        }
+
+        return Result<RecoveryReport>.Ok(new RecoveryReport(ids.Count, failed, attention, ids, requeued));
     }
 }

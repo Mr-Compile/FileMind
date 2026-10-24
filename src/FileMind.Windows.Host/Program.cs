@@ -4,6 +4,7 @@ using FileMind.Application.Ports;
 using FileMind.Application.Recovery;
 using FileMind.Application.Scanning;
 using FileMind.Application.UseCases;
+using FileMind.Application.Watching;
 using FileMind.Domain.Classification;
 using FileMind.Domain.Contracts;
 using FileMind.Domain.Operations;
@@ -30,6 +31,11 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
           filemind undo <operationId>
           filemind history [count]
           filemind smart-inbox [resolve <id>]
+          filemind watch [run] [--seconds N] [--apply]
+          filemind watch add <dir> [--mode <mode>]
+          filemind watch remove <dir>
+          filemind watch list
+          filemind watch-status
           filemind mode [<manual|smart|automatic|ai-assisted|local-only>]
           filemind rules [list]
           filemind rules show <id>
@@ -88,7 +94,7 @@ var scanner = new FileScanner(adapter, paths,
 var safety = new SafetyEngine(adapter, paths);
 var indexing = new FileIndexingService(store, new WindowsHashService());
 var inboxService = new SmartInboxService(store);
-var recoveryService = new StartupRecoveryService(store);
+var recoveryService = new StartupRecoveryService(store, store);
 var pipeline = new OrganizerPipeline(
     scanner, classifier, new RuleEngine(), new DecisionMaker(confidence),
     new ActionPlanner(), safety,
@@ -239,6 +245,154 @@ switch (command)
         foreach (var item in openItems.Value!)
             Console.WriteLine($"{item.Id}  conf={item.Classification.Confidence,5:0}  {item.Path}\n    reason: {item.Reason}");
         Console.WriteLine($"-- {openItems.Value!.Count} open item(s)");
+        return 0;
+    }
+
+    case "watch":
+    {
+        var sub = positional.Count > 0 ? positional[0] : "run";
+        switch (sub)
+        {
+            case "add":
+            {
+                if (positional.Count < 2) return Fail("usage: filemind watch add <dir> [--mode <mode>]");
+                if (!Directory.Exists(positional[1])) return Fail($"directory '{positional[1]}' does not exist");
+                var added = await ((IWatchedFolderRepository)store).AddAsync(positional[1]);
+                if (!added.IsSuccess) return Fail(added.Error!.Message);
+                var modeArg = flagValue("--mode");
+                if (modeArg is not null)
+                {
+                    if (!ModePolicy.TryParse(modeArg, out var fm)) return Fail($"unknown mode '{modeArg}'.");
+                    await ((ISettingsRepository)store).SetAsync($"watch.mode.{positional[1]}", fm.ToString());
+                }
+                Console.WriteLine($"watching {positional[1]}");
+                return 0;
+            }
+            case "remove":
+            {
+                if (positional.Count < 2) return Fail("usage: filemind watch remove <dir>");
+                var removed = await ((IWatchedFolderRepository)store).RemoveAsync(positional[1]);
+                return removed.IsSuccess && removed.Value ? 0 : Fail($"not watched: '{positional[1]}'");
+            }
+            case "list":
+            {
+                var folders = (await ((IWatchedFolderRepository)store).GetAllAsync()).Value ?? [];
+                foreach (var f in folders)
+                {
+                    var fm = (await ((ISettingsRepository)store).GetAsync($"watch.mode.{f}")).Value;
+                    Console.WriteLine($"{f,-50} mode={fm ?? ModePolicy.Display(currentMode)}");
+                }
+                Console.WriteLine($"-- {folders.Count} watched folder(s)");
+                return 0;
+            }
+            default:
+            {
+                // run the watcher over persisted folders until --seconds elapses or Ctrl+C
+                var folders = (await ((IWatchedFolderRepository)store).GetAllAsync()).Value ?? [];
+                var extra = flagValue("--dir");
+                if (extra is not null && Directory.Exists(extra)) folders = folders.Append(extra).ToList();
+                if (folders.Count == 0) return Fail("no watched folders — add one: filemind watch add <dir>");
+                var seconds = flagValue("--seconds") is { } s && int.TryParse(s, out var n) ? n : 0;
+
+                using var src = new WindowsWatcherEventSource();
+                foreach (var f in folders)
+                {
+                    var started = await src.StartWatchingAsync(f);
+                    if (!started.IsSuccess) return Fail($"{f}: {started.Error!.Message}");
+                }
+                var notify = new ConsoleNotificationService();
+                var stability = new FileStabilityChecker(adapter);
+                var orchestrator = new WatchOrchestrator(
+                    pipeline, indexing, inboxService, paths, stability, store,
+                    notify, dest ?? DefaultDest(folders[0]));
+                var sysClock = new SystemClock();
+                var svc = new WatchService(src, new WatcherEventQueue(), new DebounceService(sysClock),
+                    orchestrator, sysClock, jobs: new SqliteJobQueue((IJobRepository)store));
+                var apply = flags.Contains("--apply");
+
+                var folderModes = new Dictionary<string, OrganizationMode>(StringComparer.OrdinalIgnoreCase);
+                foreach (var f in folders)
+                {
+                    var saved = (await ((ISettingsRepository)store).GetAsync($"watch.mode.{f}")).Value;
+                    if (saved is not null && ModePolicy.TryParse(saved, out var fm)) folderModes[f] = fm;
+                }
+                (OrganizationMode, bool) Route(WatchEvent e)
+                {
+                    var owner = folders.FirstOrDefault(f =>
+                        e.Path.StartsWith(f, StringComparison.OrdinalIgnoreCase));
+                    return (owner is not null && folderModes.TryGetValue(owner, out var fm)
+                        ? fm : currentMode, apply);
+                }
+
+                Console.WriteLine($"watching {folders.Count} folder(s)" +
+                    (seconds > 0 ? $" for {seconds}s" : " — Ctrl+C to stop"));
+                using var cts = seconds > 0
+                    ? new CancellationTokenSource(TimeSpan.FromSeconds(seconds))
+                    : new CancellationTokenSource();
+                Console.CancelKeyPress += (_, e) => { e.Cancel = true; cts.Cancel(); };
+
+                // Removable drives: pause watchers on detached roots, resume on reattach.
+                var paused = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                var drives = new WindowsRemovableStorageEvents();
+                var drivePump = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await foreach (var d in drives.EventsAsync(cts.Token))
+                        {
+                            if (d.Kind == "Removed")
+                            {
+                                foreach (var f in folders.Where(f =>
+                                    f.StartsWith(d.DriveRoot, StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    await src.StopWatchingAsync(f, cts.Token);
+                                    paused.Add(f);
+                                    await notify.NotifyAsync(new Notification(
+                                        "Watcher paused", $"drive {d.DriveRoot} removed — watching paused for {f}"), cts.Token);
+                                }
+                            }
+                            else if (d.Kind == "Attached")
+                            {
+                                foreach (var f in paused.Where(f =>
+                                    f.StartsWith(d.DriveRoot, StringComparison.OrdinalIgnoreCase)).ToList())
+                                {
+                                    var restarted = await src.StartWatchingAsync(f, cts.Token);
+                                    if (restarted.IsSuccess)
+                                    {
+                                        paused.Remove(f);
+                                        await notify.NotifyAsync(new Notification(
+                                            "Watcher resumed", $"drive {d.DriveRoot} reattached — watching {f}"), cts.Token);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    catch (OperationCanceledException) { }
+                }, cts.Token);
+
+                var run = await svc.RunAsync(currentMode, apply, Route, cts.Token);
+                try { await drivePump; } catch (OperationCanceledException) { }
+                if (!run.IsSuccess) return Fail(run.Error!.Message);
+                foreach (var w in run.Value!.Warnings) Console.WriteLine($"  warn: {w}");
+                Console.WriteLine($"-- {run.Value.EventsReceived} event(s), " +
+                    $"{run.Value.EventsProcessed} processed, {run.Value.ActionsTaken} action(s)");
+                return 0;
+            }
+        }
+    }
+
+    case "watch-status":
+    {
+        var folders = (await ((IWatchedFolderRepository)store).GetAllAsync()).Value ?? [];
+        Console.WriteLine($"mode={ModePolicy.Display(currentMode)}  watched={folders.Count}");
+        foreach (var f in folders)
+        {
+            var fm = (await ((ISettingsRepository)store).GetAsync($"watch.mode.{f}")).Value;
+            Console.WriteLine($"  {f}  mode={fm ?? ModePolicy.Display(currentMode)}");
+        }
+        var pending = (await ((IJobRepository)store).GetByStatusAsync("pending")).Value?.Count ?? 0;
+        var openInbox = (await store.GetOpenAsync()).Value?.Count ?? 0;
+        Console.WriteLine($"pending jobs={pending}  smart-inbox open={openInbox}");
         return 0;
     }
 

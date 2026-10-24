@@ -94,6 +94,7 @@ public interface IJobRepository
 {
     Task<Result<Job>> EnqueueAsync(JobRequest request, CancellationToken ct = default);
     Task<Result<IReadOnlyList<Job>>> GetPendingAsync(CancellationToken ct = default);
+    Task<Result<IReadOnlyList<Job>>> GetByStatusAsync(string status, CancellationToken ct = default);
     Task<Result<bool>> UpdateStatusAsync(string jobId, string status, CancellationToken ct = default);
 }
 

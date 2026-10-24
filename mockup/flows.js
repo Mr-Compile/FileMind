@@ -288,6 +288,11 @@ Usage:
   filemind rules test <id|rule.json> <dir>
   filemind rules import <file>
   filemind rules export <id> [--out <file>]
+  filemind watch add <dir> [--mode <mode>]
+  filemind watch remove <dir>
+  filemind watch list
+  filemind watch [run] [--seconds N] [--apply]
+  filemind watch-status
   filemind seed-demo
 
 Environment:
@@ -468,6 +473,76 @@ Environment:
         if (sub === "import") return err("demo: import reads a real .json file — host validates then upserts with provenance=Imported");
         return err("usage: filemind rules [list|show|test|import|export]");
       }
+      case "watch": {
+        const watched = (FM.store.settings.watchedFolders ??= []);
+        const sub = pos[0] ?? "run";
+        if (sub === "add") {
+          if (!pos[1]) return err("usage: filemind watch add <dir> [--mode <mode>]");
+          const wr = findRoot(pos[1]);
+          if (!wr) return err(`directory '${pos[1]}' does not exist`);
+          if (watched.some((w) => w.path === wr)) return err(`'${wr}' is already watched`);
+          const m = flagVal("--mode");
+          watched.push({ path: wr, mode: m ? m[0].toUpperCase() + m.slice(1) : null });
+          return print(`watching ${wr}`);
+        }
+        if (sub === "remove") {
+          if (!pos[1]) return err("usage: filemind watch remove <dir>");
+          const i = watched.findIndex((w) => w.path === pos[1]);
+          if (i < 0) return err(`not watched: '${pos[1]}'`);
+          watched.splice(i, 1);
+          return;
+        }
+        if (sub === "list") {
+          const def = FM.store.settings.organizationMode || "Manual";
+          watched.forEach((w) => print(`${pad(w.path, 50)} mode=${w.mode ?? def}`));
+          return print(`-- ${watched.length} watched folder(s)`);
+        }
+        // run — simulate the real loop: source → bounded queue → debounce → stability → orchestrator
+        if (watched.length === 0) return err("no watched folders — add one: filemind watch add <dir>");
+        const secs = flagVal("--seconds") ?? "∞";
+        print(`watching ${watched.length} folder(s) for ${secs}s`, "dim");
+        // demo: synthesize a Created event for the first .crdownload (skipped) and first normal file (organized)
+        const wr = watched[0].path;
+        const cand = filesIn(wr).filter((f) => !FM.engine.excluded(f))[0];
+        const partial = (FM.store.files.find((f) => f.displayName.endsWith(".crdownload")));
+        let events = 0, processed = 0, actions = 0;
+        if (partial) {
+          events++;
+          print(`  warn: ${partial.displayName}: incomplete download — skipped until stable`, "dim");
+        }
+        if (cand) {
+          events += 2; processed++; // Created + Changed collapse into one due event after debounce
+          const res = FM.engine.analyze([cand]);
+          const a = res[0];
+          const wMode = (watched[0].mode ?? FM.store.settings.organizationMode ?? "Smart").toLowerCase();
+          if (a.decision.kind === "NoOp" || a.decision.kind === "Ignore") {
+            actions++;
+            print(`  ${a.candidate.displayName}: ${a.decision.kind} — indexed only`, "dim");
+          } else if (a.decision.kind === "Review" && wMode !== "automatic") {
+            actions++;
+            FM.store.inbox.unshift({ id: FM.uid(8), sourceUri: a.candidate.sourceUri, status: "Pending", reasons: a.decision.reasons });
+            print(`[notify] Smart Inbox item: ${a.candidate.displayName}: needs review`, "dim");
+          } else {
+            actions++;
+            const dest = `${watched[0].path}\\organized`;
+            const p = FM.engine.plan(res, false, dest);
+            const rec = await FM.engine.execute(p, null, null);
+            FM.store.ops.unshift(rec);
+            FM.bus.emit("ops");
+            print(`[notify] File organized: ${a.candidate.displayName} -> ${rec.status} (op ${rec.operationId})`, "ok");
+          }
+        }
+        return print(`-- ${events} event(s), ${processed} processed, ${actions} action(s)`);
+      }
+      case "watch-status": {
+        const watched = FM.store.settings.watchedFolders ?? [];
+        const def = FM.store.settings.organizationMode || "Manual";
+        print(`mode=${def}  watched=${watched.length}`);
+        watched.forEach((w) => print(`  ${w.path}  mode=${w.mode ?? def}`));
+        const open = FM.store.inbox.filter((i) => i.status === "Pending").length;
+        print(`pending jobs=0  smart-inbox open=${open}`);
+        return;
+      }
       default:
         return err(`Unknown command '${cmd}'. Run 'filemind --help'.`);
     }
@@ -505,14 +580,14 @@ FM.screen("architecture", (m) => {
   ];
   const modules = [
     ["FileMind.Domain", "Contracts, engines, rules, safety, planning, transactions, undo. Zero I/O.", "77 unit tests", "EXISTING"],
-    ["FileMind.Application", "Scanner, DecisionMaker, OrganizerPipeline, indexing, startup recovery, Smart Inbox, ModePolicy.", "wiring + E2E", "EXISTING"],
-    ["FileMind.Infrastructure.Sqlite", "WAL SQLite, schema v2 + migrations, all repositories incl. IOperationStore + file_index hash.", "E2E-verified", "EXISTING"],
-    ["FileMind.Platform.Windows", "Real FS adapter, path normalizer, protected paths, SHA256.", "E2E-verified", "EXISTING"],
-    ["FileMind.Windows.Host", "Console verbs: scan/analyze/plan/execute/undo/history/smart-inbox/mode/rules/seed-demo.", "the app today", "EXISTING"],
+    ["FileMind.Application", "Scanner, DecisionMaker, OrganizerPipeline, indexing, startup recovery, Smart Inbox, ModePolicy, watch pipeline (queue/debounce/stability/orchestrator).", "wiring + E2E", "EXISTING"],
+    ["FileMind.Infrastructure.Sqlite", "WAL SQLite, schema v2 + migrations, all repositories incl. IOperationStore + file_index hash + persisted job queue.", "E2E-verified", "EXISTING"],
+    ["FileMind.Platform.Windows", "Real FS adapter, path normalizer, protected paths, SHA256, FileSystemWatcher, drive attach/detach, console notifications.", "E2E-verified", "EXISTING"],
+    ["FileMind.Windows.Host", "Console verbs: scan/analyze/plan/execute/undo/history/smart-inbox/mode/rules/watch/watch-status/seed-demo.", "the app today", "EXISTING"],
     ["FileMind.Branding", "Canonical palette tokens as C# consts + parity tests.", "8 tests", "EXISTING"],
     ["FileMind.Intelligence.Local", "Local content extraction (PDF/DOCX/EXIF…).", "F-P5", "MISSING"],
     ["FileMind.Intelligence.AI", "Groq provider + privacy gate. Advisory only.", "F-P7", "MISSING"],
-    ["Watchers/automation", "FileSystemWatcher, debounce, background jobs.", "F-P4", "MISSING"],
+    ["Watchers/automation", "FileSystemWatcher, bounded queue + debounce, stability checks, persisted jobs, drive pause/resume.", "F-P4", "EXISTING"],
     ["Search (FTS5)", "No FTS index in schema yet — PLAN-015 adds it.", "F-P9", "MISSING"],
     ["Android", "Kotlin/Room/SAF backend.", "F-P8", "MISSING"],
     ["mockup/", "This preview — canonical visual reference of the approved UI.", "F-UI1", "EXISTING"],
