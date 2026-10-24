@@ -90,4 +90,65 @@ public class PlannerTests
         var plan = new ActionPlanner().Plan(Decide(c, r), Ctx).Value!;
         Assert.Contains("Unsorted", plan.Items[0].Destination);
     }
+
+    private static PlanContext TreeCtx(string? sourceRoot, bool preserve = true) =>
+        new(new WindowsStylePathNormalizer(),
+            Now: DateTimeOffset.Parse("2026-03-10T12:00:00Z"),
+            SourceRoot: sourceRoot, PreserveTree: preserve);
+
+    [Fact]
+    public void Plan_PreserveTree_AppendsRelativeDirAfterTemplate()
+    {
+        var c = Candidates.Create(@"dl\receipts\jan\b.pdf");
+        var r = Classified(subject: "IT421");
+        var plan = new ActionPlanner().Plan(Decide(c, r), TreeCtx("dl")).Value!;
+        Assert.Equal(@"School\IT421\2026\receipts\jan\b.pdf", plan.Items[0].Destination);
+    }
+
+    [Fact]
+    public void Plan_NoPreserveTree_FlattensAsBefore()
+    {
+        var c = Candidates.Create(@"dl\receipts\jan\b.pdf");
+        var r = Classified(subject: "IT421");
+        var plan = new ActionPlanner().Plan(Decide(c, r), TreeCtx("dl", preserve: false)).Value!;
+        Assert.Equal(@"School\IT421\2026\b.pdf", plan.Items[0].Destination);
+    }
+
+    [Fact]
+    public void Plan_PreserveTree_RootFile_NoSubdir()
+    {
+        var c = Candidates.Create(@"dl\b.pdf");
+        var r = Classified(subject: "IT421");
+        var plan = new ActionPlanner().Plan(Decide(c, r), TreeCtx("dl")).Value!;
+        Assert.Equal(@"School\IT421\2026\b.pdf", plan.Items[0].Destination);
+    }
+
+    [Fact]
+    public void Plan_RelativeDirToken_WorksInDestinationTemplate()
+    {
+        var c = Candidates.Create(@"dl\receipts\jan\b.pdf");
+        var r = Classified(project: "alpha");
+        var decision = Decide(c, r, "Work/{Project}/{RelativeDir}");
+        var plan = new ActionPlanner().Plan(decision, TreeCtx("dl", preserve: false)).Value!;
+        Assert.Equal(@"Work\alpha\receipts\jan\b.pdf", plan.Items[0].Destination);
+    }
+
+    [Fact]
+    public void Plan_RelativeDirToken_InNamingTemplate_ResolvesEmpty()
+    {
+        var c = Candidates.Create(@"dl\receipts\jan\b.pdf");
+        var r = Classified(subject: "IT421");
+        var decision = Decide(c, r, "School/{Subject}") with { NamingTemplate = "{RelativeDir}{Name}.{Ext}" };
+        var plan = new ActionPlanner().Plan(decision, TreeCtx("dl")).Value!;
+        Assert.Equal(@"School\IT421\receipts\jan\b.pdf", plan.Items[0].Destination);
+    }
+
+    [Fact]
+    public void Plan_SourceNotUnderRoot_TreatedAsEmpty()
+    {
+        var c = Candidates.Create(@"dl\receipts\jan\b.pdf");
+        var r = Classified(subject: "IT421");
+        var plan = new ActionPlanner().Plan(Decide(c, r), TreeCtx(@"other\root")).Value!;
+        Assert.Equal(@"School\IT421\2026\b.pdf", plan.Items[0].Destination);
+    }
 }

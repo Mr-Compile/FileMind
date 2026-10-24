@@ -104,7 +104,8 @@ public sealed class OrganizerPipeline(
     }
 
     public Result<ActionPlan> Plan(IReadOnlyList<AnalyzedFile> analyzed, bool dryRun,
-        string? destinationRoot = null, DateTimeOffset? now = null)
+        string? destinationRoot = null, DateTimeOffset? now = null,
+        string? sourceRoot = null, bool preserveTree = false)
     {
         var items = new List<ActionItem>();
         var requiresReview = false;
@@ -115,7 +116,7 @@ public sealed class OrganizerPipeline(
 
         foreach (var a in analyzed)
         {
-            var planned = planner.Plan(a.Decision, new PlanContext(paths, destBase, now));
+            var planned = planner.Plan(a.Decision, new PlanContext(paths, destBase, now, sourceRoot, preserveTree));
             if (!planned.IsSuccess) return Result<ActionPlan>.Fail(planned.Error!);
             items.AddRange(planned.Value.Items);
             requiresReview |= planned.Value.RequiresReview;

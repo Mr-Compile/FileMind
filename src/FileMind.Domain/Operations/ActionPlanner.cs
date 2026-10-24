@@ -7,7 +7,9 @@ namespace FileMind.Domain.Operations;
 public sealed record PlanContext(
     IPathNormalizer Paths,
     Func<string, string>? DestinationBase = null,
-    DateTimeOffset? Now = null);
+    DateTimeOffset? Now = null,
+    string? SourceRoot = null,
+    bool PreserveTree = false);
 
 public sealed class ActionPlanner
 {
@@ -47,13 +49,18 @@ public sealed class ActionPlanner
             });
         }
 
+        var relDir = RelativeDirOf(decision.Candidate, context);
         var destination = ResolveTemplate(
             decision.DestinationTemplate ?? "{Collection}/{FileKind}",
-            decision.Candidate, decision.Classification, context);
+            decision.Candidate, decision.Classification, context, relDir);
+        // Category-then-tree: source-relative directory appended inside the
+        // resolved category template, before DestinationBase prepends the root.
+        if (context.PreserveTree && relDir.Length > 0)
+            destination = context.Paths.Combine(destination, relDir);
         if (context.DestinationBase is not null)
             destination = context.DestinationBase(destination);
         var newName = decision.NamingTemplate is not null
-            ? ResolveTemplate(decision.NamingTemplate, decision.Candidate, decision.Classification, context)
+            ? ResolveTemplate(decision.NamingTemplate, decision.Candidate, decision.Classification, context, "")
             : decision.Candidate.DisplayName;
 
         var destPath = context.Paths.Combine(destination, newName);
@@ -93,7 +100,17 @@ public sealed class ActionPlanner
 
     public ActionPlan ApplyTemplates(ActionPlan plan, PlanContext context) => plan;
 
-    private static string ResolveTemplate(string template, FileCandidate c, ClassificationResult r, PlanContext ctx)
+    /// <summary>Source directory relative to SourceRoot; "" when unknown/unset.</summary>
+    private static string RelativeDirOf(FileCandidate c, PlanContext ctx)
+    {
+        if (ctx.SourceRoot is null) return "";
+        var dir = ctx.Paths.DirectoryOf(c.SourceUri);
+        if (dir is null) return "";
+        var rel = ctx.Paths.RelativeTo(dir, ctx.SourceRoot);
+        return rel is null or "" or "." ? "" : rel;
+    }
+
+    private static string ResolveTemplate(string template, FileCandidate c, ClassificationResult r, PlanContext ctx, string relativeDir)
     {
         var now = ctx.Now ?? DateTimeOffset.UtcNow;
         return template
@@ -108,6 +125,9 @@ public sealed class ActionPlanner
             .Replace("{YYYY}", now.ToString("yyyy"))
             .Replace("{MM}", now.ToString("MM"))
             .Replace("{DD}", now.ToString("dd"))
+            // Directory token: naming templates pass "" — embedding path
+            // separators in a file name is never valid.
+            .Replace("{RelativeDir}", relativeDir)
             // Extraction tokens: populated only when local intelligence wrote
             // reliable metadata — absence falls back to neutral values.
             .Replace("{Author}", MetaOr(c, "author", "Unknown"))

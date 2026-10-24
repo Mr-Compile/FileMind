@@ -48,6 +48,14 @@ public sealed class WindowsStylePathNormalizer : IPathNormalizer
         string.Join('\\', parts.Select(p => p.Replace('/', '\\').Trim('\\')).Where(p => p.Length > 0));
     public bool IsUnder(string path, string root) =>
         Normalize(path).StartsWith(Normalize(root) + "\\", StringComparison.OrdinalIgnoreCase);
+    public string? RelativeTo(string path, string root)
+    {
+        var p = Normalize(path);
+        var r = Normalize(root).TrimEnd('\\');
+        if (p.Equals(r, StringComparison.OrdinalIgnoreCase)) return "";
+        if (!p.StartsWith(r + "\\", StringComparison.OrdinalIgnoreCase)) return null;
+        return p[(r.Length + 1)..];
+    }
     public string FileName(string path) => path.Split('/', '\\').Last();
     public string? DirectoryOf(string path)
     {

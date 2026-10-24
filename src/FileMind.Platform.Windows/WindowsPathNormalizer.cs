@@ -16,6 +16,15 @@ public sealed class WindowsPathNormalizer : IPathNormalizer
     public bool IsUnder(string path, string root) =>
         Normalize(path).StartsWith(Normalize(root).TrimEnd('\\') + "\\", StringComparison.OrdinalIgnoreCase);
 
+    public string? RelativeTo(string path, string root)
+    {
+        var p = Normalize(path);
+        var r = Normalize(root).TrimEnd('\\');
+        if (p.Equals(r, StringComparison.OrdinalIgnoreCase)) return "";
+        if (!p.StartsWith(r + "\\", StringComparison.OrdinalIgnoreCase)) return null;
+        return p[(r.Length + 1)..];
+    }
+
     public string FileName(string path) => path.Split('/', '\\').Last();
 
     public string? DirectoryOf(string path)

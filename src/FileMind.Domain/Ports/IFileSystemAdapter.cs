@@ -72,6 +72,11 @@ public interface IPathNormalizer
     string Normalize(string path);
     string Combine(params string[] parts);
     bool IsUnder(string path, string root);
+    /// <summary>
+    /// Normalized path of <paramref name="path"/> relative to <paramref name="root"/>.
+    /// "" when path equals root; null when path is not under root.
+    /// </summary>
+    string? RelativeTo(string path, string root);
     string FileName(string path);
     string? DirectoryOf(string path);
 }
