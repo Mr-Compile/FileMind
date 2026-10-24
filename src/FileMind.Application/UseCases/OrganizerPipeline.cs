@@ -1,5 +1,6 @@
 using FileMind.Application.Decisions;
 using FileMind.Application.Indexing;
+using FileMind.Application.Learning;
 using FileMind.Application.Ports;
 using FileMind.Application.Scanning;
 using FileMind.Domain.Classification;
@@ -37,7 +38,9 @@ public sealed class OrganizerPipeline(
     FileIndexingService? indexing = null,
     ICandidateEnricher? enricher = null,
     IAiAdvisor? advisor = null,
-    int enrichmentTextLimit = 8192)
+    int enrichmentTextLimit = 8192,
+    IConfidenceCalibrator? calibrator = null,
+    CorrectionService? corrections = null)
 {
     public async IAsyncEnumerable<FileCandidate> ScanAsync(
         string root, bool recursive = true,
@@ -95,6 +98,14 @@ public sealed class OrganizerPipeline(
                 var assisted = await advisor.AssistAsync(effective, classification, ct);
                 if (assisted.IsSuccess && assisted.Value is { } rescored)
                     classification = rescored;
+            }
+            if (calibrator is not null)
+            {
+                var ext = effective.Extension.TrimStart('.').ToLowerInvariant();
+                var key = ext.Length > 0 ? $"ext:{ext}" : "global";
+                var adjusted = await calibrator.AdjustAsync(key, classification.Confidence, ct);
+                if (adjusted != classification.Confidence)
+                    classification = classification with { Confidence = adjusted };
             }
             var evaluation = ruleEngine.Evaluate(effective, classification, ruleList.Value);
             var decision = decisionMaker.Decide(effective, classification, evaluation, collectionList.Value);
@@ -155,7 +166,20 @@ public sealed class OrganizerPipeline(
         var reverse = await undo.BuildReversePlanAsync(loaded.Value, ct);
         if (!reverse.IsSuccess) return Result<OperationRecord>.Fail(reverse.Error!);
 
-        return await ExecuteAsync(reverse.Value, ct);
+        var executed = await ExecuteAsync(reverse.Value, ct);
+        // An executed undo is a correction: the user rejected where the plan
+        // put the file. Feed learning + negative calibration; never blocks.
+        if (corrections is not null && executed.IsSuccess)
+            await corrections.ObserveUndoAsync(loaded.Value, ct);
+        if (calibrator is not null && executed.IsSuccess)
+            foreach (var item in loaded.Value.Items.Where(
+                i => i.Operation == OperationType.Move))
+            {
+                var ext = Path.GetExtension(item.OriginalLocation).TrimStart('.');
+                if (ext.Length > 0)
+                    await calibrator.RecordAsync($"ext:{ext.ToLowerInvariant()}", CalibrationSignal.Rejected, ct);
+            }
+        return executed;
     }
 
     public Task<Result<IReadOnlyList<OperationRecord>>> RecentOperationsAsync(int limit, CancellationToken ct = default) =>

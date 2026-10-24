@@ -107,6 +107,14 @@ public sealed class FileMindDb : IDisposable
             Exec("INSERT INTO schema_migrations(version, applied_at) VALUES(4, $at)",
                 ("$at", DateTimeOffset.UtcNow.ToString("O")));
         }
+
+        if (applied < 5)
+        {
+            foreach (var statement in V5.Split(";", StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                Exec(statement);
+            Exec("INSERT INTO schema_migrations(version, applied_at) VALUES(5, $at)",
+                ("$at", DateTimeOffset.UtcNow.ToString("O")));
+        }
     }
 
     private const string V1 = """
@@ -189,6 +197,24 @@ public sealed class FileMindDb : IDisposable
             completion_tokens INTEGER NOT NULL,
             outcome TEXT NOT NULL);
         CREATE INDEX idx_ai_usage_at ON ai_usage(at)
+        """;
+
+    // PLAN-013 M1/M2: user corrections (undo/manual overrides) feed draft
+    // suggestions; per-key bounded confidence calibration. Local-only.
+    private const string V5 = """
+        CREATE TABLE corrections(
+            id TEXT PRIMARY KEY,
+            path TEXT NOT NULL,
+            original_destination TEXT,
+            chosen_destination TEXT NOT NULL,
+            source TEXT NOT NULL,
+            at TEXT NOT NULL);
+        CREATE INDEX idx_corrections_path ON corrections(path);
+
+        CREATE TABLE confidence_calibration(
+            key TEXT PRIMARY KEY,
+            adjustment REAL NOT NULL,
+            updated_at TEXT NOT NULL)
         """;
 
     public void Dispose() => _connection.Dispose();

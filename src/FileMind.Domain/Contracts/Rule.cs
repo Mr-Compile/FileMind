@@ -98,7 +98,8 @@ public enum RuleProvenance
     Builtin,
     User,
     Imported,
-    AiSuggested
+    AiSuggested,
+    Learned
 }
 
 public sealed record Rule

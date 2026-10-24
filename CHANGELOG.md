@@ -97,3 +97,10 @@ All notable verified project changes should be recorded here. Do not add planned
 - `FailureInjectionTests`: permission-denied capability block, locked-file at validation and execute, source vanishing before/mid move, disk-full safety block, disposed-db typed `PersistenceFailure`, crash-boundary reconciliation (`Executing`→`NeedsAttention`, pristine→`Failed`) on real SQLite, simulated USB removal. `Fake.VanishOn` extended to Move/Copy/Rename for mid-op disappearance.
 - Undo audit (M4): rename-undo round-trip via recipe verified; non-mutating ops (Tag/Ignore/Notify/Ask) commit without recipes; **known limitation** — committed `Copy`/`CreateFolder` have no undo path (no Delete op exists); `UndoService` surfaces this as NeedsReview, never silent.
 - Verified: 294/294 tests pass (90 Domain + 196 Application + 8 Branding) via sac-test-runner outside docroot; no silent data-loss path known — see `docs/qa/QA_EVIDENCE_PLAN-006.md`.
+
+## 2026-10-24 — Advanced intelligence M1–M3 (PLAN-013, activated scope)
+- Correction learning: `corrections` table (schema v5) + `CorrectionService`; executed undos and `learn record <path> <dest>` feed `MineSuggestionsAsync` — ≥2 agreeing (ext, destination-dir) corrections emit a `Provenance=Learned`, **disabled** draft rule via `learn suggest`. Nothing auto-activates; enabled learned rules still pass `SafetyEngine` (verified).
+- Adaptive confidence: `ConfidenceCalibrator` applies bounded ±5/signal, ±20-max `ext:<ext>` adjustments in `OrganizerPipeline.AnalyzeAsync`; executed undo records `Rejected`. Caps, bands, and review floors untouched; `learn calibration` inspects stored adjustments.
+- Related/version intelligence: `RelatedFileService` detects `v(N)`, ` (N)`-copy, and year-version chains over the file index (unversioned same-base = order 0); `related [path]` prints chains — suggestion only.
+- `RuleProvenance.Learned` added; mockup `learn`/`related` console verbs + help synced.
+- Verified: 12 new `LearningTests` (208/208 Application suite); host `learn`/`related` exercised E2E on a real DB — draft rules disabled, chains marked latest-only.

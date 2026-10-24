@@ -13,7 +13,8 @@ public sealed class SqliteStore(FileMindDb db) :
     IOperationRepository, IOperationStore, ISmartInboxRepository, IExclusionRepository,
     IProtectedPathRepository, IWatchedFolderRepository, ISettingsRepository,
     IJobRepository, IAiAuditRepository, IAiUsageLedger, IProfileRepository,
-    IFileIndexRepository, ISearchIndex
+    IFileIndexRepository, ISearchIndex,
+    Application.Learning.ICorrectionRepository, Application.Learning.IConfidenceCalibrationRepository
 {
     private static JsonSerializerOptions Json => FileMindDb.JsonOptions;
 
@@ -513,4 +514,59 @@ public sealed class SqliteStore(FileMindDb db) :
 
             return Result<bool>.Ok(true);
         }));
+
+    // ---- PLAN-013: corrections + confidence calibration ----
+
+    public Task<Result<Application.Learning.CorrectionEvent>> AddAsync(
+        Application.Learning.CorrectionEvent e, CancellationToken ct = default) =>
+        Task.FromResult(Try(() =>
+        {
+            db.Exec("""
+                INSERT INTO corrections(id,path,original_destination,chosen_destination,source,at)
+                VALUES($id,$path,$od,$cd,$src,$at)
+                """,
+                ("$id", e.Id), ("$path", e.Path), ("$od", e.OriginalDestination),
+                ("$cd", e.ChosenDestination), ("$src", e.Source), ("$at", Iso(e.At)));
+            return Result<Application.Learning.CorrectionEvent>.Ok(e);
+        }));
+
+    Task<Result<IReadOnlyList<Application.Learning.CorrectionEvent>>>
+        Application.Learning.ICorrectionRepository.GetAllAsync(CancellationToken ct) =>
+        Task.FromResult(Try<IReadOnlyList<Application.Learning.CorrectionEvent>>(() =>
+            Result<IReadOnlyList<Application.Learning.CorrectionEvent>>.Ok(
+                db.Query("SELECT id,path,original_destination,chosen_destination,source,at FROM corrections ORDER BY at",
+                    r => new Application.Learning.CorrectionEvent(
+                        r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2),
+                        r.GetString(3), r.GetString(4), ParseIso(r.GetString(5))))
+                .ToList())));
+
+    public Task<Result<double>> GetAdjustmentAsync(string key, CancellationToken ct = default) =>
+        Task.FromResult(Try(() =>
+        {
+            // Scalar<double> (not double?): Convert.ChangeType can't target
+            // Nullable<T> — absent row yields default 0 either way.
+            var v = db.Scalar<double>("SELECT adjustment FROM confidence_calibration WHERE key=$key",
+                ("$key", key));
+            return Result<double>.Ok(v);
+        }));
+
+    public Task<Result<bool>> SetAdjustmentAsync(
+        string key, double adjustment, DateTimeOffset at, CancellationToken ct = default) =>
+        Task.FromResult(Try(() =>
+        {
+            db.Exec("""
+                INSERT INTO confidence_calibration(key,adjustment,updated_at) VALUES($key,$adj,$at)
+                ON CONFLICT(key) DO UPDATE SET adjustment=$adj,updated_at=$at
+                """,
+                ("$key", key), ("$adj", adjustment), ("$at", Iso(at)));
+            return Result<bool>.Ok(true);
+        }));
+
+    Task<Result<IReadOnlyDictionary<string, double>>>
+        Application.Learning.IConfidenceCalibrationRepository.GetAllAsync(CancellationToken ct) =>
+        Task.FromResult(Try<IReadOnlyDictionary<string, double>>(() =>
+            Result<IReadOnlyDictionary<string, double>>.Ok(
+                db.Query("SELECT key,adjustment FROM confidence_calibration",
+                    r => (r.GetString(0), r.GetDouble(1)))
+                .ToDictionary(t => t.Item1, t => t.Item2))));
 }

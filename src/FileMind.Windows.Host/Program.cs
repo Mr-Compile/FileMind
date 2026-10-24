@@ -54,6 +54,11 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
           filemind ai-suggest <file>
           filemind ai-rule <natural language>
           filemind ai-search <natural language>
+          filemind learn [list]
+          filemind learn record <path> <chosen-destination>
+          filemind learn suggest [--dest <root>]
+          filemind learn calibration
+          filemind related [<path>]
           filemind profile export [--out <file>]
           filemind profile import <file> [--preview|--apply] [--policy merge|skip]
           filemind profile backup [--dir <dir>]
@@ -156,6 +161,8 @@ var profileSvc = new FileMind.Application.Profiles.ProfileService(
         catch (Exception e) { return Result<string>.Fail(FileMindError.Io(e.Message)); }
     });
 var recoveryService = new StartupRecoveryService(store, store);
+var correctionService = new FileMind.Application.Learning.CorrectionService(store, paths);
+var calibrator = new FileMind.Application.Learning.ConfidenceCalibrator(store);
 var pipeline = new OrganizerPipeline(
     scanner, classifier, new RuleEngine(), new DecisionMaker(confidence),
     new ActionPlanner(), safety,
@@ -164,7 +171,9 @@ var pipeline = new OrganizerPipeline(
     adapter, paths, adapter.ProtectedPaths,
     rulesRepo, collectionsRepo, opsRepo, opStore, indexing,
     enricher: new FileMind.Intelligence.Local.Analysis.LocalAnalyzerService(),
-    advisor: aiAdvisor);
+    advisor: aiAdvisor,
+    calibrator: calibrator,
+    corrections: correctionService);
 
 var recovered = await recoveryService.ReconcileAsync();
 if (recovered.IsSuccess && recovered.Value!.Reconciled > 0)
@@ -741,6 +750,67 @@ switch (command)
     case "rules":
     {
         return await RulesVerbAsync();
+    }
+
+    case "learn":
+    {
+        var sub = positional.Count > 0 ? positional[0] : "list";
+        switch (sub)
+        {
+            case "record":
+                if (positional.Count < 3)
+                    return Fail("usage: filemind learn record <path> <chosen-destination>");
+                var rec = await correctionService.RecordAsync(positional[1], positional[2]);
+                return rec.IsSuccess ? 0 : Fail(rec.Error!.Message);
+            case "suggest":
+                var mined = await correctionService.MineSuggestionsAsync(dest);
+                if (!mined.IsSuccess) return Fail(mined.Error!.Message);
+                if (mined.Value!.Count == 0)
+                {
+                    Console.WriteLine("no learned suggestions yet (need 2+ agreeing corrections)");
+                    return 0;
+                }
+                foreach (var r in mined.Value!)
+                    Console.WriteLine($"[draft:{r.Provenance.ToString().ToLowerInvariant()}] {r.Id}\n    {r.Name}\n    disabled — review before enabling");
+                Console.WriteLine($"-- {mined.Value!.Count} draft rule(s); none active");
+                return 0;
+            case "calibration":
+                var adj = await ((FileMind.Application.Learning.IConfidenceCalibrationRepository)store).GetAllAsync();
+                if (!adj.IsSuccess) return Fail(adj.Error!.Message);
+                foreach (var (k, v) in adj.Value!.OrderBy(x => x.Key))
+                    Console.WriteLine($"{k,-20} {v,5:+0;-0;0}");
+                if (adj.Value!.Count == 0) Console.WriteLine("no calibration signals recorded");
+                return 0;
+            default:
+                var all = await ((FileMind.Application.Learning.ICorrectionRepository)store).GetAllAsync();
+                if (!all.IsSuccess) return Fail(all.Error!.Message);
+                foreach (var c in all.Value!)
+                    Console.WriteLine($"{c.Path}  ->  {c.ChosenDestination}   ({c.Source})");
+                Console.WriteLine($"-- {all.Value!.Count} correction(s)");
+                return 0;
+        }
+    }
+
+    case "related":
+    {
+        var relatedSvc = new FileMind.Application.Learning.RelatedFileService(store);
+        var chains = positional.Count > 0
+            ? await relatedSvc.RelatedToAsync(positional[0])
+            : await relatedSvc.FindVersionChainsAsync();
+        if (!chains.IsSuccess) return Fail(chains.Error!.Message);
+        if (chains.Value!.Count == 0)
+        {
+            Console.WriteLine("no version chains found");
+            return 0;
+        }
+        foreach (var c in chains.Value!)
+        {
+            Console.WriteLine($"{c.BaseName}  ({c.Evidence})");
+            foreach (var p in c.PathsOrderedOldestToNewest)
+                Console.WriteLine($"    {(p == c.LatestPath ? "* " : "  ")}{p}");
+        }
+        Console.WriteLine("-- suggestion only; nothing moved");
+        return 0;
     }
 
     case "profile":

@@ -39,18 +39,22 @@ Guardrail: learned behavior creates suggestions or versioned rules — it must n
 
 Each milestone is independently approvable; this plan may be split per capability when activated.
 
-### Milestone 1 — Correction Learning (candidate)
+### Milestone 1 — Correction Learning (ACTIVATED 2026-10-24 — IMPLEMENTED)
 
 Exit gate: user corrections recorded → suggestion candidates generated as versioned, provenance-marked draft rules; nothing auto-activates.
-- 1.1 `CorrectionStore` (operations + user overrides → correction events), suggestion miner, draft-rule generator → Smart Inbox for approval.
+- 1.1 DONE — `corrections` table (schema v5) + `ICorrectionRepository`; `CorrectionService.ObserveUndoAsync` (executed undo = correction, wired into `OrganizerPipeline.UndoAsync`) + `learn record` (manual overrides); `MineSuggestionsAsync` groups by (ext, chosen dir) ≥2 → `Rule` with `Provenance=Learned`, `Enabled=false`, surfaced via `learn suggest`. Activation path = existing rule verbs — review-gated. Verified: `LearningTests` ×6 + e2e.
 
-### Milestone 2 — Adaptive Confidence (candidate)
+### Milestone 2 — Adaptive Confidence (ACTIVATED 2026-10-24 — IMPLEMENTED)
 
-- 2.1 Confidence calibration from accepted/rejected suggestions; bounded adjustments; caps preserved; safety never overridden.
+- 2.1 DONE — `confidence_calibration` table + `IConfidenceCalibrationRepository`; `ConfidenceCalibrator` (±5/signal, ±20 clamp, score stays [0,100]) applied in `AnalyzeAsync` keyed `ext:<ext>`; `Rejected` recorded on executed undo; `learn calibration` verb. Caps/bands/safety untouched — verified by `LearningTests.Calibrator_*` + `LearnedRule_Enabled_StillBlockedBySafety`.
 
-### Milestone 3 — Related/Version Intelligence (candidate)
+### Milestone 3 — Related/Version Intelligence (ACTIVATED 2026-10-24 — IMPLEMENTED)
 
-- 3.1 Related-file detection (project/session/type/version chains like `doc_v1→v2`); surfaces as suggestions, not actions.
+- 3.1 DONE — `RelatedFileService` over the file index: `v(N)`, ` (N)` copy, and year-version chains; unversioned same-base sibling = order 0; `related [path]` verb prints chains suggestion-only. Verified: `LearningTests.Related_*` + e2e.
+
+### Milestones 4–6 — still PROPOSED, not activated
+
+Semantic index (M4), provider registry + local models (M5), cross-device profile sync (M6) remain candidate scope — not implemented.
 
 ### Milestone 4 — Semantic Index (candidate, opt-in)
 

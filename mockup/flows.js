@@ -307,6 +307,11 @@ Usage:
   filemind ai-suggest <file>
   filemind ai-rule <natural language>
   filemind ai-search <natural language>
+  filemind learn [list]
+  filemind learn record <path> <chosen-destination>
+  filemind learn suggest [--dest <root>]
+  filemind learn calibration
+  filemind related [<path>]
   filemind profile export [--out <file>]
   filemind profile import <file> [--preview|--apply] [--policy merge|skip]
   filemind profile backup [--dir <dir>]
@@ -639,6 +644,74 @@ Environment:
           return print(`restored ${pos[1]}: applied=4 skipped=0`);
         }
         return err("usage: filemind profile [export|import|backup|restore]");
+      }
+      case "learn": {
+        const sub = pos[0] ?? "list";
+        const corr = (FM.store.corrections ??= []);
+        if (sub === "record") {
+          if (!pos[1] || !pos[2]) return err("usage: filemind learn record <path> <chosen-destination>");
+          corr.push({ path: pos[1], chosen: pos[2], source: "manual" });
+          return;
+        }
+        if (sub === "suggest") {
+          const byKey = {};
+          corr.forEach((c) => {
+            const ext = (c.path.split(".").pop() ?? "").toLowerCase();
+            const dir = c.chosen.replace(/[\\/][^\\/]+$/, "");
+            (byKey[`${ext}|${dir}`] ??= []).push(c);
+          });
+          const drafts = Object.entries(byKey).filter(([, v]) => v.length >= 2);
+          if (!drafts.length) return print("no learned suggestions yet (need 2+ agreeing corrections)");
+          drafts.forEach(([k, v]) => {
+            const [ext, dir] = k.split("|");
+            print(`[draft:learned] learned-${ext}-draft\n    Learned: .${ext} → ${dir}\n    disabled — review before enabling`);
+          });
+          return print(`-- ${drafts.length} draft rule(s); none active`);
+        }
+        if (sub === "calibration") {
+          const cal = FM.store.calibration ?? {};
+          const keys = Object.keys(cal);
+          if (!keys.length) return print("no calibration signals recorded");
+          keys.forEach((k) => print(`${pad(k, 20)} ${cal[k] >= 0 ? "+" : ""}${cal[k]}`));
+          return;
+        }
+        if (!corr.length) { print("-- 0 correction(s)"); return; }
+        corr.forEach((c) => print(`${c.path}  ->  ${c.chosen}   (${c.source})`));
+        return print(`-- ${corr.length} correction(s)`);
+      }
+      case "related": {
+        // version chains over the mock index: v(N), " (N)", trailing year
+        const files = FM.store.files ?? [];
+        const stem = (n) => n.replace(/\.[^.]+$/, "");
+        const vRx = /(?:^|[_\-\s])v(\d{1,4})$/i, pRx = /\s*\((\d{1,3})\)$/, yRx = /(?:^|[_\-\s])((?:19|20)\d{2})$/;
+        const groups = {};
+        files.forEach((f) => {
+          const s = stem(f.displayName);
+          const dir = f.sourceUri.replace(/[\\/][^\\/]+$/, "").toLowerCase();
+          const ext = (f.extension ?? f.displayName.split(".").pop()).toLowerCase();
+          let base = null, order = 0;
+          let m;
+          if ((m = s.match(vRx))) { base = s.replace(vRx, "").replace(/[_\-\s]+$/, ""); order = +m[1]; }
+          else if ((m = s.match(pRx))) { base = s.replace(pRx, ""); order = +m[1]; }
+          else if ((m = s.match(yRx))) { base = s.replace(yRx, "").replace(/[_\-\s]+$/, ""); order = +m[1]; }
+          else { base = s; }
+          if (!base) return;
+          (groups[`${dir}|${ext}|${base.toLowerCase()}`] ??= { base, items: [] }).items.push({ f, order, ver: order > 0 });
+        });
+        let chains = Object.values(groups)
+          .filter((g) => g.items.some((i) => i.ver) && new Set(g.items.map((i) => i.order)).size >= 2)
+          .map((g) => { g.items.sort((a, b) => a.order - b.order); return g; });
+        if (pos[0]) {
+          const target = pos[0].toLowerCase();
+          chains = chains.filter((g) => g.items.some((i) => i.f.sourceUri.toLowerCase() === target));
+        }
+        if (!chains.length) return print("no version chains found");
+        chains.forEach((g) => {
+          print(`${g.base}`);
+          const latest = g.items[g.items.length - 1];
+          g.items.forEach((i) => print(`    ${i === latest ? "* " : "  "}${i.f.sourceUri}`));
+        });
+        return print("-- suggestion only; nothing moved");
       }
       case "watch": {
         const watched = (FM.store.settings.watchedFolders ??= []);
