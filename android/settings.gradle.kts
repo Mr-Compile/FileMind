@@ -15,4 +15,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "filemind-android"
 
-include(":core", ":platform")
+include(":core", ":platform", ":app")
