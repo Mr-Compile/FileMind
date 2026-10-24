@@ -1,6 +1,6 @@
 # PLAN-017 — FileMind PLAN-001 Residual Completion Megaplan (F-P1/F-P2/F-P3 Gaps)
 
-Status: APPROVED (user approved the remaining-megaplans implementation queue 2026-10-24, which includes this plan)
+Status: COMPLETED — all milestones implemented, unit-tested (108/108 suite green via `tools/sac-test-runner.fsx`), and host verbs verified end-to-end on a real temp fixture (scan→index/hash→analyze→inbox→mode→plan→execute→undo→rules round-trip)
 Related Feature: F-P1, F-P2, F-P3 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
@@ -112,13 +112,13 @@ Unit tests per service (index dedupe/move/oversize; recovery states; inbox dedup
 
 ## Acceptance Criteria
 
-- [ ] Scanned files appear in `file_index` with fingerprints; moved files keep stable_id
-- [ ] `StartupRecoveryService` reconciles non-terminal ops to Failed/NeedsAttention (tests)
-- [ ] Review decisions persist to `smart_inbox`, deduped; `smart-inbox` verbs work
-- [ ] Mode policy gates execute per Manual/Smart/Automatic and persists via settings
-- [ ] `rules` verbs: list/show/test/import/export verified incl. fail-safe import
-- [ ] F-P1/F-P2/F-P3 statuses updated only after verification
-- [ ] Mockup synced in same change set
+- [x] Scanned files appear in `file_index` with fingerprints; moved files keep stable_id — E2E `scan` prints `indexed 4, hashed 4`; tests `Index_UpsertsFingerprintAndHash`, `Index_MovedFile_ReusesStableId`, `Index_OversizedFile_SkipsHash`
+- [x] `StartupRecoveryService` reconciles non-terminal ops to Failed/NeedsAttention — tests `Recovery_PristinePlanned_FailsCleanly`, `Recovery_PartialOrExecuting_NeedsAttention`, `Recovery_Idempotent_TerminalUntouched`; host prints recovery banner when reconciled > 0
+- [x] Review decisions persist to `smart_inbox`, deduped; `smart-inbox` verbs work — E2E `analyze` persisted conf-73 docx; `smart-inbox` list + `resolve` verified; tests `SmartInbox_*`
+- [x] Mode policy gates execute per Manual/Smart/Automatic and persists via settings — E2E `mode`/`mode smart`; manual `execute` preview-only until `--apply`; tests `Mode_*`
+- [x] `rules` verbs: list/show/test/import/export verified incl. fail-safe import — E2E import→list→test→export round-trip on `rule-docs.json`; tests `RuleJson_*`
+- [x] F-P1/F-P2/F-P3 statuses updated only after verification — flipped to EXISTING after suite + E2E
+- [x] Mockup synced in same change set — console verbs (mode/smart-inbox/rules), mode-aware execute, indexed scan line, architecture module truth
 
 ## Risks / Regression Areas
 

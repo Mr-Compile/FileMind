@@ -24,6 +24,15 @@ All notable verified project changes should be recorded here. Do not add planned
 - Added `docs/rules/MOCKUP_RULES.md` (linked from `docs/rules/RULES.md` + `AGENTS.md`): mockup must be updated in the same change when UI, contracts, pipeline behavior, host verbs, feature statuses, or tokens change.
 - Verified: 10 routes render over `file://` and HTTP, dark/light/system themes + density, KeepBoth conflict demo, protected-path safety blocker, Smart Inbox truthfulness (rule-routed files never appear in review).
 
+## 2026-10-24 — PLAN-001 residual completion (PLAN-017)
+- `FileIndexingService` + `file_index` schema v2 (`content_hash`, `hash_state`): scan/analyze now upsert fingerprints and SHA-256 hashes (64 MiB cap; `sha256:`/`sha256-partial:`); stable_id reused when a moved file's fingerprint matches.
+- `StartupRecoveryService` runs on every host invocation: non-terminal ops with no applied items → `Failed`, partially applied → `NeedsAttention`; idempotent.
+- `SmartInboxService` persists `Review`/`NeedsReview` decisions to `smart_inbox` deduped per open path; new `smart-inbox [resolve <id>]` verb.
+- `OrganizationMode` + `ModePolicy` + `mode` verb: `manual` (preview until `--apply`), `smart` (confident → execute, rest → inbox), `automatic`, `ai-assisted`/`local-only` (AI no-op until PLAN-009); persisted via settings.
+- `rules list|show|test <id|file> <dir>|import|export` verbs: import validates via `RuleValidator`, stamps `Provenance=Imported`, rejects newer `schemaVersion`.
+- New: `tools/sac-test-runner.fsx` + `tools/sac-run.fsx` — byte-loading `AssemblyLoadContext` harness that runs the full xunit suite and the host under Smart App Control enforcement (unsigned-dll image loads are event-3077-blocked; byte loads are not). Documented in `docs/development/BUILD.md`.
+- Verified: 108/108 tests pass via the runner (incl. 18 new residual tests); all host verbs exercised end-to-end on a real temp fixture (real SQLite, real move + undo); mockup console/architecture synced.
+
 ## 2026-10-24 — Android res/ drop-in + mockup logo (PLAN-016)
 - `branding/logo/android/res/` — drop-in Android resource tree: VectorDrawable foreground/monochrome/notification/splash, `mipmap-anydpi-v26` adaptive XMLs, density PNG fallbacks (legacy squircle, round, foreground 108–432, notification 24–96), `values/colors.xml`, `values-v31/themes.xml` splash theme. `build.mjs` extended (density jobs + Edge retry logic).
 - `mockup/` — real Option-4 mark in titlebar + favicon; theme-aware splash overlay on boot (lockup light/dark, ~500ms + fade, no fake progress per BRAND.md); early-theme inline script prevents theme flash.

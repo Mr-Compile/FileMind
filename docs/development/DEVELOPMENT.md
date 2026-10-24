@@ -10,10 +10,17 @@ Verified prerequisites, commands, and developer workflows. Do not record unverif
 
 ```bash
 dotnet build FileMind.slnx --artifacts-path <outdir>   # 0 warnings, 0 errors
-dotnet test  FileMind.slnx --artifacts-path <outdir>   # 90 tests pass
+dotnet test  FileMind.slnx --artifacts-path <outdir>   # builds the suite
 ```
 
-`--artifacts-path` is required on machines where Smart App Control / WDAC blocks unsigned binaries under `C:\wamp64\www` — see root README note.
+`--artifacts-path` is required on machines where Smart App Control / WDAC blocks unsigned binaries under `C:\wamp64\www` — see root README note and `docs/development/BUILD.md`.
+
+When SAC reputation-blocks the freshly built `FileMind.*.dll`s themselves (event 3077, observed on this machine), run the suite through the byte-loading runner — identical IL, verified 108/108:
+
+```bash
+dotnet fsi tools/sac-test-runner.fsx -- <outdir>/bin/FileMind.Domain.Tests/debug \
+  <outdir>/bin/FileMind.Branding.Tests/debug <outdir>/bin/FileMind.Application.Tests/debug
+```
 
 ## Console host
 
@@ -22,10 +29,15 @@ dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll seed-d
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll scan <dir>
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll analyze <dir>
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll plan <dir> --dest <root>
-dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll execute <dir> --dest <root> --dry-run
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll execute <dir> --dest <root> [--dry-run] [--apply]
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll history [count]
 dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll undo <operationId>
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll smart-inbox [resolve <id>]
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll mode [manual|smart|automatic|ai-assisted|local-only]
+dotnet <outdir>/bin/FileMind.Windows.Host/debug/FileMind.Windows.Host.dll rules [list|show <id>|test <id|file> <dir>|import <file>|export <id> --out <file>]
 ```
+
+If SAC blocks the host dll too, launch it via `dotnet fsi tools/sac-run.fsx -- <path-to-host.dll> <verb> ...`.
 
 Environment variables: `FILEMIND_DB` (SQLite path), `FILEMIND_DEST` (default destination root).
 
