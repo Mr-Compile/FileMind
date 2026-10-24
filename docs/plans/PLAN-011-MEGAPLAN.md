@@ -1,6 +1,6 @@
 # PLAN-011 — FileMind Logo Asset Production Megaplan (Option 4 Selected)
 
-Status: READY
+Status: COMPLETED
 Related Feature: F-B2 (see `docs/features/FEATURES.md`)
 Created: 2026-10-24
 Updated: 2026-10-24
@@ -63,10 +63,10 @@ No XAML/Android project integration (no UI project exists), no animated splash, 
 - Parity tests re-run (colors.css untouched by this plan).
 
 ## Acceptance Criteria
-- [ ] `branding/logo/` contains master SVGs (mark, lockup light/dark, mono, simple) + README
-- [ ] `build.mjs` produces full PNG set + `filemind.ico` + android dir, all verified
-- [ ] Splash light/dark PNGs on palette backgrounds
-- [ ] F-B2 status updated to verified level; CHANGELOG records verified outputs
+- [x] `branding/logo/` contains master SVGs (mark, lockup light/dark, mono, simple) + README
+- [x] `build.mjs` produces full PNG set + `filemind.ico` + android dir, all verified (Edge async-write race fixed via poll; standalone-SVG sizing bug fixed via wrapper `<img>` pages)
+- [x] Splash light/dark PNGs on palette backgrounds
+- [x] F-B2 status updated to verified level; CHANGELOG records verified outputs
 
 ## Risks
 - Hand-recreated mark approximates concept art (disclosed; refine in follow-up if user wants changes).

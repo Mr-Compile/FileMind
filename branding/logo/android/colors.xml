@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Brand adaptive-icon background: brand primary.
+     Alternative: a gradient drawable matching the brand gradient
+     #2563EB -> #4F46E5 -> #7C3AED if a flat color reads too plain. -->
+<resources>
+    <color name="ic_launcher_background">#2563EB</color>
+</resources>
