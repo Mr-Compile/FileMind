@@ -1,0 +1,6 @@
+# Add project-specific ignores only after auditing the actual technology stack.
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
