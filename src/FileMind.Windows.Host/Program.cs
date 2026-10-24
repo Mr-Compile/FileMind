@@ -43,6 +43,8 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
           filemind rules import <file>
           filemind rules export <id> [--out <file>]
           filemind enrich <dir> [--shallow]
+          filemind dupes [<prefix>] [--plan]
+          filemind storage [<prefix>]
           filemind seed-demo
 
         Environment:
@@ -93,7 +95,12 @@ var scanner = new FileScanner(adapter, paths,
     new ExclusionMatcher(defaultExclusions.Concat(exclusions)));
 
 var safety = new SafetyEngine(adapter, paths);
-var indexing = new FileIndexingService(store, new WindowsHashService());
+var hashing = new WindowsHashService();
+var indexing = new FileIndexingService(store, hashing);
+var dupeService = new FileMind.Application.Duplicates.DuplicateDetectionService(
+    (IFileIndexRepository)store, hashing, adapter);
+var storageService = new FileMind.Application.Duplicates.StorageAnalysisService(
+    (IFileIndexRepository)store);
 var inboxService = new SmartInboxService(store);
 var recoveryService = new StartupRecoveryService(store, store);
 var pipeline = new OrganizerPipeline(
@@ -257,6 +264,84 @@ switch (command)
         if (!recent.IsSuccess) return Fail(recent.Error!.Message);
         foreach (var r in recent.Value!)
             Console.WriteLine($"{r.OperationId}  {r.Status,-15} {r.CreatedAt:u}  plan={r.PlanId}  items={r.Items.Count}");
+        return 0;
+    }
+
+    case "dupes":
+    {
+        var dupeArgs = positional.Where(p => !string.Equals(p, dest, StringComparison.OrdinalIgnoreCase)).ToList();
+        var prefix = dupeArgs.Count > 0 ? Path.GetFullPath(dupeArgs[0]) : null;
+        var report = await dupeService.FindAsync(prefix);
+        if (!report.IsSuccess) return Fail(report.Error!.Message);
+        var r = report.Value!;
+        Console.WriteLine($"-- {r.Groups.Count} duplicate group(s), {r.Similar.Count} similar pair(s)");
+        foreach (var g in r.Groups)
+        {
+            Console.WriteLine($"group {(g.Confirmed ? "exact" : "partial-only")}  {FmtBytes(g.SizeBytes)} x{g.Files.Count}  reclaimable={FmtBytes(g.ReclaimableBytes)}");
+            foreach (var f in g.Files) Console.WriteLine($"  {f.Path}");
+        }
+        foreach (var s in r.Similar)
+            Console.WriteLine($"similar {s.Score,5:0.0}  {s.PathA} <-> {s.PathB}\n    {string.Join("; ", s.Reasons)}");
+        foreach (var w in r.Warnings) Console.WriteLine($"  warn: {w}");
+        Console.WriteLine($"total reclaimable: {FmtBytes(r.TotalReclaimable)} (advisory — no files were moved or deleted)");
+
+        if (!flags.Contains("--plan")) return 0;
+        var reviewRoot = Path.Combine(
+            dest ?? DefaultDest(prefix ?? Directory.GetCurrentDirectory()), "duplicates-review");
+        var dupePlan = FileMind.Application.Duplicates.DuplicatePlanBuilder
+            .BuildQuarantinePlan(r, reviewRoot, apply: flags.Contains("--apply"));
+        if (dupePlan.Items.Count == 0)
+        {
+            Console.WriteLine("-- no confirmed duplicates to quarantine; nothing planned");
+            return 0;
+        }
+        PrintPlan(dupePlan);
+        var dupeCheck = await pipeline.DryRunAsync(dupePlan);
+        if (!dupeCheck.IsSuccess) return Fail(dupeCheck.Error!.Message);
+        foreach (var w in dupeCheck.Value!.Warnings) Console.WriteLine($"  warn: {w}");
+        if (!dupeCheck.Value.Allowed)
+        {
+            foreach (var b in dupeCheck.Value.Blockers) Console.WriteLine($"  blocked: {b}");
+            return Fail("Safety validation failed; nothing executed.");
+        }
+        if (!flags.Contains("--apply"))
+        {
+            Console.WriteLine("-- preview only. Re-run with --plan --apply to quarantine copies.");
+            return 0;
+        }
+        var dupeResult = await pipeline.ExecuteAsync(dupePlan);
+        if (!dupeResult.IsSuccess) return Fail(dupeResult.Error!.Message);
+        var rec = dupeResult.Value!;
+        Console.WriteLine($"-- executed {rec.Items.Count(i => i.Status == OperationStatus.Committed)}/{rec.Items.Count} item(s); op={rec.OperationId}");
+        return 0;
+    }
+
+    case "storage":
+    {
+        var storageArgs = positional.Where(p => !string.Equals(p, dest, StringComparison.OrdinalIgnoreCase)).ToList();
+        var prefix = storageArgs.Count > 0 ? Path.GetFullPath(storageArgs[0]) : null;
+        var rep = await storageService.AnalyzeAsync(prefix);
+        if (!rep.IsSuccess) return Fail(rep.Error!.Message);
+        var s = rep.Value!;
+        Console.WriteLine($"-- {s.FileCount} file(s), {FmtBytes(s.TotalBytes)} total; reclaimable dupes={FmtBytes(s.DuplicateReclaimableBytes)}");
+        Console.WriteLine("by kind:");
+        foreach (var b in s.ByKind)
+            Console.WriteLine($"  {b.Label,-12} {FmtBytes(b.Bytes),10}  {b.Count} file(s)");
+        Console.WriteLine("by age:");
+        foreach (var b in s.ByAgeBand)
+            Console.WriteLine($"  {b.Label,-12} {FmtBytes(b.Bytes),10}  {b.Count} file(s)");
+        if (s.Largest.Count > 0)
+        {
+            Console.WriteLine("largest:");
+            foreach (var f in s.Largest)
+                Console.WriteLine($"  {FmtBytes(f.SizeBytes),10}  {f.Path}");
+        }
+        if (s.Oldest.Count > 0)
+        {
+            Console.WriteLine("oldest:");
+            foreach (var f in s.Oldest)
+                Console.WriteLine($"  {f.AgeDays,5}d  {f.Path}");
+        }
         return 0;
     }
 
@@ -590,3 +675,11 @@ int Fail(string message)
     Console.Error.WriteLine($"error: {message}");
     return 1;
 }
+
+string FmtBytes(long b) => b switch
+{
+    >= 1L << 30 => $"{b / (double)(1L << 30):0.0} GiB",
+    >= 1L << 20 => $"{b / (double)(1L << 20):0.0} MiB",
+    >= 1L << 10 => $"{b / (double)(1L << 10):0.0} KiB",
+    _ => $"{b} B",
+};

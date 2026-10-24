@@ -222,6 +222,11 @@ public sealed class SqliteStore(FileMindDb db) :
         Task.FromResult(Try(() => Result<bool>.Ok(
             db.Exec("DELETE FROM file_index WHERE path=$p", ("$p", path)) > 0)));
 
+    Task<Result<IReadOnlyList<FileCandidate>>> IFileIndexRepository.GetAllAsync(CancellationToken ct) =>
+        Task.FromResult(Try<IReadOnlyList<FileCandidate>>(() => Result<IReadOnlyList<FileCandidate>>.Ok(
+            db.Query("SELECT payload_json FROM file_index",
+                r => De<FileCandidate>(r.GetString(0))).ToList())));
+
     // ---- ISmartInboxRepository ----
 
     public Task<Result<SmartInboxItem>> AddAsync(SmartInboxItem item, CancellationToken ct = default) =>

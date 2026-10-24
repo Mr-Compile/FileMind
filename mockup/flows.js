@@ -269,6 +269,9 @@ Type <span class="dim">--help</span> for usage. Folders: downloads, documents, d
     return Object.values(FM_DATA.roots).find((r) => r.toLowerCase() === a || r.toLowerCase().endsWith("\\" + a) || r.toLowerCase().endsWith(a));
   };
   const pad = (s, n) => String(s).padEnd(n);
+  const fmtB = (b) => b >= 1 << 30 ? `${(b / 2 ** 30).toFixed(1)} GiB`
+    : b >= 1 << 20 ? `${(b / 2 ** 20).toFixed(1)} MiB`
+    : b >= 1 << 10 ? `${(b / 2 ** 10).toFixed(1)} KiB` : `${b} B`;
   const planLine = (p) => `plan ${p.planId}  items=${p.items.length}  review=${p.requiresReview}  dryRun=${p.dryRun}`;
   const itemLines = (p) => p.items.map((i) => `  ${i.operation.padEnd(12)} ${i.source}${i.destination ? " -> " + i.destination : ""}`).join("\n");
 
@@ -294,6 +297,8 @@ Usage:
   filemind watch [run] [--seconds N] [--apply]
   filemind watch-status
   filemind enrich <dir> [--shallow]
+  filemind dupes [<prefix>] [--plan] [--apply] [--dest <root>]
+  filemind storage [<prefix>]
   filemind seed-demo
 
 Environment:
@@ -487,6 +492,75 @@ Environment:
         }
         return;
       }
+      case "dupes": {
+        const pool = pos[0] ? filesIn(pos[0]) : FM.store.files;
+        const bySize = new Map();
+        for (const f of pool.filter((x) => x.sizeBytes > 0)) {
+          (bySize.get(f.sizeBytes) ?? bySize.set(f.sizeBytes, []).get(f.sizeBytes)).push(f);
+        }
+        const groups = [...bySize.values()].filter((g) => g.length >= 2);
+        const inGroup = new Set(groups.flat());
+        const similar = [];
+        const rest = pool.filter((f) => !inGroup.has(f));
+        for (let i = 0; i < rest.length; i++)
+          for (let j = i + 1; j < rest.length; j++) {
+            const a = rest[i], b = rest[j];
+            if (a.extension !== b.extension) continue;
+            const ta = new Set(a.displayName.replace(/\.[^.]+$/, "").toLowerCase().split(/\W+/).filter(Boolean));
+            const tb = new Set(b.displayName.replace(/\.[^.]+$/, "").toLowerCase().split(/\W+/).filter(Boolean));
+            const jac = [...ta].filter((t) => tb.has(t)).length / new Set([...ta, ...tb]).size;
+            if (jac >= 0.5 && Math.min(a.sizeBytes, b.sizeBytes) / Math.max(a.sizeBytes, b.sizeBytes) >= 0.9)
+              similar.push([a, b, jac]);
+          }
+        const reclaim = groups.reduce((s, g) => s + g[0].sizeBytes * (g.length - 1), 0);
+        print(`-- ${groups.length} duplicate group(s), ${similar.length} similar pair(s)`);
+        groups.forEach((g) => {
+          print(`group exact  ${fmtB(g[0].sizeBytes)} x${g.length}  reclaimable=${fmtB(g[0].sizeBytes * (g.length - 1))}`);
+          g.forEach((f) => print(`  ${f.sourceUri}`));
+        });
+        similar.forEach(([a, b, j]) =>
+          print(`similar ${(20 + j * 60 + 20).toFixed(1).padStart(5)}  ${a.sourceUri} <-> ${b.sourceUri}\n    same type ${a.extension}; name overlap ${Math.round(j * 100)}%; size within 100%`));
+        print(`total reclaimable: ${fmtB(reclaim)} (advisory — no files were moved or deleted)`);
+        if (!flags.has("--plan")) return;
+        const review = `${flagVal("--dest") ?? pos[0] ?? "organized"}\\duplicates-review`;
+        const items = groups.flatMap((g) => g.slice(1));
+        if (!items.length) return print("-- no confirmed duplicates to quarantine; nothing planned");
+        print(`plan dupes-demo  items=${items.length}  review=True  dryRun=${!flags.has("--apply")}`);
+        items.forEach((f) => print(`  Move         ${f.sourceUri} -> ${review}\\${f.displayName}`));
+        if (!flags.has("--apply")) return print("-- preview only. Re-run with --plan --apply to quarantine copies.");
+        return print("-- executed " + items.length + "/" + items.length + " item(s); op=demo-dupes (demo: files not actually moved)");
+      }
+      case "storage": {
+        const pool = pos[0] ? filesIn(pos[0]) : FM.store.files;
+        const now = Date.now();
+        const days = (f) => Math.floor((now - new Date(f.modifiedAt).getTime()) / 864e5);
+        const kindOf = (f) => FM.engine.analyze([f])[0]?.classification.fileKind ?? "Other";
+        const byKind = new Map();
+        pool.forEach((f) => {
+          const k = kindOf(f);
+          const b = byKind.get(k) ?? { bytes: 0, n: 0 };
+          b.bytes += f.sizeBytes; b.n++; byKind.set(k, b);
+        });
+        const bands = [["0-30d", (d) => d <= 30], ["31-90d", (d) => d > 30 && d <= 90], ["91-365d", (d) => d > 90 && d <= 365], [">365d", (d) => d > 365]];
+        const reclaim = [...pool.reduce((m, f) => m.set(f.sizeBytes, (m.get(f.sizeBytes) ?? 0) + 1), new Map())]
+          .filter(([s, n]) => s > 0 && n > 1).reduce((t, [s, n]) => t + s * (n - 1), 0);
+        print(`-- ${pool.length} file(s), ${fmtB(pool.reduce((s, f) => s + f.sizeBytes, 0))} total; reclaimable dupes=${fmtB(reclaim)}`);
+        print("by kind:");
+        [...byKind.entries()].sort((a, b) => b[1].bytes - a[1].bytes)
+          .forEach(([k, b]) => print(`  ${pad(k, 12)} ${fmtB(b.bytes).padStart(10)}  ${b.n} file(s)`));
+        print("by age:");
+        bands.forEach(([label, match]) => {
+          const sel = pool.filter((f) => match(days(f)));
+          print(`  ${pad(label, 12)} ${fmtB(sel.reduce((s, f) => s + f.sizeBytes, 0)).padStart(10)}  ${sel.length} file(s)`);
+        });
+        print("largest:");
+        [...pool].sort((a, b) => b.sizeBytes - a.sizeBytes).slice(0, 5)
+          .forEach((f) => print(`  ${fmtB(f.sizeBytes).padStart(10)}  ${f.sourceUri}`));
+        print("oldest:");
+        [...pool].sort((a, b) => days(b) - days(a)).slice(0, 5)
+          .forEach((f) => print(`  ${String(days(f)).padStart(5)}d  ${f.sourceUri}`));
+        return;
+      }
       case "watch": {
         const watched = (FM.store.settings.watchedFolders ??= []);
         const sub = pos[0] ?? "run";
@@ -594,12 +668,13 @@ FM.screen("architecture", (m) => {
   ];
   const modules = [
     ["FileMind.Domain", "Contracts, engines, rules, safety, planning, transactions, undo. Zero I/O.", "77 unit tests", "EXISTING"],
-    ["FileMind.Application", "Scanner, DecisionMaker, OrganizerPipeline, indexing, startup recovery, Smart Inbox, ModePolicy, watch pipeline (queue/debounce/stability/orchestrator).", "wiring + E2E", "EXISTING"],
+    ["FileMind.Application", "Scanner, DecisionMaker, OrganizerPipeline, indexing, startup recovery, Smart Inbox, ModePolicy, watch pipeline (queue/debounce/stability/orchestrator), duplicates + storage analysis.", "wiring + E2E", "EXISTING"],
     ["FileMind.Infrastructure.Sqlite", "WAL SQLite, schema v2 + migrations, all repositories incl. IOperationStore + file_index hash + persisted job queue.", "E2E-verified", "EXISTING"],
     ["FileMind.Platform.Windows", "Real FS adapter, path normalizer, protected paths, SHA256, FileSystemWatcher, drive attach/detach, console notifications.", "E2E-verified", "EXISTING"],
-    ["FileMind.Windows.Host", "Console verbs: scan/analyze/plan/execute/undo/history/smart-inbox/mode/rules/watch/watch-status/seed-demo.", "the app today", "EXISTING"],
+    ["FileMind.Windows.Host", "Console verbs: scan/analyze/plan/execute/undo/history/smart-inbox/mode/rules/watch/watch-status/enrich/dupes/storage/seed-demo.", "the app today", "EXISTING"],
     ["FileMind.Branding", "Canonical palette tokens as C# consts + parity tests.", "8 tests", "EXISTING"],
     ["FileMind.Intelligence.Local", "Analyzer registry + extractors: OOXML/PDF/text/EXIF/ID3/video/archive-manifest/code-signals; bounded + fail-safe; feeds classification + {Title}/{Author}/{Year} rename tokens.", "F-P5", "EXISTING"],
+    ["Duplicates & storage", "size→partial→full hash gating over file_index; advisory similarity candidates; kind/age breakdown; review-first quarantine plan (KeepBoth, undoable).", "F-P6", "EXISTING"],
     ["FileMind.Intelligence.AI", "Groq provider + privacy gate. Advisory only.", "F-P7", "MISSING"],
     ["Watchers/automation", "FileSystemWatcher, bounded queue + debounce, stability checks, persisted jobs, drive pause/resume.", "F-P4", "EXISTING"],
     ["Search (FTS5)", "No FTS index in schema yet — PLAN-015 adds it.", "F-P9", "MISSING"],

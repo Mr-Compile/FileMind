@@ -40,6 +40,8 @@ public interface IFileIndexRepository
     Task<Result<bool>> UpsertAsync(FileCandidate candidate, FileIdentity identity, CancellationToken ct = default);
     Task<Result<IReadOnlyList<FileIdentity>>> FindByFingerprintAsync(string fingerprint, CancellationToken ct = default);
     Task<Result<bool>> RemoveAsync(string path, CancellationToken ct = default);
+    /// <summary>All indexed candidates (payload deserialized). Needed by duplicate/storage analysis.</summary>
+    Task<Result<IReadOnlyList<FileCandidate>>> GetAllAsync(CancellationToken ct = default);
 }
 
 public interface IOperationRepository

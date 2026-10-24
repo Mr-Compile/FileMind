@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Security.Cryptography;
 using FileMind.Application.Ports;
 using FileMind.Domain.Contracts;
 using FileMind.Domain.Errors;
@@ -73,6 +74,54 @@ public sealed class CollectingEventSink : IEventSink
     {
         Events.Add(appEvent);
         return Task.CompletedTask;
+    }
+}
+
+public sealed class InMemoryFileIndex : IFileIndexRepository
+{
+    private readonly ConcurrentDictionary<string, FileCandidate> _rows = new(StringComparer.OrdinalIgnoreCase);
+    private readonly ConcurrentDictionary<string, FileIdentity> _ids = new(StringComparer.OrdinalIgnoreCase);
+
+    public Task<Result<bool>> UpsertAsync(FileCandidate candidate, FileIdentity identity, CancellationToken ct = default)
+    {
+        _rows[candidate.SourceUri] = candidate;
+        _ids[candidate.SourceUri] = identity;
+        return Task.FromResult(Result<bool>.Ok(true));
+    }
+
+    public Task<Result<IReadOnlyList<FileIdentity>>> FindByFingerprintAsync(string fingerprint, CancellationToken ct = default) =>
+        Task.FromResult(Result<IReadOnlyList<FileIdentity>>.Ok(
+            (IReadOnlyList<FileIdentity>)_ids.Values.Where(i => i.Fingerprint == fingerprint).ToList()));
+
+    public Task<Result<bool>> RemoveAsync(string path, CancellationToken ct = default) =>
+        Task.FromResult(Result<bool>.Ok(_rows.TryRemove(path, out _) | _ids.TryRemove(path, out _)));
+
+    public Task<Result<IReadOnlyList<FileCandidate>>> GetAllAsync(CancellationToken ct = default) =>
+        Task.FromResult(Result<IReadOnlyList<FileCandidate>>.Ok(
+            (IReadOnlyList<FileCandidate>)_rows.Values.ToList()));
+
+    public bool Contains(string path) => _rows.ContainsKey(path);
+}
+
+/// <summary>Hashes through an <see cref="IFileSystemAdapter"/> — same wire format as WindowsHashService.</summary>
+public sealed class StreamHashService(IFileSystemAdapter fs) : IHashService
+{
+    private const int PartialBytes = 4 * 1024 * 1024;
+
+    public async Task<Result<string>> HashAsync(string path, bool full, CancellationToken ct = default)
+    {
+        var opened = await fs.OpenReadAsync(path, ct);
+        if (!opened.IsSuccess) return Result<string>.Fail(opened.Error!);
+        await using var stream = opened.Value!;
+        using var sha = SHA256.Create();
+        if (!full && stream.Length > PartialBytes)
+        {
+            var buffer = new byte[PartialBytes];
+            var read = await stream.ReadAsync(buffer, ct);
+            return Result<string>.Ok($"sha256-partial:{Convert.ToHexStringLower(sha.ComputeHash(buffer, 0, read))}");
+        }
+        var fullHash = await sha.ComputeHashAsync(stream, ct);
+        return Result<string>.Ok($"sha256:{Convert.ToHexStringLower(fullHash)}");
     }
 }
 
