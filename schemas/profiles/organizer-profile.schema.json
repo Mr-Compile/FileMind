@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://filemind.dev/schemas/profiles/organizer-profile.schema.json",
+  "title": "FileMind Organizer Profile",
+  "type": "object",
+  "required": ["schemaVersion"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "rules": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "collections": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "destinationTemplate": { "type": "string" },
+          "categories": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "subjects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "code": { "type": "string" },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "keywords": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "projects": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "name"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "clientName": { "type": "string" },
+          "aliases": { "type": "array", "items": { "type": "string" } },
+          "keywords": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "namingTemplates": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "exclusions": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["Manual", "Smart", "Automatic", "AI-Assisted", "Local-Only"] },
+        "highThreshold": { "type": "number" },
+        "mediumThreshold": { "type": "number" },
+        "conflictPolicy": { "type": "string", "enum": ["KeepBoth", "Skip", "Ask", "ReplaceWithConfirmation"] }
+      }
+    }
+  }
+}

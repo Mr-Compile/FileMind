@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FileMind.Application\FileMind.Application.csproj" />
+    <ProjectReference Include="..\FileMind.Testing\FileMind.Testing.csproj" />
   </ItemGroup>
 
 </Project>

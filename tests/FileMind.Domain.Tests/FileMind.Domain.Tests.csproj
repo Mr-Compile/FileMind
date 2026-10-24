@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\FileMind.Domain\FileMind.Domain.csproj" />
+    <ProjectReference Include="..\FileMind.Testing\FileMind.Testing.csproj" />
   </ItemGroup>
 
 </Project>

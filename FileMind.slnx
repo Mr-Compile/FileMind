@@ -11,6 +11,7 @@
   <Folder Name="/tests/">
     <Project Path="tests/FileMind.Application.Tests/FileMind.Application.Tests.csproj" />
     <Project Path="tests/FileMind.Domain.Tests/FileMind.Domain.Tests.csproj" />
+    <Project Path="tests/FileMind.Testing/FileMind.Testing.csproj" />
     <Project Path="tests/FileMind.Windows.IntegrationTests/FileMind.Windows.IntegrationTests.csproj" />
   </Folder>
 </Solution>

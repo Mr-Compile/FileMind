@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://filemind.dev/schemas/rules/rule.schema.json",
+  "title": "FileMind Rule",
+  "type": "object",
+  "required": ["schemaVersion", "id", "name", "enabled", "priority", "conditionRoot", "actions"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": { "type": "integer", "minimum": 1 },
+    "id": { "type": "string", "minLength": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "enabled": { "type": "boolean" },
+    "priority": { "type": "integer" },
+    "stopProcessing": { "type": "boolean", "default": false },
+    "mode": { "type": "string", "default": "all" },
+    "provenance": { "type": "string", "enum": ["Builtin", "User", "Imported", "AiSuggested"], "default": "User" },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "updatedAt": { "type": "string", "format": "date-time" },
+    "conditionRoot": { "$ref": "#/$defs/conditionGroup" },
+    "actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/ruleAction" }
+    }
+  },
+  "$defs": {
+    "conditionGroup": {
+      "type": "object",
+      "required": ["operator"],
+      "additionalProperties": false,
+      "properties": {
+        "operator": { "type": "string", "enum": ["And", "Or"] },
+        "conditions": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ruleCondition" }
+        },
+        "groups": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/conditionGroup" }
+        }
+      }
+    },
+    "ruleCondition": {
+      "type": "object",
+      "required": ["field", "operator", "value"],
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "type": "string",
+          "enum": ["Filename", "Extension", "MimeType", "Keyword", "SourceFolder", "SourceScope", "Size", "CreatedAt", "ModifiedAt", "Metadata", "ExtractedContent", "Subject", "Project", "Collection", "Category"]
+        },
+        "operator": {
+          "type": "string",
+          "enum": ["Equals", "NotEquals", "Contains", "NotContains", "StartsWith", "EndsWith", "Regex", "GreaterThan", "LessThan", "In"]
+        },
+        "value": { "type": "string" },
+        "metadataKey": { "type": "string" }
+      }
+    },
+    "ruleAction": {
+      "type": "object",
+      "required": ["kind"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": ["Move", "Copy", "Rename", "Tag", "Ignore", "Notify", "Ask", "CreateFolder", "RouteToCollection"]
+        },
+        "destinationTemplate": { "type": "string" },
+        "namingTemplate": { "type": "string" },
+        "collection": { "type": "string" },
+        "tag": { "type": "string" },
+        "conflictPolicy": { "type": "string", "enum": ["KeepBoth", "Skip", "Ask", "ReplaceWithConfirmation"], "default": "KeepBoth" }
+      }
+    }
+  }
+}
