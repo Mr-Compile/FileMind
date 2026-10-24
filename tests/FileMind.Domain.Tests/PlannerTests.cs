@@ -1,0 +1,93 @@
+using FileMind.Domain.Contracts;
+using FileMind.Domain.Operations;
+using FileMind.Testing;
+using Xunit;
+
+namespace FileMind.Domain.Tests;
+
+public class PlannerTests
+{
+    private static readonly PlanContext Ctx = new(new WindowsStylePathNormalizer(),
+        Now: DateTimeOffset.Parse("2026-03-10T12:00:00Z"));
+
+    private static ClassificationResult Classified(string? subject = null, string? project = null, bool review = false) => new()
+    {
+        FileKind = FileKind.Document,
+        Subject = subject,
+        Project = project,
+        Collection = subject is not null ? "School" : project is not null ? "Work" : null,
+        Category = "General",
+        Evidence = [],
+        Confidence = 80,
+        Sources = [ClassifierSource.Local],
+        Explanation = "test",
+        NeedsReview = review
+    };
+
+    private static Decision Decide(FileCandidate c, ClassificationResult r, string? dest = null) => new()
+    {
+        Kind = DecisionKind.Organize,
+        Candidate = c,
+        Classification = r,
+        DestinationTemplate = dest ?? "{Collection}/{Subject}/{YYYY}"
+    };
+
+    [Fact]
+    public void Plan_ResolvesDestinationTemplate()
+    {
+        var c = Candidates.Create("dl/IT421_hw.pdf");
+        var r = Classified(subject: "IT421");
+        var plan = new ActionPlanner().Plan(Decide(c, r), Ctx).Value!;
+        Assert.Equal("School\\IT421\\2026\\IT421_hw.pdf", plan.Items[0].Destination);
+    }
+
+    [Fact]
+    public void Plan_AttachesUndoRecipe()
+    {
+        var c = Candidates.Create("dl/x.pdf");
+        var plan = new ActionPlanner().Plan(Decide(c, Classified()), Ctx).Value!;
+        var recipe = plan.Items[0].UndoRecipe;
+        Assert.NotNull(recipe);
+        Assert.Equal(OperationType.Move, recipe.ReverseOperation);
+        Assert.Equal("dl/x.pdf", recipe.ReverseDestination);
+    }
+
+    [Fact]
+    public void Plan_IgnoreYieldsEmpty()
+    {
+        var c = Candidates.Create("dl/x.pdf");
+        var decision = Decide(c, Classified()) with { Kind = DecisionKind.Ignore };
+        var plan = new ActionPlanner().Plan(decision, Ctx).Value!;
+        Assert.Empty(plan.Items);
+    }
+
+    [Fact]
+    public void Plan_ReviewYieldsAsk()
+    {
+        var c = Candidates.Create("dl/x.pdf");
+        var decision = Decide(c, Classified(review: true)) with { Kind = DecisionKind.Review };
+        var plan = new ActionPlanner().Plan(decision, Ctx).Value!;
+        Assert.Single(plan.Items);
+        Assert.Equal(OperationType.Ask, plan.Items[0].Operation);
+        Assert.True(plan.RequiresReview);
+    }
+
+    [Fact]
+    public void Plan_NamingTemplateApplied()
+    {
+        var c = Candidates.Create("dl/IT421_Lecture_5.mp4");
+        var r = Classified(subject: "IT421");
+        var decision = Decide(c, r, "School/{Subject}") with { NamingTemplate = "{Subject}_{Name}.{Ext}" };
+        var plan = new ActionPlanner().Plan(decision, Ctx).Value!;
+        Assert.EndsWith("IT421_IT421_Lecture_5.mp4", plan.Items[0].Destination!.Replace('\\', '/'));
+    }
+
+    [Fact]
+    public void Plan_UnsortedFallbacks()
+    {
+        var c = Candidates.Create("dl/random.xyz");
+        var r = Classified();
+        var plan = new ActionPlanner().Plan(Decide(c, r), Ctx).Value!;
+        Assert.Contains("Unsorted", plan.Items[0].Destination);
+    }
+}

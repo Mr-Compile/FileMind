@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "description": "Golden expectations for FileMind fixtures. Synthetic FileCandidates are built from these files; expected fields are asserted by domain + integration tests.",
+  "catalog": {
+    "subjects": [
+      { "id": "IT421", "name": "IT421 Networks", "code": "IT421", "aliases": ["IT 421", "IT-421", "IT_421"], "keywords": ["networks", "lecture", "lab"] }
+    ],
+    "projects": [
+      { "id": "alpha", "name": "Project Alpha", "clientName": "Contoso", "aliases": ["alpha"], "keywords": ["status", "report"] },
+      { "id": "acme", "name": "ACME Engagement", "clientName": "ACME", "aliases": ["acme"], "keywords": ["meeting"] }
+    ]
+  },
+  "cases": [
+    {
+      "path": "corpus/school-it421/IT421_Lecture_5.mp4",
+      "expectedFileKind": "Video",
+      "expectedSubject": "IT421",
+      "expectedBand": "High",
+      "expectedRoute": "School/IT421/Lectures",
+      "note": "Context-over-type: must route to School/IT421, not generic Videos."
+    },
+    {
+      "path": "corpus/school-it421/IT 421 notes.docx",
+      "expectedFileKind": "Document",
+      "expectedSubject": "IT421",
+      "expectedBand": "High"
+    },
+    {
+      "path": "corpus/school-it421/IT-421_hw.pdf",
+      "expectedFileKind": "Document",
+      "expectedSubject": "IT421",
+      "expectedBand": "High"
+    },
+    {
+      "path": "corpus/school-it421/IT_421_lab.txt",
+      "expectedFileKind": "Document",
+      "expectedSubject": "IT421",
+      "expectedBand": "High"
+    },
+    {
+      "path": "corpus/school-it421/calculus_notes.pdf",
+      "expectedFileKind": "Document",
+      "expectedSubject": null,
+      "expectedBand": "Low"
+    },
+    {
+      "path": "corpus/work/invoice_contoso_q3.pdf",
+      "expectedFileKind": "Document",
+      "expectedProject": "alpha",
+      "expectedBand": "Medium"
+    },
+    {
+      "path": "corpus/work/alpha_status_report.docx",
+      "expectedFileKind": "Document",
+      "expectedProject": "alpha",
+      "expectedBand": "Medium"
+    },
+    {
+      "path": "corpus/work/ACME_meeting_2024-05.txt",
+      "expectedFileKind": "Document",
+      "expectedProject": "acme",
+      "expectedBand": "Medium"
+    },
+    {
+      "path": "corpus/development/Program.cs",
+      "expectedFileKind": "Code",
+      "expectedBand": "Low"
+    },
+    {
+      "path": "corpus/development/App.csproj",
+      "expectedFileKind": "Code",
+      "expectedBand": "Low"
+    },
+    {
+      "path": "corpus/development/node_modules/dep.js",
+      "expectedExcluded": true
+    },
+    {
+      "path": "corpus/development/bin/app.dll",
+      "expectedExcluded": true
+    },
+    {
+      "path": "corpus/downloads/bigfile.zip.crdownload",
+      "expectedExcluded": true,
+      "note": "Incomplete download - must never be touched."
+    },
+    {
+      "path": "corpus/downloads/file.part",
+      "expectedExcluded": true
+    },
+    {
+      "path": "corpus/downloads/setup.exe",
+      "expectedFileKind": "Executable"
+    },
+    {
+      "path": "corpus/media/IMG_20240101.jpg",
+      "expectedFileKind": "Image"
+    },
+    {
+      "path": "corpus/media/birthday_clip.mp4",
+      "expectedFileKind": "Video"
+    },
+    {
+      "path": "corpus/duplicates/report_a.pdf",
+      "expectedFileKind": "Document",
+      "duplicateGroup": "report-content"
+    },
+    {
+      "path": "corpus/duplicates/report_b_copy.pdf",
+      "expectedFileKind": "Document",
+      "duplicateGroup": "report-content"
+    },
+    {
+      "path": "corpus/duplicates/unique.txt",
+      "expectedFileKind": "Document"
+    },
+    {
+      "path": "corpus/messy-names/  double  space  name .txt",
+      "expectedFileKind": "Document",
+      "note": "Normalization must handle leading/trailing/double spaces."
+    },
+    {
+      "path": "corpus/messy-names/ファイル.txt",
+      "expectedFileKind": "Document",
+      "note": "Unicode filename must not throw."
+    },
+    {
+      "path": "corpus/messy-names/notes_🎉_final.txt",
+      "expectedFileKind": "Document",
+      "note": "Emoji filename must not throw."
+    }
+  ]
+}
