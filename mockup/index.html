@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FileMind — UI Mockup</title>
+<!-- Canonical brand tokens: single source of truth (docs/rules/MOCKUP_RULES.md) -->
+<link rel="stylesheet" href="../branding/colors.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="app">
+  <header class="titlebar">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">FM</span>
+      <span class="brand-name">FileMind</span>
+      <span class="badge badge-info">UI mockup</span>
+    </div>
+    <button class="cmd" id="command-box" title="Search or command (Ctrl+K)" aria-label="Search or command">
+      <span class="cmd-icon" data-icon="search"></span>
+      <span class="cmd-text">Search files or type a command…</span>
+      <kbd>Ctrl K</kbd>
+    </button>
+    <div class="titlebar-actions">
+      <button class="icon-btn" id="opcenter-btn" title="Operation center" aria-label="Operation center">
+        <span data-icon="activity"></span><span class="badge-count" id="opcount" hidden></span>
+      </button>
+      <button class="icon-btn" id="density-btn" title="Toggle compact density" aria-label="Toggle compact density">
+        <span data-icon="density"></span>
+      </button>
+      <button class="icon-btn" id="theme-btn" title="Theme: System / Light / Dark" aria-label="Change theme">
+        <span data-icon="theme"></span>
+      </button>
+    </div>
+  </header>
+  <div class="shell">
+    <nav class="sidebar" id="sidebar" aria-label="Primary"></nav>
+    <main class="content" id="main" tabindex="-1"></main>
+  </div>
+</div>
+<div id="dialog-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+<script src="mock-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
