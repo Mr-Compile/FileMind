@@ -306,6 +306,10 @@ Usage:
   filemind ai-suggest <file>
   filemind ai-rule <natural language>
   filemind ai-search <natural language>
+  filemind profile export [--out <file>]
+  filemind profile import <file> [--preview|--apply] [--policy merge|skip]
+  filemind profile backup [--dir <dir>]
+  filemind profile restore <file>
   filemind seed-demo
 
 Environment:
@@ -586,6 +590,54 @@ Environment:
         pool.forEach((f) => print(`${pad(f.displayName, 40)} ${pad(kindOf(f), 10)} ${fmtB(f.sizeBytes).padStart(10)}  rank=-0.000  ${f.sourceUri}`));
         print(`-- ${pool.length} result(s)` + (pool.length ? "" : " — nothing indexed matches; run `scan`/`enrich` to populate the index"));
         return;
+      }
+      case "profile": {
+        const sub = (pos[0] ?? "").toLowerCase();
+        const profileDoc = () => ({
+          schemaVersion: 1,
+          rules: FM.store.rules,
+          collections: FM_DATA.collections,
+          subjects: FM_DATA.subjects,
+          projects: FM_DATA.projects ?? [],
+          namingTemplates: {},
+          exclusions: FM_DATA.exclusions,
+          preferences: FM.store.settings.organizationMode ? { mode: FM.store.settings.organizationMode } : undefined,
+        });
+        if (sub === "export") {
+          const out = flagVal("--out");
+          if (!out) { print(JSON.stringify(profileDoc(), null, 2)); return; }
+          return print(`exported ${out}`);
+        }
+        if (sub === "import") {
+          if (!pos[1]) return err("usage: filemind profile import <file> [--preview|--apply] [--policy merge|skip]");
+          const incoming = {
+            subjects: [{ id: "it421", name: "IT421 Networks (imported)" }, { id: "bio-new", name: "Biology" }],
+            exclusions: ["*.bak"],
+          };
+          const known = new Set(FM_DATA.subjects.map((s) => s.id));
+          const knownEx = new Set(FM_DATA.exclusions);
+          const diff = [
+            ...incoming.subjects.map((s) => ({ kind: known.has(s.id) ? "changed" : "added", sec: "subjects", id: s.id })),
+            ...incoming.exclusions.map((x) => ({ kind: knownEx.has(x) ? "same" : "added", sec: "exclusions", id: x })),
+          ];
+          const policy = flagVal("--policy") ?? "merge";
+          if (!["merge", "skip"].includes(policy)) return err(`unknown policy '${policy}' (merge|skip)`);
+          if (flags.has("--apply")) {
+            print(`backup profile-backup-${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14)}.json`);
+            const skipped = policy === "skip" ? diff.filter((d) => d.kind !== "added").length : 0;
+            print(`applied=${diff.length - skipped} skipped=${skipped} policy=${policy}`);
+            return;
+          }
+          diff.forEach((d) => print(`${pad(d.kind, 8)} ${pad(d.sec, 12)} ${d.id}`));
+          return print(`-- preview only (schema v1); re-run with --apply to write (${diff.filter((d) => d.kind !== "same").length} change(s))`);
+        }
+        if (sub === "backup")
+          return print(`backup ${flagVal("--dir") ?? "C:\\\\Users\\\\demo\\\\FileMind"}\\\\profile-backup-${new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14)}.json`);
+        if (sub === "restore") {
+          if (!pos[1]) return err("usage: filemind profile restore <file>");
+          return print(`restored ${pos[1]}: applied=4 skipped=0`);
+        }
+        return err("usage: filemind profile [export|import|backup|restore]");
       }
       case "watch": {
         const watched = (FM.store.settings.watchedFolders ??= []);
