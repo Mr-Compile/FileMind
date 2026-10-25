@@ -1,9 +1,9 @@
 # PLAN-022 — Cross-Platform UX Parity: Phone-Native Android Surfaces + Feature Parity Megaplan
 
-Status: APPROVED
+Status: IMPLEMENTED
 Related Feature: F-UI1 (mockup), F-UI4 (Android app), F-UI3 (cross-platform UX contracts)
 Created: 2026-10-24
-Updated: 2026-10-24
+Updated: 2026-10-26
 
 ## Request / Goal
 
@@ -241,15 +241,34 @@ change — unlikely), `CHANGELOG.md`, this plan's status.
 
 ## Acceptance Criteria
 
-- [ ] Zero horizontal scrolling inside the phone shell (all routes, 320–480px)
-- [ ] Filters via M3 bottom sheet w/ active-count badge on Files + Search
-- [ ] Scope via picker sheet; organizer steps via progress indicator
-- [ ] Full feature parity with Windows mockup (gap-table rows all present)
-- [ ] Native Files/Search use the same filter-sheet pattern; build green
-- [ ] Platform idioms preserved (sheets/FAB/selection bar/Back vs
-      table/inspector/context-menu/breadcrumbs) — documented, not cloned
-- [ ] `Planned`/host badges truthful; no fake functionality
-- [ ] Docs + mockup README updated; commits pushed per AGENTS sync rule
+- [x] Zero horizontal scrolling inside the phone shell — `grep overflow-x
+  mockup/android.css` → 0 (verified 2026-10-26)
+- [x] Filters via M3 bottom sheet w/ active-count badge on Files + Search —
+  `A.filterSheet`/`A.filterBtn` (mockup), `FilterSheet`/`FilterButton` (native)
+- [x] Scope via picker sheet (`A.picker`); organizer steps via `Step N of 5`
+  + `.a-progress` linear bar
+- [x] Full feature parity with Windows mockup — all gap-table rows landed:
+  sort/clear/rescan, Why? evidence, rename validation, active-op cards,
+  real undo + retry + legend, rules toggles, storage demo, expanded
+  settings, dry-run + preserve-tree + cancellable run
+- [x] Native Files/Search use the same filter-sheet pattern;
+  `assembleDebug` + `:core:test` + `:platform:testDebugUnitTest` green
+  (2026-10-26); Settings chip rows → `SingleChoiceSegmentedButtonRow`
+- [x] Platform idioms preserved — Android uses sheets/FAB/selection bar/
+  system Back; Windows table/inspector/context-menu/breadcrumbs untouched
+- [x] `Planned`/host badges truthful — FTS search still `Planned`;
+  mock-data device restriction corrected to the real limit
+- [x] Docs + mockup README updated; commits pushed per AGENTS sync rule
+  (08e26fe, a189b93, 786d28c)
+
+## Evidence (2026-10-26)
+
+- `grep -c "overflow-x" mockup/android.css` → 0
+- `node --check mockup/android-screens.js` → clean
+- `gradlew assembleDebug testDebugUnitTest :core:test` → BUILD SUCCESSFUL
+- Commits: `08e26fe` (mockup), `a189b93` (native app), `786d28c` (docs)
+- Browser preview served on localhost for manual shell checks; emulator
+  runtime verification remains PLAN-021 scope (image install in progress).
 
 ## Risks / Regression Areas
 
