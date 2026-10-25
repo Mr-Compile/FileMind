@@ -54,5 +54,8 @@ surfaces as `NeedsAttention`/review.
   `noHistory`) — persists read grants best-effort, routes to Smart Inbox.
 - POST_NOTIFICATIONS runtime permission (API 33+) is surfaced via
   `NotificationManagerCompat` failures, not swallowed.
-- Android UI is out of scope (PLAN-010 non-goal); the platform module is a
-  consumable backend library.
+- The `android/app` Compose UI (PLAN-021) consumes this platform library; UI
+  code never mutates files directly — mutations flow `OrganizerPipeline` /
+  `FileMindWorkScheduler` / repositories, and `OpenDocumentTree` +
+  `takePersistableUriPermission` is the only platform interaction allowed in
+  `app/` (permission chrome for grants).
