@@ -19,8 +19,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -42,6 +45,7 @@ import com.filemind.app.theme.Spacing
 import com.filemind.app.theme.ThemeMode
 import com.filemind.core.contracts.OrganizationMode
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(app: FileMindApp, nav: NavHostController) {
     val context = LocalContext.current
@@ -65,12 +69,14 @@ fun SettingsScreen(app: FileMindApp, nav: NavHostController) {
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(Spacing.s2))
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s2)) {
+                /* Segmented row fills width — no horizontal scroll on phones. */
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
                     listOf(OrganizationMode.Manual, OrganizationMode.Smart,
-                        OrganizationMode.Automatic).forEach { m ->
-                        FilterChip(
+                        OrganizationMode.Automatic).forEachIndexed { i, m ->
+                        SegmentedButton(
                             selected = orgMode == m,
                             onClick = { settings.setOrgMode(m) },
+                            shape = SegmentedButtonDefaults.itemShape(i, 3),
                             label = { Text(m.name) })
                     }
                 }
@@ -85,12 +91,13 @@ fun SettingsScreen(app: FileMindApp, nav: NavHostController) {
         Spacer(Modifier.height(Spacing.s4))
         SectionHeader("Appearance")
         Card(Modifier.fillMaxWidth()) {
-            Row(Modifier.padding(Spacing.s4),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.s2)) {
-                ThemeMode.entries.forEach { m ->
-                    FilterChip(
+            SingleChoiceSegmentedButtonRow(
+                Modifier.fillMaxWidth().padding(Spacing.s4)) {
+                ThemeMode.entries.forEachIndexed { i, m ->
+                    SegmentedButton(
                         selected = theme == m,
                         onClick = { settings.setTheme(m) },
+                        shape = SegmentedButtonDefaults.itemShape(i, ThemeMode.entries.size),
                         label = { Text(m.name) })
                 }
             }

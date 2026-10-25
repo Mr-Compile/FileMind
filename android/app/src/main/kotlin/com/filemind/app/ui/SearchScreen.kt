@@ -11,30 +11,40 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Card
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.filemind.app.FileMindApp
 import com.filemind.app.components.EmptyState
+import com.filemind.app.components.FilterButton
+import com.filemind.app.components.FilterGroup
+import com.filemind.app.components.FilterOption
+import com.filemind.app.components.FilterSheet
 import com.filemind.app.components.LoadingBox
 import com.filemind.app.components.StatusChip
-import com.filemind.app.components.chipSpec
 import com.filemind.app.components.plannedChip
 import com.filemind.app.theme.Spacing
 import com.filemind.app.vm.SearchViewModel
 import com.filemind.app.vm.backendViewModel
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.TextSnippet
+
+private val KIND_OPTIONS = listOf(
+    FilterOption("", "All"), FilterOption("image/", "Images"),
+    FilterOption("video/", "Video"), FilterOption("audio/", "Audio"),
+    FilterOption("text/", "Docs"), FilterOption("application/", "Apps & data")
+)
 
 @Composable
 fun SearchScreen(app: FileMindApp) {
     val vm = backendViewModel(app) { SearchViewModel(it) }
     val state by vm.state.collectAsState()
+    var showFilters by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(Spacing.s4)) {
         OutlinedTextField(
@@ -45,17 +55,23 @@ fun SearchScreen(app: FileMindApp) {
             singleLine = true
         )
         Spacer(Modifier.height(Spacing.s2))
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s2)) {
-            OutlinedTextField(
-                value = state.ext,
-                onValueChange = { vm.update(ext = it) },
-                label = { Text("Extension") },
-                modifier = Modifier.weight(1f), singleLine = true)
-            OutlinedTextField(
-                value = state.kind,
-                onValueChange = { vm.update(kind = it) },
-                label = { Text("Kind (image/…)") },
-                modifier = Modifier.weight(1f), singleLine = true)
+
+        /* Filters live in a bottom sheet — no side-by-side fields on a phone. */
+        val activeFilters = (if (state.kind.isNotEmpty()) 1 else 0) + (if (state.ext.isNotEmpty()) 1 else 0)
+        Row(
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.s2)
+        ) {
+            FilterButton(activeFilters, onClick = { showFilters = true })
+            Text(
+                listOfNotNull(
+                    state.kind.takeIf { it.isNotEmpty() }
+                        ?.let { k -> KIND_OPTIONS.firstOrNull { it.value == k }?.label ?: k },
+                    state.ext.takeIf { it.isNotEmpty() }?.let { ".$it" }
+                ).joinToString(" · ").ifEmpty { "All kinds" },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Spacer(Modifier.height(Spacing.s2))
 
@@ -99,5 +115,25 @@ fun SearchScreen(app: FileMindApp) {
                 }
             }
         }
+    }
+
+    if (showFilters) {
+        FilterSheet(
+            title = "Filter results",
+            groups = listOf(FilterGroup("Kind", "kind", KIND_OPTIONS)),
+            selected = mapOf("kind" to state.kind),
+            onSelect = { _, v -> vm.update(kind = v) },
+            onClear = { vm.update(kind = "", ext = "") },
+            onDismiss = { showFilters = false },
+            extraContent = {
+                OutlinedTextField(
+                    value = state.ext,
+                    onValueChange = { vm.update(ext = it) },
+                    label = { Text("Extension (e.g. pdf)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+        )
     }
 }

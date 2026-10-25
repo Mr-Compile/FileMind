@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,12 +35,26 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import com.filemind.app.FileMindApp
 import com.filemind.app.components.EmptyState
+import com.filemind.app.components.FilterButton
+import com.filemind.app.components.FilterGroup
+import com.filemind.app.components.FilterOption
+import com.filemind.app.components.FilterSheet
 import com.filemind.app.components.LoadingBox
 import com.filemind.app.nav.Routes
 import com.filemind.app.theme.Spacing
 import com.filemind.app.vm.FilesViewModel
 import com.filemind.app.vm.backendViewModel
 import com.filemind.core.contracts.FileCandidate
+
+private val KIND_OPTIONS = listOf(
+    FilterOption("", "All"), FilterOption("image/", "Images"),
+    FilterOption("video/", "Video"), FilterOption("audio/", "Audio"),
+    FilterOption("text/", "Docs")
+)
+private val SORT_OPTIONS = listOf(
+    FilterOption("name", "Name"), FilterOption("size", "Size"),
+    FilterOption("modified", "Recently modified")
+)
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -53,6 +66,7 @@ fun FilesScreen(app: FileMindApp, nav: NavHostController) {
     var kindFilter by remember { mutableStateOf("") }
     var sortBy by remember { mutableStateOf("name") }
     var inspecting by remember { mutableStateOf<FileCandidate?>(null) }
+    var showFilters by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(Spacing.s4)) {
         if (state.selected.isNotEmpty()) {
@@ -75,21 +89,22 @@ fun FilesScreen(app: FileMindApp, nav: NavHostController) {
         )
         Spacer(Modifier.height(Spacing.s2))
 
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s2)) {
-            listOf("" to "All", "image/" to "Images", "video/" to "Video",
-                "audio/" to "Audio", "text/" to "Docs").forEach { (k, label) ->
-                FilterChip(
-                    selected = kindFilter == k,
-                    onClick = { kindFilter = k },
-                    label = { Text(label) })
-            }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.s2)) {
-            listOf("name" to "Name", "size" to "Size", "modified" to "Modified")
-                .forEach { (k, label) ->
-                    FilterChip(selected = sortBy == k, onClick = { sortBy = k },
-                        label = { Text("Sort: $label") })
-                }
+        /* Filters live in a bottom sheet — no horizontally scrolling chips. */
+        val activeFilters = (if (kindFilter.isNotEmpty()) 1 else 0) + (if (sortBy != "name") 1 else 0)
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.s2)
+        ) {
+            FilterButton(activeFilters, onClick = { showFilters = true })
+            Text(
+                listOfNotNull(
+                    kindFilter.takeIf { it.isNotEmpty() }
+                        ?.let { KIND_OPTIONS.firstOrNull { o -> o.value == it }?.label },
+                    "Sort: ${SORT_OPTIONS.firstOrNull { it.value == sortBy }?.label ?: "Name"}"
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Spacer(Modifier.height(Spacing.s2))
 
@@ -154,6 +169,20 @@ fun FilesScreen(app: FileMindApp, nav: NavHostController) {
                 }
             }
         }
+    }
+
+    if (showFilters) {
+        FilterSheet(
+            title = "Filter files",
+            groups = listOf(
+                FilterGroup("Kind", "kind", KIND_OPTIONS),
+                FilterGroup("Sort by", "sort", SORT_OPTIONS)
+            ),
+            selected = mapOf("kind" to kindFilter, "sort" to sortBy),
+            onSelect = { key, v -> if (key == "kind") kindFilter = v else sortBy = v },
+            onClear = { kindFilter = ""; sortBy = "name" },
+            onDismiss = { showFilters = false }
+        )
     }
 
     inspecting?.let { file ->
