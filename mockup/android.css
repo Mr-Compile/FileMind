@@ -246,14 +246,33 @@ body.android-mockup {
 }
 .a-row.selected .a-check { background: var(--fm-primary); border-color: var(--fm-primary); }
 
-/* ---------- scope + kind chips ---------- */
-.a-scope { display: flex; gap: var(--sp-2); overflow-x: auto; padding-bottom: var(--sp-1); }
-.a-scope-chip {
-  flex: none;
+/* ---------- control row: picker button + filter button (no h-scroll) ---------- */
+.a-ctl { display: flex; align-items: center; gap: var(--sp-2); }
+.a-ctl .grow { flex: 1; min-width: 0; }
+.a-ctl-sub { font-size: 12px; color: var(--fm-text-secondary); padding: 0 var(--sp-1); }
+.a-pick {
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
-  min-height: 40px;
+  min-height: 48px;
+  padding: 0 var(--sp-3) 0 var(--sp-4);
+  border-radius: var(--r-m);
+  border: 1px solid var(--fm-border);
+  background: var(--fm-surface);
+  color: var(--fm-text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+.a-pick:hover { border-color: var(--fm-primary); }
+.a-pick-txt { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-filterbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 48px;
   padding: 0 var(--sp-4);
   border-radius: var(--r-m);
   border: 1px solid var(--fm-border);
@@ -264,22 +283,76 @@ body.android-mockup {
   font-weight: 600;
   cursor: pointer;
 }
-.a-scope-chip.on { background: color-mix(in srgb, var(--fm-primary) 14%, var(--fm-surface)); border-color: var(--fm-primary); color: var(--fm-primary); }
-.a-chips { display: flex; gap: var(--sp-2); overflow-x: auto; padding-bottom: var(--sp-1); }
-.a-kchip {
-  flex: none;
-  min-height: 32px;
-  padding: 0 var(--sp-3);
-  border-radius: var(--r-pill);
-  border: 1px solid var(--fm-border);
+.a-filterbtn:hover { border-color: var(--fm-primary); color: var(--fm-primary); }
+
+/* ---------- sheet option rows (pickers + filters, M3 single-select) ---------- */
+.a-opt {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  min-height: 52px;
+  padding: var(--sp-2) var(--sp-1);
+  border: 0;
+  border-radius: var(--r-m);
   background: transparent;
-  color: var(--fm-text-secondary);
+  color: var(--fm-text);
   font: inherit;
-  font-size: 12.5px;
-  font-weight: 600;
+  text-align: left;
   cursor: pointer;
 }
-.a-kchip.on { background: var(--fm-primary); border-color: var(--fm-primary); color: #fff; }
+.a-opt:hover { background: var(--fm-surface-elevated); }
+.a-opt.on { background: color-mix(in srgb, var(--fm-primary) 12%, var(--fm-surface)); }
+.a-opt-txt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.a-opt-title { font-size: 14.5px; font-weight: 500; }
+.a-opt-sub { font-size: 12px; color: var(--fm-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.a-opt-right { flex: none; display: inline-flex; align-items: center; }
+.a-opt-check { flex: none; width: 24px; display: inline-flex; justify-content: center; color: var(--fm-primary); }
+
+/* ---------- linear progress (steps + active ops) ---------- */
+.a-progress {
+  height: 4px;
+  border-radius: var(--r-pill);
+  background: var(--fm-surface-elevated);
+  overflow: hidden;
+}
+.a-progress > i {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-pill);
+  background: var(--fm-primary);
+  transition: width 0.25s ease;
+}
+@media (prefers-reduced-motion: reduce) { .a-progress > i { transition: none; } }
+
+/* ---------- switch (M3 switch, native checkbox) ---------- */
+.a-switch {
+  appearance: none;
+  flex: none;
+  width: 52px;
+  height: 32px;
+  margin: 0;
+  border-radius: var(--r-pill);
+  border: 2px solid var(--fm-border);
+  background: var(--fm-surface-elevated);
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.a-switch::after {
+  content: "";
+  position: absolute;
+  top: 50%; left: 4px;
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--fm-text-secondary);
+  transform: translateY(-50%);
+  transition: left 0.15s, width 0.15s, height 0.15s, background 0.15s;
+}
+.a-switch:checked { background: var(--fm-primary); border-color: var(--fm-primary); }
+.a-switch:checked::after { left: 28px; width: 20px; height: 20px; background: #fff; }
+.a-switch:focus-visible { outline: 2px solid var(--fm-primary); outline-offset: 2px; }
+.a-rule { cursor: default; }
 
 /* ---------- search bar ---------- */
 .a-searchbar {
@@ -391,24 +464,30 @@ body.android-mockup {
 .a-detail span { color: var(--fm-text-secondary); flex: none; }
 .a-detail b { font-weight: 500; text-align: right; overflow-wrap: anywhere; }
 
-/* ---------- organizer steps ---------- */
-.a-steps { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-1); overflow-x: auto; }
-.a-step {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--fm-text-disabled);
-  white-space: nowrap;
-}
-.a-step.cur { color: var(--fm-primary); }
-.a-step.done { color: var(--fm-success); }
-.a-step-sep { flex: none; width: 12px; height: 1px; background: var(--fm-border); }
+/* ---------- organizer steps (progress bar — no h-scroll) ---------- */
+.a-steps { padding: var(--sp-1); }
+.a-step-label { font-size: 12px; font-weight: 700; color: var(--fm-text-secondary); margin-bottom: 6px; }
+.a-step-label::first-letter { text-transform: uppercase; }
 .a-opstep { display: flex; align-items: center; gap: var(--sp-2); min-height: 32px; font-size: 13px; color: var(--fm-text-secondary); }
 .a-cta { display: flex; flex-direction: column; gap: var(--sp-2); padding-top: var(--sp-2); }
 .btn.lg { min-height: 52px; font-size: 15px; }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--fm-text-secondary); }
+.tiny-btn { min-height: 32px; padding: 0 var(--sp-3); font-size: 12px; }
+
+/* ---------- Why? evidence + status legend ---------- */
+.a-ev { margin-top: var(--sp-3); font-size: 12.5px; }
+.a-ev summary { cursor: pointer; font-weight: 600; color: var(--fm-text-secondary); padding: var(--sp-1) 0; }
+.a-ev pre {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-3);
+  border-radius: var(--r-m);
+  background: var(--fm-surface-elevated);
+  font-size: 11.5px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.a-legend { display: flex; flex-wrap: wrap; gap: var(--sp-2); padding: var(--sp-1); }
 
 /* ---------- segmented control (theme) ---------- */
 .a-seg { display: flex; gap: var(--sp-2); }

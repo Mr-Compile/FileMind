@@ -211,7 +211,7 @@ FM_DATA.smartInbox = [
   },
 ];
 
-/* devices — mirrors platform capabilities + FEATURES.md status (Android = F-P8 IMPLEMENTED backend, UI not shipped) */
+/* devices — mirrors platform capabilities + FEATURES.md status (Android = F-P8 IMPLEMENTED backend, F-UI4 Compose app shipped, emulator verification pending) */
 FM_DATA.devices = [
   {
     id: "this-pc", name: "This PC", kind: "windows", connected: true, icon: "devices",
@@ -222,7 +222,7 @@ FM_DATA.devices = [
   {
     id: "pixel-8", name: "Pixel 8", kind: "android", connected: false, icon: "phone",
     storage: { used: 96_605_470_720, total: 128_849_018_880 },
-    capabilities: ["MediaStore", "SAF folders", "WorkManager jobs", "Share target"], restrictions: ["Android UI not shipped (backend only)"],
+    capabilities: ["MediaStore", "SAF folders", "WorkManager jobs", "Share target"], restrictions: ["Full-text content search planned (name/path only)"],
     status: "disconnected", reconnect: "Connect the phone with a USB cable or enable wireless pairing, then refresh.",
   },
   {
