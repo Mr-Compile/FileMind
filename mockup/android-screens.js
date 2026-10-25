@@ -978,7 +978,7 @@ FM.screen("tools", (m) => {
 /* ========================================================================= */
 FM.screen("settings", (m) => {
   A.title("Settings");
-  const s = FM.store.settings;
+  let s = FM.store.settings; /* re-read after demo reset */
 
   const render = () => {
     m.innerHTML = `
@@ -1085,7 +1085,7 @@ FM.screen("settings", (m) => {
       right: FM.icon("chevR", "sm"),
       onTap: async () => {
         const ok = await FM.confirm({ title: "Reset demo data?", body: "Mock operations and Smart Inbox items return to their seeded state on next reload. Nothing real is affected.", ok: "Reset demo", kind: "destructive" });
-        if (ok) { FM.store = null; FM.initStore(); FM.toast("Demo data reset", "success"); render(); }
+        if (ok) { FM.store = null; FM.initStore(); s = FM.store.settings; A.grants = ["Downloads", "Documents"]; FM.toast("Demo data reset", "success"); render(); }
       },
     }));
 
