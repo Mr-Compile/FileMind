@@ -82,6 +82,8 @@ public sealed partial class Shell : Page
     {
         var t = App.Theme;
         t.SetDensity(t.Density == FmDensity.Compact ? FmDensity.Comfortable : FmDensity.Compact);
+        // mockup body.compact: sidebar collapses to the 56px icon rail
+        Nav.IsPaneOpen = t.Density != FmDensity.Compact;
         // density affects new layouts; navigate to refresh the current page
         if (ContentFrame.SourcePageType is { } p) ContentFrame.Navigate(p);
     }

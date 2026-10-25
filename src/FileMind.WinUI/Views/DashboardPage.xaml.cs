@@ -86,15 +86,15 @@ public sealed partial class DashboardPage : Page
     private void LoadDevices()
     {
         // This PC — always connected
-        DeviceList.Children.Add(DeviceRow("This PC", "Windows", connected: true));
+        DeviceList.Children.Add(DeviceRow("\uE977", "This PC", "Windows", connected: true));
         // Android — the Windows app has no phone bridge; truth: disconnected
-        DeviceList.Children.Add(DeviceRow("Android phone", "companion app (PLAN-021)", connected: false));
+        DeviceList.Children.Add(DeviceRow("\uE8EA", "Android phone", "companion app (PLAN-021)", connected: false));
         // removable drives
         try
         {
             foreach (var d in System.IO.DriveInfo.GetDrives()
                          .Where(d => d.DriveType == System.IO.DriveType.Removable && d.IsReady))
-                DeviceList.Children.Add(DeviceRow($"{d.Name} {d.VolumeLabel}", "removable", connected: true));
+                DeviceList.Children.Add(DeviceRow("\uE88E", $"{d.Name} {d.VolumeLabel}", "removable", connected: true));
         }
         catch { }
     }
@@ -184,12 +184,12 @@ public sealed partial class DashboardPage : Page
         return g;
     }
 
-    private static StackPanel DeviceRow(string name, string sub, bool connected)
+    private static StackPanel DeviceRow(string glyph, string name, string sub, bool connected)
     {
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         row.Children.Add(new FontIcon
         {
-            Glyph = "&#xEDA2;", FontSize = 16, VerticalAlignment = VerticalAlignment.Center,
+            Glyph = glyph, FontSize = 16, VerticalAlignment = VerticalAlignment.Center,
             Foreground = (Brush)Microsoft.UI.Xaml.Application.Current.Resources["FmTextSecondaryBrush"]
         });
         var texts = new StackPanel { VerticalAlignment = VerticalAlignment.Center };

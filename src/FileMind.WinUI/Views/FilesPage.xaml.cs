@@ -6,6 +6,7 @@ using FileMind.WinUI.Controls;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
+using Microsoft.UI.Xaml.Media;
 using Windows.ApplicationModel.DataTransfer;
 using Windows.Storage.Pickers;
 
@@ -16,13 +17,14 @@ namespace FileMind.WinUI.Views;
 public sealed partial class FilesPage : Page
 {
     private sealed record FileRow(string Name, string Kind, string Size, string Modified,
-        FileCandidate Candidate)
+        string Decision, Brush DecisionBrush, FileCandidate Candidate)
     {
-        public override string ToString() => $"{Name} — {Kind} — {Size} — {Path_}";
+        public override string ToString() => $"{Name} — {Kind} — {Size} — {Decision} — {Path_}";
         private string Path_ => Candidate.SourceUri;
     }
 
     private IReadOnlyList<FileCandidate> _all = [];
+    private int _gen;
     private string _scopePrefix = "";         // "" = all scopes
     private string _kind = "All";
 
@@ -113,9 +115,10 @@ public sealed partial class FilesPage : Page
         return chip;
     }
 
-    private void ApplyFilters()
+    private async void ApplyFilters()
     {
         if (FileList is null || ItemCount is null || Empty is null) return;
+        var gen = ++_gen;
         var nameFilter = FilterBox.Text.Trim();
         var scoped = _scopePrefix.Length == 0 ? _all
             : _all.Where(c => c.SourceUri.StartsWith(_scopePrefix, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -134,11 +137,12 @@ public sealed partial class FilesPage : Page
             _ => q.OrderBy(c => c.DisplayName, StringComparer.OrdinalIgnoreCase),
         };
 
+        var muted = (Brush)Microsoft.UI.Xaml.Application.Current.Resources["FmTextSecondaryBrush"];
         var rows = q.Take(1000)
             .Select(c => new FileRow(c.DisplayName,
                 FileKindMap.FromExtension(c.Extension).ToString(),
                 DashboardPage.FormatBytes(c.SizeBytes),
-                c.ModifiedAt.LocalDateTime.ToString("g"), c))
+                c.ModifiedAt.LocalDateTime.ToString("g"), "—", muted, c))
             .ToList();
         FileList.ItemsSource = rows;
         Empty.Title = nameFilter.Length > 0 || _kind != "All"
@@ -147,6 +151,32 @@ public sealed partial class FilesPage : Page
         ItemCount.Text = $"{rows.Count} of {scoped.Count} item(s)";
         ClearBtn.Visibility = nameFilter.Length > 0 || _kind != "All"
             ? Visibility.Visible : Visibility.Collapsed;
+
+        // mockup Decision column: real pipeline decisions for the visible set
+        var toAnalyze = rows.Take(200).Select(r => r.Candidate).ToList();
+        if (toAnalyze.Count == 0) return;
+        var be = await App.Backend;
+        var analyzed = await be.Pipeline.AnalyzeAsync(toAnalyze);
+        if (gen != _gen || !analyzed.IsSuccess) return;
+        var byPath = analyzed.Value!
+            .GroupBy(a => a.Candidate.SourceUri)
+            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        FileList.ItemsSource = rows.Select(r =>
+            byPath.TryGetValue(r.Candidate.SourceUri, out var a)
+                ? r with { Decision = a.Decision.Kind.ToString(), DecisionBrush = DecisionBrushFor(a.Decision.Kind) }
+                : r).ToList();
+    }
+
+    private static Brush DecisionBrushFor(DecisionKind kind)
+    {
+        var res = Microsoft.UI.Xaml.Application.Current.Resources;
+        var key = kind switch
+        {
+            DecisionKind.Organize => "FmStatusSuccessBrush",
+            DecisionKind.Review => "FmStatusWarningBrush",
+            _ => "FmTextSecondaryBrush"
+        };
+        return (Brush)res[key];
     }
 
     private void FilterBox_TextChanged(object sender, TextChangedEventArgs e) => ApplyFilters();

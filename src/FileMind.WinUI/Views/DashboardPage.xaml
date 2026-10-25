@@ -91,7 +91,7 @@
                 </c:FmBentoCard>
 
                 <!-- Active operations -->
-                <c:FmBentoCard Grid.Row="1" IconGlyph="&#xE81C;" Header="Operations"
+                <c:FmBentoCard Grid.Row="1" IconGlyph="&#xE81C;" Header="Active operations"
                                PointerPressed="GoActivity">
                     <c:FmBentoCard.CardContent>
                         <StackPanel x:Name="OpsPanel" Spacing="8" />
