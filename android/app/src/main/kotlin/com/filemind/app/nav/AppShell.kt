@@ -3,7 +3,6 @@ package com.filemind.app.nav
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
@@ -11,7 +10,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -78,7 +76,6 @@ fun AppShell(app: FileMindApp) {
     val nav = rememberNavController()
     val backEntry by nav.currentBackStackEntryAsState()
     val route = backEntry?.destination?.route ?: Routes.Home
-    val isPrimary = route in Routes.primary
 
     NavigationSuiteScaffold(
         navigationSuiteItems = {
@@ -100,16 +97,10 @@ fun AppShell(app: FileMindApp) {
     ) {
         Scaffold(
             topBar = {
+                // No Up affordance in the app bar — Android's system Back
+                // (gesture/button) unwinds the NavController stack.
                 TopAppBar(
-                    title = { Text(titles[route] ?: "FileMind") },
-                    navigationIcon = {
-                        if (!isPrimary) {
-                            IconButton(onClick = { nav.navigateUp() }) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack,
-                                    contentDescription = "Back")
-                            }
-                        }
-                    }
+                    title = { Text(titles[route] ?: "FileMind") }
                 )
             }
         ) { padding ->
