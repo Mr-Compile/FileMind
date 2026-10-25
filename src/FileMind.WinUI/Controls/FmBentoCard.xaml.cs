@@ -38,6 +38,18 @@ public sealed partial class FmBentoCard : UserControl
         set => SetValue(CardContentProperty, value);
     }
 
+    public static readonly DependencyProperty HeaderTrailingProperty =
+        DependencyProperty.Register(nameof(HeaderTrailing), typeof(object),
+            typeof(FmBentoCard), new PropertyMetadata(null, (d, e) =>
+                ((FmBentoCard)d).HeaderTrailingArea.Content = e.NewValue));
+
+    /// <summary>Right-aligned header slot (mockup h3 + trailing chip/badge).</summary>
+    public object HeaderTrailing
+    {
+        get => GetValue(HeaderTrailingProperty);
+        set => SetValue(HeaderTrailingProperty, value);
+    }
+
     public static readonly DependencyProperty FooterContentProperty =
         DependencyProperty.Register(nameof(FooterContent), typeof(object),
             typeof(FmBentoCard), new PropertyMetadata(null, (d, e) =>

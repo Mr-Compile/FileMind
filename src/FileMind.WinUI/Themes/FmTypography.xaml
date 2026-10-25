@@ -13,19 +13,21 @@
         <Setter Property="FontSize" Value="42" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
+    <!-- Ramp matched to the canonical mockup (mockup/styles.css):
+         h1 22/600 page title · h2 16/600 section · h3 13/600 card -->
     <Style x:Key="FmTextH1" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource FmFontFamily}" />
-        <Setter Property="FontSize" Value="28" />
+        <Setter Property="FontSize" Value="22" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style x:Key="FmTextH2" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource FmFontFamily}" />
-        <Setter Property="FontSize" Value="20" />
+        <Setter Property="FontSize" Value="16" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style x:Key="FmTextH3" TargetType="TextBlock">
         <Setter Property="FontFamily" Value="{StaticResource FmFontFamily}" />
-        <Setter Property="FontSize" Value="16" />
+        <Setter Property="FontSize" Value="13" />
         <Setter Property="FontWeight" Value="SemiBold" />
     </Style>
     <Style x:Key="FmTextBody" TargetType="TextBlock">

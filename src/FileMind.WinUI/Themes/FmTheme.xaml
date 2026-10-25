@@ -29,12 +29,78 @@
     <Thickness x:Key="FmPad3">12</Thickness>
     <Thickness x:Key="FmPad4">16</Thickness>
     <Thickness x:Key="FmPad6">24</Thickness>
+    <!-- page content region: mockup .content padding 32/24 -->
+    <Thickness x:Key="FmPadContent">32,24</Thickness>
     <Thickness x:Key="FmPadChip">8,4</Thickness>
     <CornerRadius x:Key="FmRadiusSmallValue">6</CornerRadius>
     <CornerRadius x:Key="FmRadiusMediumValue">10</CornerRadius>
     <CornerRadius x:Key="FmRadiusLargeValue">14</CornerRadius>
     <CornerRadius x:Key="FmRadiusXlValue">18</CornerRadius>
     <CornerRadius x:Key="FmRadiusPillValue">999</CornerRadius>
+
+    <!-- mockup .chip.clickable/.on — pill toggle for filter chips -->
+    <Style x:Key="FmChipToggle" TargetType="ToggleButton">
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Padding" Value="12,3" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{ThemeResource FmTextPrimaryBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border x:Name="ChipBorder"
+                            CornerRadius="999" BorderThickness="1"
+                            BorderBrush="{ThemeResource FmBorderBrush}"
+                            Background="{ThemeResource FmSurfacePrimaryBrush}"
+                            Padding="{TemplateBinding Padding}" MinHeight="{TemplateBinding MinHeight}">
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup x:Name="CommonStates">
+                                <VisualState x:Name="Normal" />
+                                <VisualState x:Name="PointerOver">
+                                    <VisualState.Setters>
+                                        <Setter Target="ChipBorder.BorderBrush" Value="{ThemeResource FmAccentBrush}" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                            <VisualStateGroup x:Name="CheckStates">
+                                <VisualState x:Name="Checked">
+                                    <VisualState.Setters>
+                                        <Setter Target="ChipBorder.Background" Value="{ThemeResource FmAccentBrush}" />
+                                        <Setter Target="ChipBorder.BorderBrush" Value="{ThemeResource FmAccentBrush}" />
+                                        <Setter Target="Presenter.Foreground" Value="#FFFFFFFF" />
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState x:Name="Unchecked" />
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+                        <ContentPresenter x:Name="Presenter"
+                                          Foreground="{TemplateBinding Foreground}"
+                                          HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- mockup .btn.tertiary — text-only primary action -->
+    <Style x:Key="FmLinkButton" TargetType="Button">
+        <Setter Property="MinHeight" Value="30" />
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{ThemeResource FmAccentBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+    </Style>
+
+    <!-- mockup .badge — small pill label (missing/planned notes) -->
+    <Style x:Key="FmBadgeBorder" TargetType="Border">
+        <Setter Property="CornerRadius" Value="999" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="BorderBrush" Value="{ThemeResource FmBorderBrush}" />
+        <Setter Property="Padding" Value="8,1" />
+        <Setter Property="Background" Value="{ThemeResource FmSurfaceElevatedBrush}" />
+    </Style>
 
     <!-- DIRECT brand.primary / semantic.* (theme-invariant per colors.json) -->
     <Color x:Key="FmAccentColor">#FF2563EB</Color>

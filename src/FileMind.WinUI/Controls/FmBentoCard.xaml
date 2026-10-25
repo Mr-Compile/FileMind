@@ -16,10 +16,15 @@
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
             </Grid.RowDefinitions>
-            <StackPanel Orientation="Horizontal" Spacing="{StaticResource FmSpace2}">
-                <FontIcon x:Name="HeaderIcon" FontSize="14" Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                <TextBlock x:Name="HeaderText" Style="{StaticResource FmTextH3}" />
-            </StackPanel>
+            <Grid>
+                <StackPanel Orientation="Horizontal" Spacing="{StaticResource FmSpace2}"
+                            VerticalAlignment="Center">
+                    <FontIcon x:Name="HeaderIcon" FontSize="14" Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                    <TextBlock x:Name="HeaderText" Style="{StaticResource FmTextH3}" />
+                </StackPanel>
+                <ContentPresenter x:Name="HeaderTrailingArea"
+                                  HorizontalAlignment="Right" VerticalAlignment="Center" />
+            </Grid>
             <ContentPresenter Grid.Row="1" x:Name="Body" />
             <ContentPresenter Grid.Row="2" x:Name="Footer" />
         </Grid>
