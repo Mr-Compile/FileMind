@@ -3,25 +3,167 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:c="using:FileMind.WinUI.Controls">
+    <!-- matched to mockup screens.js "tools": tool-grid w/ truthful badges +
+         organizer rules list w/ toggles (IRuleRepository) -->
     <ScrollViewer>
-        <StackPanel Padding="{StaticResource FmPad6}" Spacing="{StaticResource FmSpace4}" MaxWidth="800">
-            <TextBlock Text="Tools" Style="{StaticResource FmTextH1}" />
-            <ItemsRepeater x:Name="ToolList">
-                <ItemsRepeater.ItemTemplate>
-                    <DataTemplate>
-                        <c:FmBentoCard Header="{Binding Name}" IconGlyph="{Binding Glyph}">
-                            <c:FmBentoCard.CardContent>
-                                <StackPanel Orientation="Horizontal" Spacing="8">
-                                    <c:FmStatusChip State="{Binding State}" Detail="{Binding StateDetail}" />
-                                    <TextBlock Text="{Binding Description}" VerticalAlignment="Center"
-                                               Style="{StaticResource FmTextBodySmall}"
-                                               Foreground="{ThemeResource FmTextSecondaryBrush}" />
+        <StackPanel Spacing="{StaticResource FmSpace5}">
+            <StackPanel>
+                <TextBlock Text="Tools" Style="{StaticResource FmTextH1}" />
+                <TextBlock Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmTextSecondaryBrush}"
+                           Text="Utilities grouped by goal. Availability reflects the real backend — nothing here is faked." />
+            </StackPanel>
+
+            <Grid ColumnSpacing="{StaticResource FmSpace4}" RowSpacing="{StaticResource FmSpace4}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <c:FmBentoCard IconGlyph="&#xE8F0;" Header="Organize a folder"
+                               PointerPressed="GoOrganizer">
+                    <c:FmBentoCard.CardContent>
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap"
+                                   Text="Scan → classify → plan → safety-check → move files, with a dry-run preview first." />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <c:FmBentoCard Grid.Column="1" IconGlyph="&#xE81C;" Header="Smart Inbox"
+                               PointerPressed="GoActivity">
+                    <c:FmBentoCard.HeaderTrailing>
+                        <Border x:Name="InboxBadge" Style="{StaticResource FmBadgeBorder}" Visibility="Collapsed">
+                            <TextBlock x:Name="InboxBadgeText" FontSize="11"
+                                       Foreground="{ThemeResource FmStatusWarningBrush}" />
+                        </Border>
+                    </c:FmBentoCard.HeaderTrailing>
+                    <c:FmBentoCard.CardContent>
+                        <TextBlock x:Name="InboxDesc" Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap"
+                                   Text="Files waiting for a human decision." />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <c:FmBentoCard Grid.Column="2" IconGlyph="&#xE9D9;" Header="Analyze storage"
+                               PointerPressed="Analyze_Click">
+                    <c:FmBentoCard.CardContent>
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap"
+                                   Text="Where the space went, by file kind — real index analysis." />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <c:FmBentoCard Grid.Row="1" IconGlyph="&#xE8C8;" Header="Find duplicates"
+                               PointerPressed="Dupes_Click">
+                    <c:FmBentoCard.HeaderTrailing>
+                        <Border Style="{StaticResource FmBadgeBorder}">
+                            <TextBlock Text="hashing" FontSize="11"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                        </Border>
+                    </c:FmBentoCard.HeaderTrailing>
+                    <c:FmBentoCard.CardContent>
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap"
+                                   Text="Size prefilter + hashing + duplicate groups. May take a while on large indexes." />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <c:FmBentoCard Grid.Row="1" Grid.Column="1" IconGlyph="&#xE74D;" Header="Cleanup"
+                               PointerPressed="Cleanup_Click">
+                    <c:FmBentoCard.CardContent>
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap"
+                                   Text="Largest and oldest indexed files — review before removing anything." />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <c:FmBentoCard Grid.Row="1" Grid.Column="2" IconGlyph="&#xE8AC;" Header="Batch rename"
+                               Opacity="0.6">
+                    <c:FmBentoCard.HeaderTrailing>
+                        <Border Style="{StaticResource FmBadgeBorder}">
+                            <TextBlock Text="via organizer templates" FontSize="11"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                        </Border>
+                    </c:FmBentoCard.HeaderTrailing>
+                    <c:FmBentoCard.CardContent>
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap"
+                                   Text="Template-based smart rename runs through the organizer naming template — no separate batch tool exists." />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <c:FmBentoCard Grid.Row="2" IconGlyph="&#xE898;" Header="Export profile"
+                               PointerPressed="Export_Click">
+                    <c:FmBentoCard.HeaderTrailing>
+                        <Border Style="{StaticResource FmBadgeBorder}">
+                            <TextBlock Text="F-P10" FontSize="11"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                        </Border>
+                    </c:FmBentoCard.HeaderTrailing>
+                    <c:FmBentoCard.CardContent>
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap"
+                                   Text="Versioned organizer-profile.json — rules, collections, subjects, projects, exclusions." />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+            </Grid>
+
+            <!-- result panel for analyze / dupes / cleanup -->
+            <c:FmBentoCard x:Name="ResultCard" IconGlyph="&#xE946;" Header="Result" Visibility="Collapsed">
+                <c:FmBentoCard.CardContent>
+                    <StackPanel x:Name="ResultPanel" Spacing="6" />
+                </c:FmBentoCard.CardContent>
+            </c:FmBentoCard>
+
+            <StackPanel Spacing="{StaticResource FmSpace2}">
+                <TextBlock Text="Organizer rules" Style="{StaticResource FmTextH2}" />
+                <TextBlock Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmTextSecondaryBrush}"
+                           Text="Mirrors the rule engine — priority → specificity → stop-processing. Toggle a rule and the next analysis changes." />
+                <ListView x:Name="RuleList" SelectionMode="None">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <Grid ColumnSpacing="12" Padding="0,6">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <CheckBox IsChecked="{Binding Enabled, Mode=OneWay}" Tag="{Binding Id}"
+                                          Click="Rule_Toggled" VerticalAlignment="Top" />
+                                <StackPanel Grid.Column="1" Spacing="3">
+                                    <StackPanel Orientation="Horizontal" Spacing="6">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                        <Border Style="{StaticResource FmBadgeBorder}">
+                                            <TextBlock Text="{Binding Provenance}" FontSize="11"
+                                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                                        </Border>
+                                        <Border Style="{StaticResource FmBadgeBorder}">
+                                            <TextBlock Text="{Binding PriorityText}" FontSize="11"
+                                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                                        </Border>
+                                        <Border Style="{StaticResource FmBadgeBorder}"
+                                                Visibility="{Binding StopVisibility}">
+                                            <TextBlock Text="stop" FontSize="11"
+                                                       Foreground="{ThemeResource FmStatusWarningBrush}" />
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding WhenThen}" FontSize="12"
+                                               Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                               TextWrapping="Wrap" />
                                 </StackPanel>
-                            </c:FmBentoCard.CardContent>
-                        </c:FmBentoCard>
-                    </DataTemplate>
-                </ItemsRepeater.ItemTemplate>
-            </ItemsRepeater>
+                                <c:FmStatusChip Grid.Column="2" State="{Binding ChipState}"
+                                                VerticalAlignment="Top" />
+                            </Grid>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+                <TextBlock x:Name="RulesEmpty" Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmTextSecondaryBrush}"
+                           Text="No rules yet — add them via the host or organizer."
+                           Visibility="Collapsed" />
+            </StackPanel>
         </StackPanel>
     </ScrollViewer>
 </Page>
