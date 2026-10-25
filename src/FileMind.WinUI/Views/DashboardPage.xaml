@@ -3,57 +3,123 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:c="using:FileMind.WinUI.Controls">
+    <!-- matched to mockup screens.js "dashboard": page-head + bento
+         (Storage span2 · Devices · Quick actions · Active ops · Cleanup · Recent span2) -->
     <ScrollViewer>
-        <StackPanel Padding="{StaticResource FmPad6}" Spacing="{StaticResource FmSpace4}">
-            <TextBlock Text="Dashboard" Style="{StaticResource FmTextH1}" />
+        <StackPanel Spacing="{StaticResource FmSpace6}">
+
+            <Grid>
+                <StackPanel>
+                    <TextBlock Text="Dashboard" Style="{StaticResource FmTextH1}" />
+                    <TextBlock Style="{StaticResource FmTextBodySmall}"
+                               Foreground="{ThemeResource FmTextSecondaryBrush}"
+                               Text="System and file health at a glance — every card links to a deeper surface." />
+                </StackPanel>
+                <Button HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Style="{StaticResource AccentButtonStyle}"
+                        Click="Organize_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE8F0;" FontSize="14" />
+                        <TextBlock Text="Organize a folder" />
+                    </StackPanel>
+                </Button>
+            </Grid>
+
             <c:FmStateView x:Name="LoadingView" State="Loading" Title="Loading" Body="Reading storage and activity…" />
 
-            <StackPanel x:Name="DashContent" Spacing="{StaticResource FmSpace4}" Visibility="Collapsed">
-                <!-- bento row: storage + activity + inbox -->
-                <Grid ColumnSpacing="{StaticResource FmSpace3}">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition /><ColumnDefinition /><ColumnDefinition />
-                    </Grid.ColumnDefinitions>
-                    <c:FmBentoCard IconGlyph="&#xE8B7;" Header="Indexed files">
-                        <c:FmBentoCard.CardContent>
-                            <StackPanel>
-                                <TextBlock x:Name="StatFiles" Style="{StaticResource FmTextH1}" />
-                                <TextBlock x:Name="StatBytes" Style="{StaticResource FmTextBodySmall}"
-                                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                            </StackPanel>
-                        </c:FmBentoCard.CardContent>
-                    </c:FmBentoCard>
-                    <c:FmBentoCard Grid.Column="1" IconGlyph="&#xE9D9;" Header="Reclaimable">
-                        <c:FmBentoCard.CardContent>
-                            <StackPanel>
-                                <TextBlock x:Name="StatDupes" Style="{StaticResource FmTextH1}" />
-                                <TextBlock Text="duplicate bytes" Style="{StaticResource FmTextBodySmall}"
-                                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                            </StackPanel>
-                        </c:FmBentoCard.CardContent>
-                    </c:FmBentoCard>
-                    <c:FmBentoCard Grid.Column="2" IconGlyph="&#xE8F0;" Header="Inbox">
-                        <c:FmBentoCard.CardContent>
-                            <StackPanel>
-                                <TextBlock x:Name="StatInbox" Style="{StaticResource FmTextH1}" />
-                                <TextBlock Text="items need review" Style="{StaticResource FmTextBodySmall}"
-                                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                            </StackPanel>
-                        </c:FmBentoCard.CardContent>
-                    </c:FmBentoCard>
-                </Grid>
+            <Grid x:Name="DashContent" Visibility="Collapsed"
+                  ColumnSpacing="{StaticResource FmSpace4}" RowSpacing="{StaticResource FmSpace4}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition /><ColumnDefinition />
+                    <ColumnDefinition /><ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-                <c:FmBentoCard IconGlyph="&#xE81C;" Header="Recent activity">
+                <!-- Storage — span2 -->
+                <c:FmBentoCard Grid.ColumnSpan="2" IconGlyph="&#xE9D9;" Header="Storage">
                     <c:FmBentoCard.CardContent>
-                        <StackPanel x:Name="RecentList" Spacing="{StaticResource FmSpace2}" />
+                        <StackPanel Spacing="{StaticResource FmSpace2}">
+                            <Grid x:Name="StorageMeter" Height="8">
+                                <Border CornerRadius="999" Background="{ThemeResource FmSurfaceElevatedBrush}" />
+                                <Border x:Name="StorageMeterFill" CornerRadius="999"
+                                        Background="{ThemeResource FmAccentBrush}"
+                                        HorizontalAlignment="Left" Width="0" />
+                            </Grid>
+                            <TextBlock x:Name="StorageSummary" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <StackPanel x:Name="StorageKinds" Spacing="6" Margin="0,4,0,0" />
+                        </StackPanel>
                     </c:FmBentoCard.CardContent>
                 </c:FmBentoCard>
 
-                <StackPanel x:Name="RecoveredNote" Orientation="Horizontal" Spacing="{StaticResource FmSpace2}" Visibility="Collapsed">
-                    <FontIcon Glyph="&#xE7BA;" FontSize="14" Foreground="{ThemeResource FmStatusWarningBrush}" />
-                    <TextBlock x:Name="RecoveredText" Style="{StaticResource FmTextBodySmall}"
-                               Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                </StackPanel>
+                <!-- Devices -->
+                <c:FmBentoCard Grid.Column="2" IconGlyph="&#xEDA2;" Header="Devices"
+                               PointerPressed="GoDevices">
+                    <c:FmBentoCard.CardContent>
+                        <StackPanel x:Name="DeviceList" Spacing="8" />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <!-- Quick actions -->
+                <c:FmBentoCard Grid.Column="3" IconGlyph="&#xE8F0;" Header="Quick actions">
+                    <c:FmBentoCard.CardContent>
+                        <StackPanel>
+                            <Button Style="{StaticResource FmLinkButton}" Click="Organize_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE8F0;" FontSize="14" /><TextBlock Text="Organize a folder" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource FmLinkButton}" Click="GoFiles">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE8B7;" FontSize="14" /><TextBlock Text="Browse indexed files" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource FmLinkButton}" Click="GoTools">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE8C7;" FontSize="14" /><TextBlock Text="View organizer rules" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource FmLinkButton}" Click="GoActivity">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE81C;" FontSize="14" /><TextBlock Text="Open activity" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <!-- Active operations -->
+                <c:FmBentoCard Grid.Row="1" IconGlyph="&#xE81C;" Header="Operations"
+                               PointerPressed="GoActivity">
+                    <c:FmBentoCard.CardContent>
+                        <StackPanel x:Name="OpsPanel" Spacing="8" />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <!-- Cleanup opportunities -->
+                <c:FmBentoCard Grid.Row="1" Grid.Column="1" IconGlyph="&#xE8C7;" Header="Cleanup opportunities"
+                               PointerPressed="GoTools">
+                    <c:FmBentoCard.CardContent>
+                        <StackPanel x:Name="CleanupPanel" Spacing="8" />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+
+                <!-- Recent activity — span2 -->
+                <c:FmBentoCard Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="2"
+                               IconGlyph="&#xE823;" Header="Recent activity"
+                               PointerPressed="GoActivity">
+                    <c:FmBentoCard.CardContent>
+                        <StackPanel x:Name="RecentList" Spacing="8" />
+                    </c:FmBentoCard.CardContent>
+                </c:FmBentoCard>
+            </Grid>
+
+            <StackPanel x:Name="RecoveredNote" Orientation="Horizontal" Spacing="{StaticResource FmSpace2}" Visibility="Collapsed">
+                <FontIcon Glyph="&#xE7BA;" FontSize="14" Foreground="{ThemeResource FmStatusWarningBrush}" />
+                <TextBlock x:Name="RecoveredText" Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
             </StackPanel>
         </StackPanel>
     </ScrollViewer>

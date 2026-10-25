@@ -4,8 +4,13 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:c="using:FileMind.WinUI.Controls">
     <ScrollViewer>
-        <StackPanel Padding="{StaticResource FmPad6}" Spacing="{StaticResource FmSpace4}" MaxWidth="960">
-            <TextBlock Text="Organizer" Style="{StaticResource FmTextH1}" />
+        <StackPanel Spacing="{StaticResource FmSpace4}" MaxWidth="960">
+            <StackPanel>
+                <TextBlock Text="Organizer" Style="{StaticResource FmTextH1}" />
+                <TextBlock Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmTextSecondaryBrush}"
+                           Text="Select a folder, review the plan and safety verdict, then execute — every move is undoable." />
+            </StackPanel>
 
             <!-- Step 1: select source + destination -->
             <c:FmBentoCard IconGlyph="&#xE8B7;" Header="Select">
