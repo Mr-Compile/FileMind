@@ -24,17 +24,16 @@ A.title = (t) => {
 };
 
 /* ---------- back stack (system Back integration) ---------- */
+/* No in-app back button — Android's system Back unwinds this stack; the
+   mockup maps it to Escape (sheets → selection → screens). */
 A.backStack = [];
-A.pushBack = (fn, label) => { A.backStack.push({ fn, label }); A.syncBack(); };
-A.popBack = () => { const top = A.backStack.pop(); A.syncBack(); top?.fn(); };
+A.popBack = () => { const top = A.backStack.pop(); top?.fn(); };
 /* route change: drop the stack AND remove any open sheet DOM — otherwise a
    scrim left over from the previous screen stays on top of the new route */
 A.clearBack = () => {
   A.backStack.length = 0;
   document.querySelectorAll("#dialog-root .a-scrim").forEach((x) => x.remove());
-  A.syncBack();
 };
-A.syncBack = () => { document.getElementById("back-btn").hidden = !A.backStack.length; };
 
 /* ---------- M3 modal bottom sheet ---------- */
 A.sheet = ({ title, body = "", actions = [] }) => {
@@ -47,7 +46,7 @@ A.sheet = ({ title, body = "", actions = [] }) => {
       <div class="a-sheet-body">${body}</div>
       <div class="a-sheet-actions"></div>
     </div>`;
-  const close = () => { ov.remove(); const i = A.backStack.indexOf(rec); if (i >= 0) A.backStack.splice(i, 1); A.syncBack(); };
+  const close = () => { ov.remove(); const i = A.backStack.indexOf(rec); if (i >= 0) A.backStack.splice(i, 1); };
   const rec = { fn: close, label: "sheet" };
   ov.addEventListener("click", (e) => e.target === ov && close());
   const box = ov.querySelector(".a-sheet-actions");
@@ -59,7 +58,7 @@ A.sheet = ({ title, body = "", actions = [] }) => {
     box.append(b);
   });
   document.getElementById("dialog-root").append(ov);
-  A.backStack.push(rec); A.syncBack();
+  A.backStack.push(rec);
   return { el: ov, close };
 };
 
@@ -1138,7 +1137,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const nav = document.getElementById("bottomnav");
   nav.innerHTML = BNAV.map(([r, t, ic]) =>
     `<a class="bnav-item" data-r="${r}" href="#/${r}">${FM.icon(ic)}<span>${t}</span></a>`).join("");
-  document.getElementById("back-btn").onclick = () => A.popBack();
   document.getElementById("search-btn").onclick = () => FM.go("search");
   /* system-back parity: Escape simulates Back (sheets → selection → screens) */
   addEventListener("keydown", (e) => e.key === "Escape" && A.backStack.length && A.popBack());

@@ -5,7 +5,8 @@
    ============================================================================ */
 
 body.android-mockup {
-  min-height: 100vh;
+  height: 100dvh;
+  overflow: hidden; /* phone is the screen — the page itself never scrolls */
   background: var(--fm-bg);
   font-family: var(--font);
   color: var(--fm-text);
@@ -13,7 +14,7 @@ body.android-mockup {
 
 /* ---------- stage + phone frame ---------- */
 .stage {
-  min-height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -39,8 +40,9 @@ body.android-mockup {
 .phone {
   position: relative;
   width: min(400px, 100vw);
-  height: min(820px, calc(100vh - 120px));
-  min-height: 560px;
+  /* bounded by the viewport so the stage never overflows — shrinking the
+     window shrinks the phone instead of making the outer page scroll */
+  height: min(820px, calc(100dvh - 120px));
   display: flex;
   flex-direction: column;
   background: var(--fm-bg);
@@ -131,13 +133,15 @@ body.android-mockup {
 }
 .sel-count { flex: 1; font-weight: 600; }
 
-/* ---------- content ---------- */
+/* ---------- content — the only scrolling surface; phones draw no scrollbar ---------- */
 .content {
   flex: 1;
   overflow-y: auto;
+  scrollbar-width: none;
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+.content::-webkit-scrollbar { display: none; }
 .a-page {
   position: relative;
   display: flex;
@@ -440,11 +444,13 @@ body.android-mockup {
   width: 100%;
   max-height: 72%;
   overflow-y: auto;
+  scrollbar-width: none;
   background: var(--fm-surface);
   border-radius: var(--r-xl) var(--r-xl) 0 0;
   padding: 0 var(--sp-4) var(--sp-4);
   animation: a-rise 0.2s cubic-bezier(0.2, 0, 0, 1);
 }
+.a-sheet::-webkit-scrollbar { display: none; }
 @keyframes a-rise { from { transform: translateY(24px); opacity: 0.6; } }
 @media (prefers-reduced-motion: reduce) {
   .a-scrim, .a-sheet { animation: none; }
