@@ -85,12 +85,16 @@ availability), Settings (live theme/density; mode displayed, host-owned).
 
 Smart App Control is ON (enforcement) on this dev box. Unsigned
 `FileMind.*.dll` image loads are blocked per-file-hash (CodeIntegrity
-3077). A CurrentUser self-signed code-signing cert DOES satisfy SAC —
-`tools/fm-sign.ps1` signs every `FileMind.*` + apphost and the signed
-unpackaged build ran the full M4/M5 UIA evidence pass (see
-`docs/qa/QA_EVIDENCE_PLAN-014.md`). Signed MSIX install still fails
-0x800B0109 (root cert not machine-trusted) because the cert can only
-live in `CurrentUser` stores without admin.
+3077). A CurrentUser self-signed code-signing cert DID satisfy SAC at
+verification time — `tools/fm-sign.ps1` signs every `FileMind.*` +
+apphost and the signed unpackaged build ran the full M4/M5 UIA evidence
+pass (see `docs/qa/QA_EVIDENCE_PLAN-014.md`). HOWEVER: since 2026-10-25
+SAC denies even dev-signed managed image loads (per-hash verdicts
+re-evaluated; previously-allowed hashes revoked). WASDK single-file is no
+escape: it requires `IncludeAllContentForSelfExtract=true` (Dll SxS
+redirection), so managed DLLs extract to `%TEMP%\.net\…` as blockable
+images anyway. Signed MSIX install still fails 0x800B0109 (root cert not
+machine-trusted).
 
 Remedies for packaging (need user/admin action, pick one):
 1. Import the dev cert into `Cert:\LocalMachine\Root` (admin once) →
@@ -99,7 +103,10 @@ Remedies for packaging (need user/admin action, pick one):
 3. Build/test on a box without SAC enforcement.
 
 M4/M5 runtime verification DONE via the signed unpackaged apphost;
-MSIX-as-distribution remains UNVERIFIED.
+MSIX-as-distribution remains UNVERIFIED. The mockup-parity UI rebuild
+(2026-10-25) compiles green and `BackendSmokeTests` passes 3/3, but a
+full UIA pass on the new UI is BLOCKED by the SAC enforcement flip until
+remedy 1 or 2 is applied.
 
 ### Milestone 5 — QA + Accessibility + Docs
 

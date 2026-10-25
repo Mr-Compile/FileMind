@@ -111,3 +111,38 @@ Every user-file mutation flows through `OrganizerPipeline` /
 - 200% text scaling / narrow-width reflow at runtime.
 - Live Groq path in-app (no key configured — truthful offline states verified).
 - Multi-day soak / real-folder organize beyond the two-file smoke set.
+
+## Update 2026-10-25 — mockup-parity rebuild + SAC enforcement flip
+
+**UI rebuilt to `mockup/` structure** (F-UI1 canonical): shell (brand mark,
+op-center badge, density/theme actions, nav order), page-head pattern,
+bento Dashboard (Storage span2 / Devices / Quick actions / Active ops /
+Cleanup / Recent span2), Files + Search headered tables w/ chips +
+inspector + selection bar, Devices card grid (meters, capabilities,
+restriction badges), Activity (ops w/ per-row undo + Smart Inbox resolve +
+states legend), Tools (grid w/ truthful badges + rule toggles persisted via
+`IRuleRepository`), Settings (Appearance/File behavior/Permissions/
+Notifications/Advanced/About). Typography ramp corrected to mockup
+(H1 22/H2 16/H3 13). All on real backend data — no fake content.
+
+**Backend regression**: `BackendSmokeTests` 3/3 pass post-rebuild.
+
+**SAC enforcement flip (machine-level blocker, new)**: at ~22:20 dev-signed
+DLLs passed per-hash verdicts and all prior UIA evidence was gathered;
+from ~00:11 SAC (`VerifiedAndReputablePolicyState=1`, enforcement) denies
+*every* `FileMind.*` managed image load — including previously-allowed
+signed hashes and the WASDK-mandated full-extraction single-file bundle
+(`%TEMP%\.net\…` extraction exposes managed images; `IncludeAllContent
+ForSelfExtract=true` is required for Dll SxS redirection, so single-file
+cannot hide them). Remaining remedies, both machine-policy decisions:
+
+- `Import-Certificate C:\tmp\fm-dev-sign.cer -CertStoreLocation Cert:\LocalMachine\Root`
+  (admin, one-time) → signed binaries meet "Enterprise signing level".
+- Smart App Control → Off (Windows Security; one-way — cannot re-enable
+  without reinstall).
+
+New-code runtime evidence before the flip: the app launched, backend
+opened, Dashboard storage/devices data loaded; then a page-level
+`Resources["FmTextBodySmall"]` lookup (page dict ≠ app dict) crashed —
+fixed to `Application.Current.Resources`. Full-page UIA pass on the new
+UI is BLOCKED until the cert is machine-trusted or SAC is off.
