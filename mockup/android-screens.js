@@ -27,7 +27,13 @@ A.title = (t) => {
 A.backStack = [];
 A.pushBack = (fn, label) => { A.backStack.push({ fn, label }); A.syncBack(); };
 A.popBack = () => { const top = A.backStack.pop(); A.syncBack(); top?.fn(); };
-A.clearBack = () => { A.backStack.length = 0; A.syncBack(); };
+/* route change: drop the stack AND remove any open sheet DOM — otherwise a
+   scrim left over from the previous screen stays on top of the new route */
+A.clearBack = () => {
+  A.backStack.length = 0;
+  document.querySelectorAll("#dialog-root .a-scrim").forEach((x) => x.remove());
+  A.syncBack();
+};
 A.syncBack = () => { document.getElementById("back-btn").hidden = !A.backStack.length; };
 
 /* ---------- M3 modal bottom sheet ---------- */
@@ -1145,7 +1151,9 @@ document.addEventListener("DOMContentLoaded", () => {
   addEventListener("hashchange", () => setTimeout(() => {
     const name = (location.hash.replace(/^#\/?/, "").split("?")[0] || "dashboard");
     nav.querySelectorAll(".bnav-item").forEach((a) => a.classList.toggle("on", a.dataset.r === name));
-    A.clearBack(); A.sel.exit();
+    /* clear the old screen's rerender fn BEFORE exit — otherwise exit() would
+       repaint the previous screen over the route that just rendered */
+    A.clearBack(); A.sel.rerender = null; A.sel.exit();
   }, 0));
   /* initial state */
   setTimeout(() => {
