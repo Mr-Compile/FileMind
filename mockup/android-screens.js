@@ -114,11 +114,15 @@ A.filterSheet = ({ groups, state, onChange, onClear }) => {
 };
 
 /* ---------- filter button with active-count badge ---------- */
-A.filterBtn = (count, onTap) => {
+/* iconOnly → compact funnel icon button with a corner badge; the merged
+   Files/Search control row has no room for a labeled button. */
+A.filterBtn = (count, onTap, { iconOnly = false } = {}) => {
   const b = document.createElement("button");
-  b.className = "a-filterbtn";
+  b.className = "a-filterbtn" + (iconOnly ? " icon" : "");
   b.setAttribute("aria-label", `Filters${count ? `, ${count} active` : ""}`);
-  b.innerHTML = `${FM.icon("filter", "sm")}<span>Filters</span>${count ? `<span class="a-badge">${count}</span>` : ""}`;
+  b.innerHTML = iconOnly
+    ? `${FM.icon("filter")}${count ? `<span class="badge-count">${count}</span>` : ""}`
+    : `${FM.icon("filter", "sm")}<span>Filters</span>${count ? `<span class="a-badge">${count}</span>` : ""}`;
   b.onclick = onTap;
   return b;
 };
@@ -333,7 +337,7 @@ FM.screen("files", (m) => {
         <div class="a-ctl">
           <button class="a-pick" id="scope-pick" aria-label="Choose folder">${FM.icon("folder", "sm")}<span class="a-pick-txt">${st.scope}</span>${FM.icon("chevR", "sm")}</button>
           <div class="a-searchbar grow">${FM.icon("search", "sm")}<input id="fq" type="search" placeholder="Search" value="${FM.esc(st.q)}" aria-label="Search in ${st.scope}"></div>
-          <button class="a-filterbtn" id="rescan" aria-label="Rescan folder">${FM.icon("retry", "sm")}</button>
+          <button class="a-filterbtn icon" id="rescan" aria-label="Rescan folder">${FM.icon("retry")}</button>
           <span id="fbtn"></span>
         </div>
         <div class="a-ctl-sub">${list.length} item(s) · sorted by ${st.sort}${st.kind !== "All" ? ` · ${st.kind}` : ""}</div>
@@ -367,7 +371,7 @@ FM.screen("files", (m) => {
         onChange: () => { st.kind = fstate.kind; st.sort = fstate.sort; render(); },
         onClear: () => { fstate.kind = "All"; fstate.sort = "name"; st.kind = "All"; st.sort = "name"; render(); },
       });
-    }));
+    }, { iconOnly: true }));
     m.querySelector("[data-go]").onclick = () => FM.go("organizer");
     const inp = m.querySelector("#fq");
     inp.oninput = () => {
@@ -508,7 +512,7 @@ FM.screen("search", (m) => {
         onChange: () => { st.kind = fstate.kind; st.size = fstate.size; st.scope = fstate.scope; render(); },
         onClear: () => { Object.assign(fstate, { kind: "All", size: "any", scope: "all" }); Object.assign(st, fstate); render(); },
       });
-    }));
+    }, { iconOnly: true }));
     const inp = m.querySelector("#sq");
     inp.oninput = () => {
       st.q = inp.value;

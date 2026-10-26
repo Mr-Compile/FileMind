@@ -254,6 +254,7 @@ body.android-mockup {
 .a-ctl { display: flex; align-items: center; gap: var(--sp-2); }
 .a-ctl .grow { flex: 1; min-width: 0; }
 .a-ctl .a-pick { flex: 0 1 auto; min-width: 0; max-width: 45%; }
+.a-ctl .a-searchbar { padding: 0 var(--sp-3); }
 .a-ctl-sub { font-size: 12px; color: var(--fm-text-secondary); padding: 0 var(--sp-1); }
 .a-pick {
   display: inline-flex;
@@ -274,6 +275,7 @@ body.android-mockup {
 .a-pick:hover { border-color: var(--fm-primary); }
 .a-pick-txt { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .a-filterbtn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: var(--sp-2);
@@ -288,6 +290,8 @@ body.android-mockup {
   font-weight: 600;
   cursor: pointer;
 }
+/* icon-only variant for the merged control row — funnel glyph + corner badge */
+.a-filterbtn.icon { flex: none; padding: 0 var(--sp-3); color: var(--fm-text-secondary); }
 .a-filterbtn:hover { border-color: var(--fm-primary); color: var(--fm-primary); }
 
 /* ---------- sheet option rows (pickers + filters, M3 single-select) ---------- */
@@ -372,6 +376,7 @@ body.android-mockup {
 }
 .a-searchbar input {
   flex: 1;
+  min-width: 0; /* inputs keep an intrinsic ~20ch width — let it shrink in the row */
   border: 0;
   background: transparent;
   color: var(--fm-text);

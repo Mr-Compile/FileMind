@@ -5,6 +5,7 @@ All notable verified project changes should be recorded here. Do not add planned
 ## 2026-10-26 — Android One-Row Controls (PLAN-024)
 - `mockup/android-screens.js` + `android.css`: Files and Search merge their search bar and Filters button into a single `.a-ctl` row — Files keeps scope picker + rescan in the same row (scope label truncates, `min-width:0`); the Files search placeholder shortens to "Search" since the scope pick labels the folder beside it.
 - `android/app` `FilesScreen.kt`/`SearchScreen.kt`: `OutlinedTextField` (weight 1f) and `FilterButton` share one `Row`; the active-filter summary line renders only when a non-default filter is active (the button badge already shows the count).
+- Follow-up fix (same day): the merged Files row crowded four controls — search input intrinsic width overflowed and labeled buttons competed for space. Rescan and Filters are now compact icon buttons (funnel + corner badge via `A.filterBtn({iconOnly})`); `.a-searchbar input` gained `min-width:0` so the field shrinks instead of clipping its siblings.
 - Verified: `node --check` clean; `overflow-x` still 0; `:app:compileDebugKotlin` green.
 
 ## 2026-10-26 — Android Top Bar & Scrolling (PLAN-023)
