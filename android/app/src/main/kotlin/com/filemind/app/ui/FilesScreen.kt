@@ -82,20 +82,21 @@ fun FilesScreen(app: FileMindApp, nav: NavHostController) {
             Spacer(Modifier.height(Spacing.s2))
         }
 
-        OutlinedTextField(
-            value = query, onValueChange = { query = it },
-            label = { Text("Filter by name") },
-            modifier = Modifier.fillMaxWidth(), singleLine = true
-        )
-        Spacer(Modifier.height(Spacing.s2))
-
         /* Filters live in a bottom sheet — no horizontally scrolling chips. */
         val activeFilters = (if (kindFilter.isNotEmpty()) 1 else 0) + (if (sortBy != "name") 1 else 0)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.s2)
         ) {
+            OutlinedTextField(
+                value = query, onValueChange = { query = it },
+                label = { Text("Filter by name") },
+                modifier = Modifier.weight(1f), singleLine = true
+            )
             FilterButton(activeFilters, onClick = { showFilters = true })
+        }
+        if (activeFilters > 0) {
+            Spacer(Modifier.height(Spacing.s2))
             Text(
                 listOfNotNull(
                     kindFilter.takeIf { it.isNotEmpty() }

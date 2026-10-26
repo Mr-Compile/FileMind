@@ -47,28 +47,29 @@ fun SearchScreen(app: FileMindApp) {
     var showFilters by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().padding(Spacing.s4)) {
-        OutlinedTextField(
-            value = state.query,
-            onValueChange = { vm.update(query = it) },
-            label = { Text("Search indexed files") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-        Spacer(Modifier.height(Spacing.s2))
-
         /* Filters live in a bottom sheet — no side-by-side fields on a phone. */
         val activeFilters = (if (state.kind.isNotEmpty()) 1 else 0) + (if (state.ext.isNotEmpty()) 1 else 0)
         Row(
             verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.s2)
         ) {
+            OutlinedTextField(
+                value = state.query,
+                onValueChange = { vm.update(query = it) },
+                label = { Text("Search indexed files") },
+                modifier = Modifier.weight(1f),
+                singleLine = true
+            )
             FilterButton(activeFilters, onClick = { showFilters = true })
+        }
+        if (activeFilters > 0) {
+            Spacer(Modifier.height(Spacing.s2))
             Text(
                 listOfNotNull(
                     state.kind.takeIf { it.isNotEmpty() }
                         ?.let { k -> KIND_OPTIONS.firstOrNull { it.value == k }?.label ?: k },
                     state.ext.takeIf { it.isNotEmpty() }?.let { ".$it" }
-                ).joinToString(" · ").ifEmpty { "All kinds" },
+                ).joinToString(" · "),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
