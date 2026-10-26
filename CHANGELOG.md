@@ -2,6 +2,11 @@
 
 All notable verified project changes should be recorded here. Do not add planned work as released work.
 
+## 2026-10-26 — Launcher Icon & Splash Contrast (PLAN-026)
+- `ic_launcher_background` repointed from brand primary `#2563EB` to canonical surfaces — `#F8FAFC` (`values/`) / `#0B1120` (new `values-night/`). The mark's gradient starts at `#2563EB`, so the flat blue background swallowed the folder's left edge; the API 31+ splash (`windowSplashScreenBackground=@color/ic_launcher_background`) had the same blue-on-blue pairing.
+- Applied to both res trees: `android/app/src/main/res/` and the brand drop-in `branding/logo/android/res/` (+ loose `colors.xml` reference); `branding/logo/README.md` updated.
+- Verified: `:app:processDebugResources` green; merged `values/` → `#F8FAFC`, merged `values-night-v8/` → `#0B1120`; zero `#2563EB` color values left in app res. On-device icon refresh is manual (launchers cache icons).
+
 ## 2026-10-26 — Android One-Row Controls (PLAN-024)
 - `mockup/android-screens.js` + `android.css`: Files and Search merge their search bar and Filters button into a single `.a-ctl` row — Files keeps scope picker + rescan in the same row (scope label truncates, `min-width:0`); the Files search placeholder shortens to "Search" since the scope pick labels the folder beside it.
 - `android/app` `FilesScreen.kt`/`SearchScreen.kt`: `OutlinedTextField` (weight 1f) and `FilterButton` share one `Row`; the active-filter summary line renders only when a non-default filter is active (the button badge already shows the count).
