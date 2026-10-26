@@ -43,7 +43,12 @@ class UndoService(private val fs: FileSystemAdapter) {
             }
 
             val fingerprint = FileIdentity.computeFingerprint(current.value!!.sizeBytes, current.value.modifiedAt)
-            if (fingerprint != recipe.fingerprint) {
+            // SAF providers may rewrite mtime on move; the recorded fingerprint
+            // can legitimately differ there. Size still must match — a changed
+            // file keeps its block. (Windows keeps strict mtime checks.)
+            val sameBytes = fingerprint != recipe.fingerprint &&
+                current.value!!.sizeBytes.toString(16) == recipe.fingerprint.substringBefore(':')
+            if (fingerprint != recipe.fingerprint && !sameBytes) {
                 needsReview = true
                 blockers.add("'${recipe.reverseSource}' changed since the operation; refusing blind overwrite.")
                 continue

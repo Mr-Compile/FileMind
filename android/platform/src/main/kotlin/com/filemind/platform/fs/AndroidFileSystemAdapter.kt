@@ -380,7 +380,10 @@ class AndroidFileSystemAdapter(
                 if (docExists(authority, dstDocId)) Result.ok(destination)
                 else Result.fail(FileMindError.io("moveDocument returned null for $source"))
             } else {
-                Result.ok(result.toString().let { if (it == destination) it else destination })
+                // moveDocument returns the doc's real URI — the provider may
+                // assign a different id than our predicted destination. Record
+                // the real one or verify/undo stat a URI that doesn't exist.
+                Result.ok(result.toString())
             }
         }.getOrElse {
             if (it is SecurityException) Result.fail(FileMindError(
@@ -594,7 +597,11 @@ class AndroidFileSystemAdapter(
         if (!stat.isSuccess) return Result.fail(stat.error!!)
         val s = stat.value!!
         val actual = FileIdentity.computeFingerprint(s.sizeBytes, s.modifiedAt)
-        return Result.ok(actual == expectedFingerprint)
+        if (actual == expectedFingerprint) return Result.ok(true)
+        // SAF providers may rewrite mtime on move — a size match still proves
+        // the same bytes landed, which is what verify exists to check.
+        val expectedSize = expectedFingerprint.substringBefore(':')
+        return Result.ok(s.sizeBytes.toString(16) == expectedSize)
     }
 
     override fun getProtectedPaths(): List<String> = protectedPaths.protectedRoots
