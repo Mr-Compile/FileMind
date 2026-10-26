@@ -588,6 +588,14 @@ FM.screen("organizer", (m) => {
               <div class="a-row"><span class="a-row-ic">${FM.icon("undo")}</span><span class="a-row-txt"><span class="a-row-title">Every run is undoable</span><span class="a-row-sub">Moves are recorded with an undo recipe</span></span></div>
             </div>
           </section>
+          <section class="a-card">
+            <div class="a-card-head">${FM.icon("info")}<h2>About the Downloads folder</h2></div>
+            <div class="a-card-sub">
+              Android doesn't allow granting the Downloads root itself
+              ("To protect your privacy, choose another folder"). The picker opens
+              inside Downloads — create or pick a subfolder such as Downloads/FileMind.
+            </div>
+          </section>
           <div class="a-cta">
             <button class="btn primary lg" id="grant">Choose a folder to grant</button>
             <button class="btn ghost" id="skip">Not now</button>
