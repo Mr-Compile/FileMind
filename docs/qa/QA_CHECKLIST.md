@@ -15,10 +15,12 @@
 ## Organizer-pipeline additions (when the change touches organize)
 
 - [ ] Classifications match the shared manifest fixtures (both platforms)
-- [ ] Destinations resolve to the intended templates (`School/{Subject}/{FileKind}`, `Files/{FileKind}`, collection/custom)
+- [ ] Destinations resolve to the intended templates (`School/{Subject}/{SubKind}`, `{KindFolder}`, collection/custom)
 - [ ] Created folders stay inside the granted scope (SAF tree on Android; no writes outside the source on Windows)
 - [ ] Conflict policies honored — never silently overwritten
-- [ ] `organized/` output subtree excluded from re-scan
+- [ ] Managed roots (`School/`, `Documents/`, `Images/`, `Videos/`, `Music/`, `Archives/`, `Work/`, `Other/`) excluded from re-scan
+- [ ] Re-run idempotent — items already at their destination emit no action; no `(2)` self-duplicates
+- [ ] Post-move verify uses the provider-returned URI (not the predicted destination) on SAF
 - [ ] Per-item statuses truthful; `NeedsAttention` recoverable and not shown as actively running
 - [ ] Undo restores committed items — including items of partially-failed runs — and refuses blind overwrite
 - [ ] No data loss on cancel/crash (sources intact until moves verify)

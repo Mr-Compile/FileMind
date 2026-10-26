@@ -40,6 +40,19 @@ Use: `EXISTING`, `MISSING`, `BROKEN`, `INCOMPLETE`, `INCONSISTENT`, `LEGACY`, `P
   equate "incomplete" with "currently running".
 - Decisions must be explainable — every organize/skip carries reasons and
   evidence the UI can surface.
+- Organization is in-place: category folders are created inside the
+  selected folder — no `organized/` wrapper. Scans must skip the managed
+  roots (`School/`, `Work/`, `Documents/`, `Images/`, `Videos/`, `Music/`,
+  `Archives/`, `Other/`), and items already at their resolved destination
+  emit no action. Re-running the organizer on the same folder must be
+  idempotent — never produce `(2)` self-duplicates.
+- Default destination taxonomy: subject → `School/{Subject}/{SubKind}`
+  (activity buckets Assignments/Activities/Labs/Notes/Projects from
+  filename keywords, else the kind folder), project →
+  `Work/{Project}/{KindFolder}`, generic → `{KindFolder}` where the kind
+  map is Documents/Images/Videos/Music/Archives/Other.
+- Ops interrupted by process death must be reconciled to `NeedsAttention`
+  at startup — a stale `Planned`/`Executing` record is not "running".
 
 ## Offline & AI Boundaries
 - The core workflow (scan → classify → plan → organize → verify → undo →

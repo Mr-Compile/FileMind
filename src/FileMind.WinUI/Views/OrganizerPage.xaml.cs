@@ -163,13 +163,13 @@ public sealed partial class OrganizerPage : Page
         {
             await foreach (var c in be.Pipeline.ScanAsync(source, recursive: true, _cts.Token))
             {
-                // Skip the organizer's own output subtree: re-scanning
-                // <source>/organized would re-plan already-moved files into
-                // organized/organized/... and duplicate the structure.
+                // Skip FileMind's own output folders: files already under
+                // School/Documents/Images/... are organized; re-scanning them
+                // would churn or duplicate the structure.
                 var rel = System.IO.Path.GetRelativePath(source, c.SourceUri)
                     .Replace('\\', '/');
-                if (rel.Equals("organized", StringComparison.OrdinalIgnoreCase) ||
-                    rel.StartsWith("organized/", StringComparison.OrdinalIgnoreCase))
+                var first = rel.Split('/')[0];
+                if (FileMind.Domain.Operations.ActionPlanner.ManagedRoots.Contains(first))
                     continue;
                 _candidates.Add(c);
                 rows.Add(new LogRow(
@@ -266,9 +266,9 @@ public sealed partial class OrganizerPage : Page
     private void BuildPlan()
     {
         var dest = DestBox.Text.Trim();
-        // Mockup parity: organize into <source>\organized by default —
-        // never scatter categories across the source root.
-        var destRoot = dest.Length > 0 ? dest : System.IO.Path.Combine(_source, "organized");
+        // In-place organize by default: category folders (School\IT-421\…,
+        // Documents\) land directly inside the selected folder — no wrapper.
+        var destRoot = dest.Length > 0 ? dest : _source;
         var plan = App.Backend.Result.Pipeline.Plan(
             _analyzed, dryRun: DryRunCheck.IsChecked == true,
             destinationRoot: destRoot, sourceRoot: _source,

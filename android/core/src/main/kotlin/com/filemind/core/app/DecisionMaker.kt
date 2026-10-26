@@ -89,9 +89,9 @@ class DecisionMaker(private val confidence: ConfidenceEngine) {
 
     private fun defaultTemplate(c: ClassificationResult): String =
         when {
-            c.subject != null -> "School/{Subject}/{FileKind}"
-            c.project != null -> "Work/{Project}/{FileKind}"
-            else -> "Files/{FileKind}"
+            c.subject != null -> "School/{Subject}/{SubKind}"
+            c.project != null -> "Work/{Project}/{KindFolder}"
+            else -> "{KindFolder}"
         }
 
     private fun review(candidate: FileCandidate, classification: ClassificationResult, reasons: List<String>) =

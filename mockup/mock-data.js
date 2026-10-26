@@ -121,7 +121,7 @@ FM_DATA.projects = [
 ];
 /* mirrors CollectionEntry — seed-demo values (pathTemplate = destinationTemplate) */
 FM_DATA.collections = [
-  { id: "school", name: "School", destinationTemplate: "School/{Subject}/{FileKind}", subjectIds: ["IT421"], projectIds: [] },
+  { id: "school", name: "School", destinationTemplate: "School/{Subject}/{SubKind}", subjectIds: ["IT421"], projectIds: [] },
   { id: "work", name: "Work", destinationTemplate: "Work/{Project}/{FileKind}", subjectIds: [], projectIds: ["alpha"] },
 ];
 

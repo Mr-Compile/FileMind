@@ -91,6 +91,50 @@ public class PlannerTests
         Assert.Contains("Unsorted", plan.Items[0].Destination);
     }
 
+    [Theory]
+    [InlineData("IT421_hw1.pdf", "Assignments")]
+    [InlineData("IT421_assignment2.pdf", "Assignments")]
+    [InlineData("IT421_lab3.pdf", "Labs")]
+    [InlineData("IT421_quiz_1.docx", "Activities")]
+    [InlineData("IT421_reviewer.pdf", "Notes")]
+    [InlineData("IT421_capstone.docx", "Projects")]
+    [InlineData("IT421_random.pdf", "Documents")] // no activity token → kind folder
+    public void SubKind_BucketFromStemTokens(string fileName, string expected)
+    {
+        var c = Candidates.Create("dl/" + fileName);
+        var r = Classified(subject: "IT421");
+        var plan = new ActionPlanner().Plan(Decide(c, r, "School/{Subject}/{SubKind}"), Ctx).Value!;
+        Assert.Equal($"School\\IT421\\{expected}\\{fileName}", plan.Items[0].Destination);
+    }
+
+    [Theory]
+    [InlineData(FileKind.Document, "Documents")]
+    [InlineData(FileKind.Spreadsheet, "Documents")]
+    [InlineData(FileKind.Image, "Images")]
+    [InlineData(FileKind.Video, "Videos")]
+    [InlineData(FileKind.Audio, "Music")]
+    [InlineData(FileKind.Archive, "Archives")]
+    [InlineData(FileKind.Code, "Other")]
+    public void KindFolder_PluralMap(FileKind kind, string expected)
+    {
+        var c = Candidates.Create("dl/x.bin");
+        var r = Classified() with { FileKind = kind };
+        var plan = new ActionPlanner().Plan(Decide(c, r, "{KindFolder}"), Ctx).Value!;
+        Assert.Equal($"{expected}\\x.bin", plan.Items[0].Destination);
+    }
+
+    [Fact]
+    public void Plan_AlreadyAtDestination_EmitsNoItem()
+    {
+        var c = Candidates.Create("dl/Documents/x.pdf");
+        var r = Classified();
+        var ctx = new PlanContext(new WindowsStylePathNormalizer(),
+            DestinationBase: rel => Path.Combine("dl", rel),
+            Now: DateTimeOffset.Parse("2026-03-10T12:00:00Z"));
+        var plan = new ActionPlanner().Plan(Decide(c, r, "{KindFolder}"), ctx).Value!;
+        Assert.Empty(plan.Items);
+    }
+
     private static PlanContext TreeCtx(string? sourceRoot, bool preserve = true) =>
         new(new WindowsStylePathNormalizer(),
             Now: DateTimeOffset.Parse("2026-03-10T12:00:00Z"),

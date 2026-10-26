@@ -64,8 +64,8 @@ templates, rename templates, conflict policy, undo recipe) → safety check
 - **Explainable**: every decision carries evidence and reasons; users can
   ask "why?" and get an answer, not a mystery.
 - **Deterministic where practical**: same inputs → same plan, every time.
-- **Predictable**: destination templates (`School/{Subject}/{FileKind}`,
-  `Files/{FileKind}`, user-defined) are visible before execution.
+- **Predictable**: destination templates (`School/{Subject}/{SubKind}`,
+  `{KindFolder}`, user-defined) are visible before execution.
 - **Preview-first**: plans are shown (with a dry-run option) before files
   move; bulk operations confirm.
 - **Reversible**: every item's move records an undo recipe; committed
@@ -75,17 +75,23 @@ templates, rename templates, conflict policy, undo recipe) → safety check
 
 ## Folder Generation
 
-FileMind creates the folders its decisions require — under a per-source
-`organized/` root — including nested structure (subject folders, kind
-subfolders, preserved source trees when enabled). Conceptual example
-(not a mandated layout):
+FileMind creates the folders its decisions require **inside the selected
+folder** (in-place organize — no `organized/` wrapper), including nested
+structure (subject folders with school-activity buckets, kind folders,
+preserved source trees when enabled). Re-running on the same folder is
+idempotent: files already at their resolved destination produce no item,
+and the managed roots (`School/`, `Documents/`, `Images/`, `Videos/`,
+`Music/`, `Archives/`, `Work/`, `Other/`) are excluded from rescans.
+Conceptual example (not a mandated layout):
 
 ```
-organized/
-  School/IT-412/Document/IT-412-Summary.docx
-  School/CS301/Video/lecture7.mp4
-  Files/Image/…
-  Files/Archive/…
+<selected folder>/
+  School/IT-421/Assignments/IT421_hw1.pdf
+  School/IT-421/Notes/IT-421 reviewer.docx
+  School/CS-301/Labs/CS301_lab3.docx
+  Documents/report.pdf
+  Music/track.mp3
+  Archives/pack.zip
 ```
 
 Structure follows the user's classification signals, collections, and

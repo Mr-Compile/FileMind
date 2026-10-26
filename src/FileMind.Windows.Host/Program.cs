@@ -910,7 +910,9 @@ string RequiredDir(List<string> pos)
     return pos[0];
 }
 
-string DefaultDest(string root) => Path.Combine(root, "organized");
+// In-place organize by default: category folders land inside the scanned
+// root — pass --dest (or FILEMIND_DEST) to redirect output elsewhere.
+string DefaultDest(string root) => root;
 
 async Task<int> RulesVerbAsync()
 {

@@ -83,9 +83,9 @@ public sealed class DecisionMaker(ConfidenceEngine confidence)
               ?.DestinationTemplate;
 
     private static string DefaultTemplate(ClassificationResult c) =>
-        c.Subject is not null ? "School/{Subject}/{FileKind}"
-        : c.Project is not null ? "Work/{Project}/{FileKind}"
-        : "Files/{FileKind}";
+        c.Subject is not null ? "School/{Subject}/{SubKind}"
+        : c.Project is not null ? "Work/{Project}/{KindFolder}"
+        : "{KindFolder}";
 
     private static Decision Review(FileCandidate candidate, ClassificationResult classification,
         IReadOnlyList<string> reasons) => new()

@@ -350,7 +350,7 @@ FM.engine = {
         decision = {
           kind: "Organize",
           destinationTemplate: org.destinationTemplate || coll?.destinationTemplate
-            || (classification.subject ? "School/{Subject}/{FileKind}" : classification.project ? "Work/{Project}/{FileKind}" : "Files/{FileKind}"),
+            || (classification.subject ? "School/{Subject}/{SubKind}" : classification.project ? "Work/{Project}/{KindFolder}" : "{KindFolder}"),
           namingTemplate: org.namingTemplate || null,
           conflictPolicy: org.conflictPolicy || "KeepBoth",
           reasons: [`Rule '${rules.winningRuleId}' matched.`],
@@ -364,7 +364,7 @@ FM.engine = {
         } else {
           decision = {
             kind: "Organize",
-            destinationTemplate: classification.subject ? "School/{Subject}/{FileKind}" : classification.project ? "Work/{Project}/{FileKind}" : "Files/{FileKind}",
+            destinationTemplate: classification.subject ? "School/{Subject}/{SubKind}" : classification.project ? "Work/{Project}/{KindFolder}" : "{KindFolder}",
             namingTemplate: null, conflictPolicy: "KeepBoth",
             reasons: [`High-confidence classification (${classification.confidence}).`],
           };
@@ -373,6 +373,32 @@ FM.engine = {
       return { candidate: c, classification, rules, decision };
     });
   },
+
+  /* mirrors ActionPlanner.KindFolder — the type folders users see */
+  kindFolder(kind) {
+    return { Document: "Documents", Spreadsheet: "Documents", Presentation: "Documents",
+      Image: "Images", Video: "Videos", Audio: "Music", Archive: "Archives" }[kind] || "Other";
+  },
+
+  /* mirrors ActionPlanner.SubKind — school-activity bucket from stem tokens */
+  SUBKIND: {
+    Assignments: ["assign", "assignment", "homework", "hw", "exercise", "worksheet", "seatwork", "problemset", "task"],
+    Activities: ["activity", "act", "quiz", "exam", "assessment", "performance", "recitation"],
+    Labs: ["lab", "laboratory"],
+    Notes: ["note", "notes", "reviewer", "module", "syllabus", "handout", "reference", "summary", "outline"],
+    Projects: ["project", "capstone", "thesis", "practicum"],
+  },
+
+  subKind(kind, stem) {
+    const toks = FM.engine.tokens(stem).list;
+    const hit = (keys) => toks.some((t) => keys.some((k) =>
+      t === k || (t.startsWith(k) && /^\d+$/.test(t.slice(k.length)))));
+    for (const [folder, keys] of Object.entries(this.SUBKIND)) if (hit(keys)) return folder;
+    return this.kindFolder(kind);
+  },
+
+  /* top-level folders FileMind owns — scanners skip them (no churn) */
+  MANAGED_ROOTS: new Set(["school", "work", "documents", "images", "videos", "music", "archives", "other"]),
 
   resolveDest(a, root, relDir = "", preserveTree = false) { /* mirrors ActionPlanner.ResolveTemplate + Combine + DestinationBase */
     const cls = a.classification, c = a.candidate, now = new Date();
@@ -384,6 +410,8 @@ FM.engine = {
       .replace("{Subject}", cls.subject ?? "Unsorted")
       .replace("{Project}", cls.project ?? "General")
       .replace("{FileKind}", cls.fileKind)
+      .replace("{KindFolder}", this.kindFolder(cls.fileKind))
+      .replace("{SubKind}", this.subKind(cls.fileKind, stem))
       .replace("{Name}", stem).replace("{Ext}", c.extension.replace(/^\./, ""))
       .replace("{YYYY}", String(now.getFullYear()))
       .replace("{MM}", String(now.getMonth() + 1).padStart(2, "0"))
@@ -422,6 +450,8 @@ FM.engine = {
       const dir = a.candidate.sourceUri.slice(0, a.candidate.sourceUri.lastIndexOf("\\"));
       const relDir = (srcRoot && FM.engine.relativeTo(dir, srcRoot)) || "";
       let dest = FM.engine.resolveDest(a, destRoot, relDir, preserveTree);
+      /* mirrors ActionPlanner idempotent skip: already at destination → no item */
+      if (dest.replaceAll("/", "\\").toLowerCase() === a.candidate.sourceUri.replaceAll("/", "\\").toLowerCase()) continue;
       let n = 2; /* mirrors ConflictPolicy.KeepBoth deterministic suffixing */
       const bi = dest.lastIndexOf(".");
       while (seen.has(dest.toLowerCase()) || FM.engine.destExists(dest))

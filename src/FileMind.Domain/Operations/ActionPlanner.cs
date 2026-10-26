@@ -1,3 +1,4 @@
+using FileMind.Domain.Classification;
 using FileMind.Domain.Contracts;
 using FileMind.Domain.Errors;
 using FileMind.Domain.Ports;
@@ -64,6 +65,22 @@ public sealed class ActionPlanner
             : decision.Candidate.DisplayName;
 
         var destPath = context.Paths.Combine(destination, newName);
+        // Idempotent re-runs: a file already sitting at its resolved
+        // destination produces no item — never a same-path "(2)" duplicate.
+        if (context.Paths.Normalize(destPath) ==
+            context.Paths.Normalize(decision.Candidate.SourceUri))
+        {
+            return Result<ActionPlan>.Ok(new ActionPlan
+            {
+                PlanId = NewId(),
+                CreatedAt = context.Now ?? DateTimeOffset.UtcNow,
+                SourceDecision = decision.Kind.ToString(),
+                Items = [],
+                RequiresReview = false,
+                DryRun = false,
+                ReversibleEstimate = true
+            });
+        }
         var reason = string.Join("; ", decision.Reasons.DefaultIfEmpty(decision.Classification.Explanation));
 
         var item = new ActionItem
@@ -120,6 +137,8 @@ public sealed class ActionPlanner
             .Replace("{Subject}", r.Subject ?? "Unsorted")
             .Replace("{Project}", r.Project ?? "General")
             .Replace("{FileKind}", r.FileKind.ToString())
+            .Replace("{KindFolder}", KindFolder(r.FileKind))
+            .Replace("{SubKind}", SubKind(r.FileKind, StemOf(ctx.Paths.FileName(c.DisplayName))))
             .Replace("{Name}", StemOf(ctx.Paths.FileName(c.DisplayName)))
             .Replace("{Ext}", c.Extension.TrimStart('.'))
             .Replace("{YYYY}", now.ToString("yyyy"))
@@ -145,4 +164,48 @@ public sealed class ActionPlanner
     }
 
     private static string NewId() => Guid.NewGuid().ToString("N");
+
+    /// <summary>
+    /// Top-level folders FileMind creates — scanners skip these so
+    /// already-organized files are never re-candidates (no churn).
+    /// </summary>
+    public static readonly IReadOnlySet<string> ManagedRoots = new HashSet<string>(
+        ["school", "work", "documents", "images", "videos", "music", "archives", "other"],
+        StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>The type-folder names users actually see (Documents, Music, …).</summary>
+    public static string KindFolder(FileKind kind) => kind switch
+    {
+        FileKind.Document or FileKind.Spreadsheet or FileKind.Presentation => "Documents",
+        FileKind.Image => "Images",
+        FileKind.Video => "Videos",
+        FileKind.Audio => "Music",
+        FileKind.Archive => "Archives",
+        _ => "Other"
+    };
+
+    // School-activity buckets under School/{Subject}/: token hits on the
+    // filename stem; "lab3"/"hw2" count via word+digits matching.
+    private static readonly string[] Assign =
+        ["assign", "assignment", "homework", "hw", "exercise", "worksheet", "seatwork", "problemset", "task"];
+    private static readonly string[] Activity =
+        ["activity", "act", "quiz", "exam", "assessment", "performance", "recitation"];
+    private static readonly string[] Lab = ["lab", "laboratory"];
+    private static readonly string[] Note =
+        ["note", "notes", "reviewer", "module", "syllabus", "handout", "reference", "summary", "outline"];
+    private static readonly string[] Project = ["project", "capstone", "thesis", "practicum"];
+
+    public static string SubKind(FileKind kind, string stem)
+    {
+        var toks = Normalizer.Normalize(stem).Tokens;
+        static bool Hit(IReadOnlyList<string> toks, string[] keys) => toks.Any(t =>
+            keys.Any(k => t == k || (t.StartsWith(k, StringComparison.Ordinal) &&
+                t[k.Length..].All(char.IsDigit))));
+        if (Hit(toks, Assign)) return "Assignments";
+        if (Hit(toks, Activity)) return "Activities";
+        if (Hit(toks, Lab)) return "Labs";
+        if (Hit(toks, Note)) return "Notes";
+        if (Hit(toks, Project)) return "Projects";
+        return KindFolder(kind);
+    }
 }

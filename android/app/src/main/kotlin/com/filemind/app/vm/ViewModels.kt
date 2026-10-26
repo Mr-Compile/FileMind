@@ -465,11 +465,12 @@ class OrganizerViewModel(private val app: FileMindApp) : ViewModel() {
                 val pipeline = app.backend.pipeline()
                 val candidates = mutableListOf<FileCandidate>()
                 pipeline.scan(rootUri).collect { c ->
-                    // Skip the organizer's own output subtree: re-scanning
-                    // <source>/organized would re-plan already-moved files into
-                    // organized/organized/... and duplicate the structure.
+                    // Skip FileMind's own output folders: files already under
+                    // School/Documents/Images/... are organized; re-scanning
+                    // them would churn or duplicate the structure.
                     val rel = app.backend.paths.relativeTo(c.sourceUri, rootUri)?.lowercase()
-                    if (rel != null && (rel == "organized" || rel.startsWith("organized/"))) {
+                    val first = rel?.substringBefore('/') ?: ""
+                    if (first in com.filemind.core.operations.ActionPlanner.MANAGED_ROOTS) {
                         return@collect
                     }
                     candidates.add(c)
@@ -517,8 +518,9 @@ class OrganizerViewModel(private val app: FileMindApp) : ViewModel() {
         viewModelScope.launch {
             val pipeline = app.backend.pipeline()
             val src = _state.value.sourceUri
-            // Mockup parity: moves land under <source>/organized/<template>.
-            val destRoot = src?.let { app.backend.paths.combine(it, "organized") }
+            // In-place organize: category folders (School/IT-421/…, Documents/)
+            // are created directly inside the selected folder — no wrapper.
+            val destRoot = src
             val plan = pipeline.plan(
                 analyzed,
                 dryRun = _state.value.dryRun,
@@ -674,9 +676,9 @@ class SubjectsViewModel(private val app: FileMindApp) : ViewModel() {
             return
         }
         // The id lands in {Subject} destination folders — prefer the readable
-        // course code (e.g. "IT421"), else a slug of the name.
+        // course code verbatim (e.g. "IT421"), else a slug of the name.
         val c = code.trim().ifBlank { null }
-        val id = (c ?: n).lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
+        val id = (c ?: n).replace(Regex("[^A-Za-z0-9]+"), "-").trim('-')
         if (id.isEmpty()) {
             _state.value = _state.value.copy(error = "Name has no usable characters")
             return

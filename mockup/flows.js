@@ -56,7 +56,15 @@ FM.screen("organizer", (m, params) => {
     }
     const files = scopeFiles();
     const excl = files.filter((f) => FM.engine.excluded(f));
-    const kept = files.filter((f) => !FM.engine.excluded(f));
+    const srcRoot = FM_DATA.roots[st.scope];
+    /* mirrors the app scan: files already under FileMind's managed roots
+       (School/, Documents/, …) are organized — never re-candidates */
+    const kept = files.filter((f) => {
+      if (FM.engine.excluded(f)) return false;
+      const rel = FM.engine.relativeTo(f.sourceUri, srcRoot);
+      const first = (rel || "").split("\\")[0].toLowerCase();
+      return !FM.engine.MANAGED_ROOTS.has(first);
+    });
     b.innerHTML = `
       <div class="term" style="height:300px"><div class="term-out" id="o-scanout"></div></div>
       <div style="margin-top:var(--sp-4)"><button class="btn primary" id="o-next" disabled>${iconF("play", "sm")} Analyze ${kept.length} file(s)</button></div>`;
@@ -97,7 +105,7 @@ FM.screen("organizer", (m, params) => {
       const x = b.querySelector(`tr[data-x="${tr.dataset.a}"]`); x.hidden = !x.hidden;
     }));
     b.querySelector("#o-plan").onclick = () => {
-      st.plan = FM.engine.plan(st.analyzed, st.dry, `${FM_DATA.roots[st.scope]}\\organized`);
+      st.plan = FM.engine.plan(st.analyzed, st.dry, FM_DATA.roots[st.scope]);
       st.safety = FM.engine.safety(st.analyzed, st.plan, FM_DATA.roots[st.scope]);
       st.step = "plan"; render();
     };
@@ -170,7 +178,7 @@ FM.screen("organizer", (m, params) => {
         <div style="margin-top:var(--sp-4);display:flex;gap:var(--sp-2)">
           <button class="btn primary" id="o-real">${iconF("play", "sm")} Run for real</button>
           <button class="btn" id="o-again">Start over</button></div>`;
-      b.querySelector("#o-real").onclick = () => { st.dry = false; st.plan = FM.engine.plan(st.analyzed, false, `${FM_DATA.roots[st.scope]}\\organized`); st.safety = FM.engine.safety(st.analyzed, st.plan, FM_DATA.roots[st.scope]); st.step = "safety"; render(); };
+      b.querySelector("#o-real").onclick = () => { st.dry = false; st.plan = FM.engine.plan(st.analyzed, false, FM_DATA.roots[st.scope]); st.safety = FM.engine.safety(st.analyzed, st.plan, FM_DATA.roots[st.scope]); st.step = "safety"; render(); };
       b.querySelector("#o-again").onclick = () => { Object.assign(st, { step: "source", analyzed: null, plan: null, safety: null, record: null }); render(); };
       return;
     }

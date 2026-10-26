@@ -72,6 +72,20 @@ class ActionPlanner {
         }
 
         val destPath = context.paths.combine(destination, newName)
+        // Idempotent re-runs: a file already sitting at its resolved
+        // destination produces no item — never a same-path "(2)" duplicate.
+        if (context.paths.normalize(destPath) ==
+            context.paths.normalize(decision.candidate.sourceUri)) {
+            return Result.ok(ActionPlan(
+                planId = newId(),
+                createdAt = context.now ?: Instant.now(),
+                sourceDecision = decision.kind.name,
+                items = emptyList(),
+                requiresReview = false,
+                dryRun = false,
+                reversibleEstimate = true
+            ))
+        }
         val reason = decision.reasons.ifEmpty { listOf(decision.classification.explanation) }.joinToString("; ")
 
         val item = ActionItem(
@@ -125,6 +139,8 @@ class ActionPlanner {
             .replace("{Subject}", r.subject ?: "Unsorted")
             .replace("{Project}", r.project ?: "General")
             .replace("{FileKind}", r.fileKind.name)
+            .replace("{KindFolder}", kindFolder(r.fileKind))
+            .replace("{SubKind}", subKind(r.fileKind, stemOf(ctx.paths.fileName(c.displayName))))
             .replace("{Name}", stemOf(ctx.paths.fileName(c.displayName)))
             .replace("{Ext}", c.extension.trimStart('.'))
             .replace("{YYYY}", "%04d".format(now.year))
@@ -149,4 +165,51 @@ class ActionPlanner {
     }
 
     private fun newId(): String = UUID.randomUUID().toString().replace("-", "")
+
+    companion object {
+        /** Top-level folders FileMind creates — scanners skip these so
+         *  already-organized files are never re-candidates (no churn). */
+        val MANAGED_ROOTS = setOf("school", "work", "documents", "images",
+            "videos", "music", "archives", "other")
+
+        /** The type-folder names users actually see (Documents, Music, …). */
+        fun kindFolder(kind: com.filemind.core.contracts.FileKind): String =
+            when (kind) {
+                com.filemind.core.contracts.FileKind.Document,
+                com.filemind.core.contracts.FileKind.Spreadsheet,
+                com.filemind.core.contracts.FileKind.Presentation -> "Documents"
+                com.filemind.core.contracts.FileKind.Image -> "Images"
+                com.filemind.core.contracts.FileKind.Video -> "Videos"
+                com.filemind.core.contracts.FileKind.Audio -> "Music"
+                com.filemind.core.contracts.FileKind.Archive -> "Archives"
+                else -> "Other"
+            }
+
+        // School-activity buckets under School/{Subject}/: token hits on the
+        // filename stem; "lab3"/"hw2" count via word+digits matching.
+        private val ASSIGN = setOf("assign", "assignment", "homework", "hw",
+            "exercise", "worksheet", "seatwork", "problemset", "task")
+        private val ACTIVITY = setOf("activity", "act", "quiz", "exam",
+            "assessment", "performance", "recitation")
+        private val LAB = setOf("lab", "laboratory")
+        private val NOTE = setOf("note", "notes", "reviewer", "module",
+            "syllabus", "handout", "reference", "summary", "outline")
+        private val PROJECT = setOf("project", "capstone", "thesis", "practicum")
+
+        fun subKind(kind: com.filemind.core.contracts.FileKind, stem: String): String {
+            val toks = com.filemind.core.classification.Normalizer.normalize(stem).tokens
+            fun hit(keys: Set<String>) = toks.any { t ->
+                keys.any { k -> t == k || (t.startsWith(k) &&
+                    t.removePrefix(k).all { ch -> ch.isDigit() }) }
+            }
+            return when {
+                hit(ASSIGN) -> "Assignments"
+                hit(ACTIVITY) -> "Activities"
+                hit(LAB) -> "Labs"
+                hit(NOTE) -> "Notes"
+                hit(PROJECT) -> "Projects"
+                else -> kindFolder(kind)
+            }
+        }
+    }
 }
