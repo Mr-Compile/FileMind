@@ -18,6 +18,35 @@
                         Content="Refresh" Click="Refresh_Click" />
             </Grid>
 
+            <!-- active operations (mockup shows in-flight ops above history) -->
+            <StackPanel x:Name="ActiveSection" Spacing="{StaticResource FmSpace2}"
+                        Visibility="Collapsed">
+                <TextBlock Text="Active now" Style="{StaticResource FmTextH2}" />
+                <ItemsControl x:Name="ActiveList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{ThemeResource FmSurfacePrimaryBrush}"
+                                    BorderBrush="{ThemeResource FmBorderBrush}" BorderThickness="1"
+                                    CornerRadius="{StaticResource FmRadiusMediumValue}"
+                                    Padding="12,8" Margin="0,0,0,6">
+                                <StackPanel Spacing="4">
+                                    <StackPanel Orientation="Horizontal" Spacing="8">
+                                        <c:FmStatusChip State="{Binding State}" />
+                                        <TextBlock Text="{Binding OpId}" FontSize="11"
+                                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                    <ProgressBar Value="{Binding Progress}" Minimum="0" Maximum="100"
+                                                 Height="6" />
+                                    <TextBlock Text="{Binding Summary}" FontSize="12"
+                                               Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
             <StackPanel Spacing="{StaticResource FmSpace2}">
                 <TextBlock Text="Operations" Style="{StaticResource FmTextH2}" />
                 <ListView x:Name="OpList" SelectionMode="Single">
@@ -90,10 +119,17 @@
                                                TextTrimming="CharacterEllipsis" />
                                     <TextBlock Text="{Binding Reason}" FontSize="11" TextWrapping="Wrap"
                                                Foreground="{ThemeResource FmStatusWarningBrush}" />
+                                    <TextBlock Text="{Binding Suggested}" FontSize="11"
+                                               Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                               Visibility="{Binding SuggestedVisibility}" />
                                 </StackPanel>
-                                <Button Grid.Column="1" VerticalAlignment="Top"
-                                        Content="Mark resolved" Click="ResolveRow_Click"
-                                        Tag="{Binding Id}" />
+                                <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Top">
+                                    <Button Content="Send to organized"
+                                            Click="SendSuggested_Click" Tag="{Binding Id}"
+                                            Visibility="{Binding SuggestedVisibility}" />
+                                    <Button Content="Mark resolved" Click="ResolveRow_Click"
+                                            Tag="{Binding Id}" />
+                                </StackPanel>
                             </Grid>
                         </DataTemplate>
                     </ListView.ItemTemplate>
