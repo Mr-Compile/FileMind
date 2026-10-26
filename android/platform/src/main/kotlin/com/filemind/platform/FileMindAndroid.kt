@@ -7,6 +7,7 @@ import com.filemind.core.app.FileScanner
 import com.filemind.core.app.OrganizerPipeline
 import com.filemind.core.classification.ClassifierEngine
 import com.filemind.core.classification.ConfidenceEngine
+import com.filemind.core.classification.ConfidencePolicy
 import com.filemind.core.classification.InMemoryProjectCatalog
 import com.filemind.core.classification.InMemorySubjectCatalog
 import com.filemind.core.classification.ProjectEntry
@@ -24,6 +25,7 @@ import com.filemind.platform.db.RoomAiUsageLedger
 import com.filemind.platform.db.RoomCollectionRepository
 import com.filemind.platform.db.RoomExclusionRepository
 import com.filemind.platform.db.RoomFileIndexRepository
+import com.filemind.platform.db.RoomIndexingService
 import com.filemind.platform.db.RoomJobRepository
 import com.filemind.platform.db.RoomOperationRepository
 import com.filemind.platform.db.RoomOperationStore
@@ -88,7 +90,13 @@ class FileMindAndroid private constructor(private val appContext: Context) {
         val projectEntries = (projects.getAll().value ?: emptyList()).map {
             ProjectEntry(it.id, it.name, it.clientName, it.aliases, it.keywords)
         }
-        val confidence = ConfidenceEngine()
+        // Android policy: without an enricher/advisor the achievable score is
+        // ext(10)+mime(8)=18 typical, ~65 ceiling. A recognized file kind must
+        // be actionable (mockup parity: kind-routed moves), weak signals go to
+        // Smart Inbox, zero-signal files are left untouched.
+        val confidence = ConfidenceEngine(ConfidencePolicy(
+            highThreshold = 15.0,
+            mediumThreshold = 5.0))
         val classifier = ClassifierEngine(
             SubjectMatcher(InMemorySubjectCatalog(subjectEntries)),
             ProjectMatcher(InMemoryProjectCatalog(projectEntries)),
@@ -109,7 +117,8 @@ class FileMindAndroid private constructor(private val appContext: Context) {
             rules = rules,
             collections = collections,
             operations = operationRepository,
-            operationStore = operationStore)
+            operationStore = operationStore,
+            indexing = RoomIndexingService(fileIndex))
     }
 
     companion object {

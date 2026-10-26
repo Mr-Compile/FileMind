@@ -38,12 +38,20 @@ class FileScanner(
     }
 
     private fun inferScope(root: String): SourceScope {
-        val r = root.replace('/', '\\')
+        // SAF docIds arrive percent-encoded inside the URI — decode first so
+        // "primary%3ADownload%2F…" matches like a real path. Android folder
+        // names differ from Windows ("Download" singular, DCIM, Movies).
+        val r = try {
+            java.net.URLDecoder.decode(root, Charsets.UTF_8)
+        } catch (e: Exception) { root }.replace('/', '\\')
         fun containsIgnoreCase(needle: String) = r.contains(needle, ignoreCase = true)
-        if (containsIgnoreCase("\\Downloads")) return SourceScope.Downloads
+        if (containsIgnoreCase("\\Download")) return SourceScope.Downloads
         if (containsIgnoreCase("\\Documents")) return SourceScope.Documents
         if (containsIgnoreCase("\\Desktop")) return SourceScope.Desktop
-        if (containsIgnoreCase("\\Pictures") || containsIgnoreCase("\\Videos") || containsIgnoreCase("\\Music")) {
+        if (containsIgnoreCase("\\Pictures") || containsIgnoreCase("\\Videos") ||
+            containsIgnoreCase("\\Movies") || containsIgnoreCase("\\Music") ||
+            containsIgnoreCase("\\DCIM")
+        ) {
             return SourceScope.Media
         }
         return SourceScope.Other
