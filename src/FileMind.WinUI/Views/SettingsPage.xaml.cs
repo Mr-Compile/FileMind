@@ -15,6 +15,7 @@ public sealed partial class SettingsPage : Page
     private const string NotifDoneKey = "ui.notify.operationDone";
     private const string NotifWarnKey = "ui.notify.warnings";
     private const string NotifInboxKey = "ui.notify.smartInbox";
+    public const string DefaultFolderKey = "ui.defaultFolder";
 
     private bool _ready;
 
@@ -66,7 +67,30 @@ public sealed partial class SettingsPage : Page
             ? "Groq — enabled (opt-in). Requests pass the privacy gate and quota."
             : "Groq — off by default. Enable and set a key via the host ai-key verb.";
 
+        DefaultFolderBox.Text = (await settings.GetAsync(DefaultFolderKey)).Value ?? "";
+
+        var ver = global::System.Reflection.CustomAttributeExtensions
+            .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>(
+                typeof(App).Assembly)?.InformationalVersion
+            ?? typeof(App).Assembly.GetName().Version?.ToString() ?? "dev";
+        VersionText.Text = ver;
+
         _ready = true;
+    }
+
+    private async void DefaultFolder_Click(object sender, RoutedEventArgs e)
+    {
+        var picker = new Windows.Storage.Pickers.FolderPicker
+        {
+            SuggestedStartLocation = Windows.Storage.Pickers.PickerLocationId.Desktop
+        };
+        WinRT.Interop.InitializeWithWindow.Initialize(picker,
+            WinRT.Interop.WindowNative.GetWindowHandle(App.MainAppWindow));
+        var folder = await picker.PickSingleFolderAsync();
+        if (folder is null) return;
+        DefaultFolderBox.Text = folder.Path;
+        var be = await App.Backend;
+        await ((ISettingsRepository)be.Store).SetAsync(DefaultFolderKey, folder.Path);
     }
 
     private void Theme_Checked(object sender, RoutedEventArgs e)

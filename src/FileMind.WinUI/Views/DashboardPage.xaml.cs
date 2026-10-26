@@ -18,12 +18,13 @@ public sealed partial class DashboardPage : Page
         Loaded += async (_, _) => await LoadAsync();
     }
 
-    private void GoTo(string tag)
+    private void GoTo(string tag, object? parameter = null)
     {
-        if (App.MainAppWindow?.Content is Shell shell) shell.NavigateTo(tag);
+        if (App.MainAppWindow?.Content is Shell shell) shell.NavigateTo(tag, parameter);
     }
 
     private void Organize_Click(object sender, RoutedEventArgs e) => GoTo("organizer");
+    private void DryRun_Click(object sender, RoutedEventArgs e) => GoTo("organizer", "dryrun");
     private void GoFiles(object s, RoutedEventArgs e) => GoTo("files");
     private void GoTools(object s, RoutedEventArgs e) => GoTo("tools");
     private void GoActivity(object s, RoutedEventArgs e) => GoTo("activity");

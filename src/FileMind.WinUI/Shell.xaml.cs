@@ -48,10 +48,10 @@ public sealed partial class Shell : Page
     }
 
     /// <summary>Navigate by route tag (used by page quick-actions too).</summary>
-    public void NavigateTo(string tag)
+    public void NavigateTo(string tag, object? parameter = null)
     {
         if (!Routes.TryGetValue(tag, out var route)) return;
-        ContentFrame.Navigate(route.Page);
+        ContentFrame.Navigate(route.Page, parameter);
         var item = Nav.MenuItems.Concat(Nav.FooterMenuItems)
             .OfType<NavigationViewItem>().FirstOrDefault(i => (string)i.Tag == tag);
         if (item is not null) Nav.SelectedItem = item;

@@ -51,6 +51,21 @@ public sealed partial class OrganizerPage : Page
     {
         InitializeComponent();
         RenderStepBar();
+        Loaded += async (_, _) =>
+        {
+            // default folder from Settings pre-fills the source picker
+            var be = await App.Backend;
+            var def = await ((FileMind.Application.Ports.ISettingsRepository)be.Store)
+                .GetAsync(SettingsPage.DefaultFolderKey);
+            if (def.Value is { Length: > 0 } d && SourceBox.Text.Length == 0)
+                SourceBox.Text = d;
+        };
+    }
+
+    protected override void OnNavigatedTo(Microsoft.UI.Xaml.Navigation.NavigationEventArgs e)
+    {
+        // "dryrun" nav param (Dashboard quick action) presets the toggle
+        if (e.Parameter is string s && s == "dryrun") DryRunCheck.IsChecked = true;
     }
 
     // ---- step machinery -------------------------------------------------

@@ -57,6 +57,14 @@
                                        Text="Default is Keep both — FileMind never silently overwrites." />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBox x:Name="DefaultFolderBox" Width="300"
+                                     PlaceholderText="Default folder to organize" />
+                            <Button Content="Browse…" Click="DefaultFolder_Click" />
+                        </StackPanel>
+                        <TextBlock Style="{StaticResource FmTextBodySmall}" Margin="0,-4,0,0"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   Text="Pre-fills the Organizer's source picker." />
+                        <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="Organization mode" Style="{StaticResource FmTextBodySmall}"
                                        Foreground="{ThemeResource FmTextSecondaryBrush}"
                                        VerticalAlignment="Center" />
@@ -102,6 +110,10 @@
                         <TextBlock Style="{StaticResource FmTextBodySmall}"
                                    Foreground="{ThemeResource FmTextSecondaryBrush}"
                                    Text="Batched, never per-file spam. Saved to the app database." />
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmStatusWarningBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="Honest note: these preferences are stored and read, but Windows toast delivery isn't wired yet — notifications are written to the log and shown in Activity." />
                         <CheckBox x:Name="NotifDone" Content="Operation completed" Click="Notif_Clicked" />
                         <CheckBox x:Name="NotifWarn" Content="Warnings and failures" Click="Notif_Clicked" />
                         <CheckBox x:Name="NotifInbox" Content="Smart Inbox arrivals" Click="Notif_Clicked" />
@@ -141,6 +153,11 @@
                                        Foreground="{ThemeResource FmTextSecondaryBrush}" />
                             <TextBlock FontSize="12" TextWrapping="Wrap"
                                        Text="FileMind — offline-first, privacy-first, reversible file organizer" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Version" Width="110" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <TextBlock x:Name="VersionText" FontSize="12" FontFamily="Consolas" />
                         </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="This build" Width="110" Style="{StaticResource FmTextBodySmall}"

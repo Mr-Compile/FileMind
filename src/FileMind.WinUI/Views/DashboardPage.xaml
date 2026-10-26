@@ -37,8 +37,9 @@
                     <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <!-- Storage — span2 -->
-                <c:FmBentoCard Grid.ColumnSpan="2" IconGlyph="&#xE9D9;" Header="Storage">
+                <!-- Storage — span2 (clickable → Tools storage analyzer, like the mockup) -->
+                <c:FmBentoCard Grid.ColumnSpan="2" IconGlyph="&#xE9D9;" Header="Storage"
+                               PointerPressed="GoTools">
                     <c:FmBentoCard.CardContent>
                         <StackPanel Spacing="{StaticResource FmSpace2}">
                             <Grid x:Name="StorageMeter" Height="8">
@@ -69,6 +70,11 @@
                             <Button Style="{StaticResource FmLinkButton}" Click="Organize_Click">
                                 <StackPanel Orientation="Horizontal" Spacing="6">
                                     <FontIcon Glyph="&#xE8F0;" FontSize="14" /><TextBlock Text="Organize a folder" />
+                                </StackPanel>
+                            </Button>
+                            <Button Style="{StaticResource FmLinkButton}" Click="DryRun_Click">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE945;" FontSize="14" /><TextBlock Text="Dry-run organize" />
                                 </StackPanel>
                             </Button>
                             <Button Style="{StaticResource FmLinkButton}" Click="GoFiles">
