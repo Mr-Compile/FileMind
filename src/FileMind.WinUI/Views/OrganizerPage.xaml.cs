@@ -139,14 +139,13 @@ public sealed partial class OrganizerPage : Page
         }
         _source = source;
         _candidates.Clear();
-        ScanList.ItemsSource = null;
         ScanSummary.Text = "";
         AnalyzeNext.IsEnabled = false;
         Error.Visibility = Visibility.Collapsed;
         SetStep(Step.Scan);
 
         _cts = new CancellationTokenSource();
-        var rows = new List<LogRow>();
+        var rows = new System.Collections.ObjectModel.ObservableCollection<LogRow>();
         ScanList.ItemsSource = rows;
         var be = await App.Backend;
         try
@@ -376,23 +375,28 @@ public sealed partial class OrganizerPage : Page
         var ct = _cts.Token;
         var be = await App.Backend;
         var store = (IOperationRepository)be.Store;
+        RunLog.ItemsSource = new System.Collections.ObjectModel
+            .ObservableCollection<LogRow>();
 
         // Live progress: TransactionEngine persists the record per item —
         // poll the repo for committed/total like the Activity page reads.
+        var pollCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         var poller = Task.Run(async () =>
         {
-            while (!ct.IsCancellationRequested)
+            while (!pollCts.IsCancellationRequested)
             {
-                await Task.Delay(250);
+                try { await Task.Delay(250, pollCts.Token); }
+                catch (OperationCanceledException) { return; }
                 var live = (await store.GetIncompleteAsync()).Value
                     ?.FirstOrDefault(o => o.PlanId == plan.PlanId);
                 if (live is null) continue;
                 DispatcherQueue.TryEnqueue(() => RenderRunProgress(live));
             }
-        }, ct);
+        });
 
         var record = await be.Pipeline.ExecuteAsync(plan, ct);
-        _ = poller; // completes when ct is cancelled or execute returns
+        await pollCts.CancelAsync();
+        try { await poller; } catch (OperationCanceledException) { }
 
         if (!record.IsSuccess &&
             record.Error!.Code != FileMind.Domain.Errors.ErrorCode.Cancelled)

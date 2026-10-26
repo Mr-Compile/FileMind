@@ -1,6 +1,6 @@
 # PLAN-027 — Windows (WinUI): mockup UI parity + organizer polish
 
-Status: DRAFT — awaiting approval
+Status: IMPLEMENTED — M1–M5 committed & pushed; M6 QA done (see Verification)
 Related Feature: F-UI1 (mockup), F-UI3 (Windows app), F-P* (Windows backend)
 Created: 2026-10-27
 Updated: 2026-10-27
@@ -155,3 +155,19 @@ host exists as `FileMind.Windows.Host`.
    faked — anything not backed by a service is labeled truthfully.
 4. Where app and mockup conflict, the resolution is documented in this
    plan (as in PLAN-025's stronger-truth rule).
+
+## Verification (2026-10-27)
+
+- `dotnet build FileMind.WinUI` — **0 errors, 0 warnings** after every
+  milestone (M1 `a298279`, M2 `26b6644`, M3 `7bf6252`, M4 `1dba5c5`,
+  M5 `3161ade`; all pushed to `origin/main`).
+- `dotnet test` — **environment-blocked**: WDAC ("An Application Control
+  policy has blocked this file", `0x800711C7`) prevents xUnit from
+  loading any test assembly built under `C:\wamp64`. OS-level policy,
+  unrelated to code; tests remain UNVERIFIED on this machine.
+- Deferred (recorded, not faked): Activity "retry failed" — the backend
+  has no retry primitive and re-executing a plan would reprocess
+  committed items; `NeedsAttention` ops already surface in Activity with
+  guidance. Candidate for a follow-up plan.
+- Mockup kept as source of truth; no mockup edits needed — all app
+  changes converged toward the existing mockup elements.
