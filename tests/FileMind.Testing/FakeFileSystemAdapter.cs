@@ -15,6 +15,8 @@ public sealed class FakeFileSystemAdapter : IFileSystemAdapter
         public byte[] Content = [];
         public DateTimeOffset CreatedAt = DateTimeOffset.UtcNow;
         public DateTimeOffset ModifiedAt = DateTimeOffset.UtcNow;
+        public string? DisplayName;
+        public string? MimeType;
     }
 
     /// <summary>Windows-style canonical key: separators and case are equivalent.</summary>
@@ -29,12 +31,15 @@ public sealed class FakeFileSystemAdapter : IFileSystemAdapter
     public Func<string, bool>? VanishOn { get; set; }
     public List<string> CallLog { get; } = [];
 
-    public void SeedFile(string path, string content = "data", DateTimeOffset? modifiedAt = null)
+    public void SeedFile(string path, string content = "data", DateTimeOffset? modifiedAt = null,
+        string? displayName = null, string? mimeType = null)
     {
         _fs[Key(path)] = new Node
         {
             Content = Encoding.UTF8.GetBytes(content),
-            ModifiedAt = modifiedAt ?? DateTimeOffset.UtcNow
+            ModifiedAt = modifiedAt ?? DateTimeOffset.UtcNow,
+            DisplayName = displayName,
+            MimeType = mimeType
         };
         var dir = DirectoryOf(path);
         if (dir is not null) EnsureDirectory(dir);
@@ -77,7 +82,8 @@ public sealed class FakeFileSystemAdapter : IFileSystemAdapter
                 var rel = path[prefix.Length..];
                 if (rel.Contains('\\')) continue;
             }
-            yield return new FileEntry(path, node.Content.LongLength, node.CreatedAt, node.ModifiedAt);
+            yield return new FileEntry(path, node.Content.LongLength, node.CreatedAt, node.ModifiedAt,
+                DisplayName: node.DisplayName, MimeType: node.MimeType);
         }
     }
 

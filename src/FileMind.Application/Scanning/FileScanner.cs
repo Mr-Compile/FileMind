@@ -18,7 +18,9 @@ public sealed class FileScanner(
         var scope = InferScope(root);
         await foreach (var entry in fs.EnumerateAsync(root, recursive, ct).WithCancellation(ct))
         {
-            var name = paths.FileName(entry.Path);
+            // Provider metadata beats path-derived names (Android SAF/
+            // MediaStore docIds can be opaque); Windows paths always have one.
+            var name = entry.DisplayName ?? paths.FileName(entry.Path);
             var normalized = paths.Normalize(entry.Path);
             if (exclusions?.IsExcluded(name) == true || exclusions?.IsExcluded(normalized) == true)
                 continue;
@@ -30,7 +32,7 @@ public sealed class FileScanner(
                 SourceUri = entry.Path,
                 DisplayName = name,
                 Extension = ext,
-                MimeType = MimeMap.FromExtension(ext),
+                MimeType = entry.MimeType ?? MimeMap.FromExtension(ext),
                 SizeBytes = entry.SizeBytes,
                 CreatedAt = entry.CreatedAt,
                 ModifiedAt = entry.ModifiedAt,

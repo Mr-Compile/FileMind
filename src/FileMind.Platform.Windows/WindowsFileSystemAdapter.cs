@@ -45,7 +45,8 @@ public sealed class WindowsFileSystemAdapter : IFileSystemAdapter
             yield return new FileEntry(
                 info.FullName, info.Length,
                 new DateTimeOffset(info.CreationTimeUtc, TimeSpan.Zero),
-                new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero));
+                new DateTimeOffset(info.LastWriteTimeUtc, TimeSpan.Zero),
+                DisplayName: info.Name);
             await Task.Yield();
         }
     }

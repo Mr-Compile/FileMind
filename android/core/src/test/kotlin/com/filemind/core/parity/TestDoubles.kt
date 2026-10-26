@@ -64,7 +64,9 @@ class FakeFileSystemAdapter : FileSystemAdapter {
         var isDirectory: Boolean = false,
         var content: ByteArray = ByteArray(0),
         var createdAt: Instant = Instant.now(),
-        var modifiedAt: Instant = Instant.now()
+        var modifiedAt: Instant = Instant.now(),
+        var displayName: String? = null,
+        var mimeType: String? = null
     )
 
     private val map = java.util.TreeMap<String, Node>(String.CASE_INSENSITIVE_ORDER)
@@ -75,10 +77,13 @@ class FakeFileSystemAdapter : FileSystemAdapter {
 
     private fun key(p: String) = p.replace('/', '\\')
 
-    fun seedFile(path: String, content: String = "data", modifiedAt: Instant? = null) {
+    fun seedFile(path: String, content: String = "data", modifiedAt: Instant? = null,
+        displayName: String? = null, mimeType: String? = null) {
         map[key(path)] = Node(
             content = content.toByteArray(Charsets.UTF_8),
-            modifiedAt = modifiedAt ?: Instant.now()
+            modifiedAt = modifiedAt ?: Instant.now(),
+            displayName = displayName,
+            mimeType = mimeType
         )
         directoryOf(path)?.let { ensureDirectory(it) }
     }
@@ -115,7 +120,8 @@ class FakeFileSystemAdapter : FileSystemAdapter {
                 val rel = path.substring(prefix.length)
                 if (rel.contains('\\')) continue
             }
-            emit(FileEntry(path, node.content.size.toLong(), node.createdAt, node.modifiedAt))
+            emit(FileEntry(path, node.content.size.toLong(), node.createdAt, node.modifiedAt,
+                displayName = node.displayName, mimeType = node.mimeType))
         }
     }
 

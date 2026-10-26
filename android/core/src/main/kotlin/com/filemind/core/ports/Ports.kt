@@ -30,7 +30,12 @@ data class FileEntry(
     val path: String,
     val sizeBytes: Long,
     val createdAt: Instant,
-    val modifiedAt: Instant
+    val modifiedAt: Instant,
+    /** Provider-reported display name; preferred over URI-derived names
+     *  (SAF/MediaStore docIds may be opaque, e.g. "msf:1234"). */
+    val displayName: String? = null,
+    /** Provider-reported MIME type; preferred over extension-derived mime. */
+    val mimeType: String? = null
 )
 
 interface FileSystemAdapter {

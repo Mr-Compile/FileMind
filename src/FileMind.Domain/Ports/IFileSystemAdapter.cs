@@ -11,11 +11,17 @@ public sealed record FileStat(
     bool IsDirectory,
     string? FileIndexId = null);
 
+/// <param name="DisplayName">Provider-reported name; preferred over
+/// path-derived names (Android SAF/MediaStore docIds can be opaque).</param>
+/// <param name="MimeType">Provider-reported MIME type; preferred over
+/// extension-derived mime.</param>
 public sealed record FileEntry(
     string Path,
     long SizeBytes,
     DateTimeOffset CreatedAt,
-    DateTimeOffset ModifiedAt);
+    DateTimeOffset ModifiedAt,
+    string? DisplayName = null,
+    string? MimeType = null);
 
 public interface IFileSystemAdapter
 {

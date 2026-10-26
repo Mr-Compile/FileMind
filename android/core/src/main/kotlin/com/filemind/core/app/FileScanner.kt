@@ -16,7 +16,9 @@ class FileScanner(
     fun scan(root: String, recursive: Boolean = true): Flow<FileCandidate> = flow {
         val scope = inferScope(root)
         fs.enumerate(root, recursive).collect { entry ->
-            val name = paths.fileName(entry.path)
+            // Provider metadata beats URI-derived names — SAF/MediaStore
+            // docIds can be opaque (e.g. "msf:1234") and carry no extension.
+            val name = entry.displayName ?: paths.fileName(entry.path)
             val normalized = paths.normalize(entry.path)
             if (exclusions?.isExcluded(name) == true || exclusions?.isExcluded(normalized) == true) {
                 return@collect
@@ -28,7 +30,7 @@ class FileScanner(
                 sourceUri = entry.path,
                 displayName = name,
                 extension = ext,
-                mimeType = MimeMap.fromExtension(ext),
+                mimeType = entry.mimeType ?: MimeMap.fromExtension(ext),
                 sizeBytes = entry.sizeBytes,
                 createdAt = entry.createdAt,
                 modifiedAt = entry.modifiedAt,
