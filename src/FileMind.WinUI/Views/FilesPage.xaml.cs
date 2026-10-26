@@ -1,4 +1,5 @@
 using FileMind.Application.Ports;
+using FileMind.Application.UseCases;
 using FileMind.Domain;
 using FileMind.Domain.Classification;
 using FileMind.Domain.Contracts;
@@ -27,6 +28,10 @@ public sealed partial class FilesPage : Page
     private int _gen;
     private string _scopePrefix = "";         // "" = all scopes
     private string _kind = "All";
+    // decision cache keyed by path — ApplyFilters and the inspector share
+    // it so AnalyzeAsync doesn't run twice for the same file
+    private readonly Dictionary<string, AnalyzedFile> _decisions =
+        new(StringComparer.OrdinalIgnoreCase);
 
     public FilesPage()
     {
@@ -54,6 +59,8 @@ public sealed partial class FilesPage : Page
             return;
         }
         _all = all.Value!;
+        RescanBtn.IsEnabled = _all.Count > 0;
+        _decisions.Clear();
         BuildScopeChips();
         BuildKindChips();
         ApplyFilters();
@@ -152,17 +159,23 @@ public sealed partial class FilesPage : Page
         ClearBtn.Visibility = nameFilter.Length > 0 || _kind != "All"
             ? Visibility.Visible : Visibility.Collapsed;
 
-        // mockup Decision column: real pipeline decisions for the visible set
-        var toAnalyze = rows.Take(200).Select(r => r.Candidate).ToList();
-        if (toAnalyze.Count == 0) return;
-        var be = await App.Backend;
-        var analyzed = await be.Pipeline.AnalyzeAsync(toAnalyze);
-        if (gen != _gen || !analyzed.IsSuccess) return;
-        var byPath = analyzed.Value!
-            .GroupBy(a => a.Candidate.SourceUri)
-            .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+        // mockup Decision column: real pipeline decisions for the visible set,
+        // served from the cache where possible
+        var toAnalyze = rows.Take(200)
+            .Select(r => r.Candidate)
+            .Where(c => !_decisions.ContainsKey(c.SourceUri))
+            .ToList();
+        if (toAnalyze.Count > 0)
+        {
+            var be = await App.Backend;
+            var analyzed = await be.Pipeline.AnalyzeAsync(toAnalyze);
+            if (gen != _gen) return;
+            if (analyzed.IsSuccess)
+                foreach (var a in analyzed.Value!)
+                    _decisions[a.Candidate.SourceUri] = a;
+        }
         FileList.ItemsSource = rows.Select(r =>
-            byPath.TryGetValue(r.Candidate.SourceUri, out var a)
+            _decisions.TryGetValue(r.Candidate.SourceUri, out var a)
                 ? r with { Decision = a.Decision.Kind.ToString(), DecisionBrush = DecisionBrushFor(a.Decision.Kind) }
                 : r).ToList();
     }
@@ -218,14 +231,27 @@ public sealed partial class FilesPage : Page
         InsHint.Visibility = Visibility.Collapsed;
         InsBody.Visibility = Visibility.Visible;
 
-        // real decision from the live pipeline (mockup inspector shows decision+reason)
+        InsConfRow.Visibility = Visibility.Collapsed;
+        InsEvidenceBtn.Visibility = Visibility.Collapsed;
+        InsEvidence.Visibility = Visibility.Collapsed;
+        InsRenameBtn.Visibility = Visibility.Visible;
+
+        // real decision from the live pipeline (mockup inspector shows
+        // decision + confBar + expandable evidence)
         InsDecision.State = FmOpState.Queued;
         InsReason.Text = "Analyzing…";
-        var be = await App.Backend;
-        var analyzed = await be.Pipeline.AnalyzeAsync([c]);
-        if (analyzed.IsSuccess && analyzed.Value!.Count > 0)
+        if (!_decisions.TryGetValue(c.SourceUri, out var a))
         {
-            var a = analyzed.Value[0];
+            var be = await App.Backend;
+            var analyzed = await be.Pipeline.AnalyzeAsync([c]);
+            if (analyzed.IsSuccess && analyzed.Value!.Count > 0)
+            {
+                a = analyzed.Value[0];
+                _decisions[c.SourceUri] = a;
+            }
+        }
+        if (a is not null)
+        {
             InsDecision.State = a.Decision.Kind switch
             {
                 DecisionKind.Organize => FmOpState.Completed,
@@ -235,14 +261,27 @@ public sealed partial class FilesPage : Page
             };
             var subj = a.Classification.Subject is { Length: > 0 } s ? $" · {s}" : "";
             InsReason.Text =
-                $"{a.Decision.Kind} — confidence {a.Classification.Confidence:P0}{subj}. " +
+                $"{a.Decision.Kind} — {a.Classification.Explanation}{subj}. " +
                 string.Join(" ", a.Decision.Reasons.Take(2));
+            InsConfBar.Value = a.Classification.Confidence;
+            InsConfText.Text = $"{a.Classification.Confidence:0}%";
+            InsConfRow.Visibility = Visibility.Visible;
+            if (a.Classification.Evidence.Count > 0)
+            {
+                InsEvidence.Text = string.Join("\n", a.Classification.Evidence.Select(ev =>
+                    $"{ev.Kind,-22} {(ev.ScoreContribution > 0 ? "+" : "")}{ev.ScoreContribution:0}  {ev.Detail}"));
+                InsEvidenceBtn.Visibility = Visibility.Visible;
+            }
         }
         else
         {
             InsReason.Text = "Could not analyze this file.";
         }
     }
+
+    private void InsEvidence_Click(object sender, RoutedEventArgs e)
+        => InsEvidence.Visibility = InsEvidence.Visibility == Visibility.Visible
+            ? Visibility.Collapsed : Visibility.Visible;
 
     private void ShowInFolder_Click(object sender, RoutedEventArgs e)
     {
@@ -281,6 +320,87 @@ public sealed partial class FilesPage : Page
         ItemCount.Text = result.IsSuccess
             ? $"Indexed {result.Value!.Indexed} file(s) ({result.Value.Hashed} hashed)."
             : $"Indexing failed: {result.Error!.Message}";
+        await LoadIndexAsync();
+    }
+
+    /// <summary>Real rename via the backend: a one-item ActionPlan executed
+    /// through the transaction engine, so it is safety-checked, verified,
+    /// recorded in Activity and undoable like any organizer op.</summary>
+    private async void Rename_Click(object sender, RoutedEventArgs e)
+    {
+        if (FileList.SelectedItem is not FileRow row) return;
+        var c = row.Candidate;
+        var nameBox = new TextBox { Text = c.DisplayName, Width = 320 };
+        var dlg = new ContentDialog
+        {
+            Title = "Rename file",
+            Content = nameBox,
+            PrimaryButtonText = "Rename",
+            CloseButtonText = "Cancel",
+            XamlRoot = XamlRoot,
+            DefaultButton = ContentDialogButton.Primary
+        };
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        var newName = nameBox.Text.Trim();
+        if (newName.Length == 0 || newName == c.DisplayName) return;
+
+        var be = await App.Backend;
+        var plan = new ActionPlan
+        {
+            PlanId = $"rename-{Guid.NewGuid():N}",
+            CreatedAt = DateTimeOffset.Now,
+            SourceDecision = "manual rename from Files",
+            Items =
+            [
+                new ActionItem
+                {
+                    Operation = OperationType.Rename,
+                    Source = c.SourceUri,
+                    Destination = newName,
+                    Reason = "User-initiated rename from the Files inspector."
+                }
+            ],
+            DryRun = false,
+            ReversibleEstimate = true
+        };
+        var record = await be.Pipeline.ExecuteAsync(plan);
+        if (!record.IsSuccess)
+        {
+            InsReason.Text = $"Rename failed: {record.Error!.Message}";
+            return;
+        }
+        // keep the index + decision cache truthful for the new path
+        _decisions.Remove(c.SourceUri);
+        var renamed = record.Value!.Items.FirstOrDefault()?.ResultingLocation;
+        await RescanDirAsync(ParentDir(c.SourceUri));
+        InsReason.Text = renamed is { } r ? $"Renamed → {r}" : "Renamed.";
+    }
+
+    /// <summary>Re-enumerates a scope folder and merges it into the index —
+    /// mockup's rescan affordance on the selected scope.</summary>
+    private async void Rescan_Click(object sender, RoutedEventArgs e)
+    {
+        var root = _scopePrefix.Length > 0 ? _scopePrefix
+            : _all.Select(c => ParentDir(c.SourceUri))
+                  .OrderBy(p => p.Length).FirstOrDefault();
+        if (root is null || root.Length == 0) return;
+        await RescanDirAsync(root);
+    }
+
+    private async Task RescanDirAsync(string dirUri)
+    {
+        var path = dirUri;
+        if (path.StartsWith("file:///", StringComparison.Ordinal))
+            path = Uri.UnescapeDataString(new Uri(path).LocalPath);
+        ItemCount.Text = $"Rescanning {path}…";
+        var be = await App.Backend;
+        var candidates = new List<FileCandidate>();
+        await foreach (var cand in be.Pipeline.ScanAsync(path, recursive: true))
+            candidates.Add(cand);
+        var result = await be.Pipeline.IndexAsync(candidates);
+        ItemCount.Text = result.IsSuccess
+            ? $"Rescanned — indexed {result.Value!.Indexed} file(s)."
+            : $"Rescan failed: {result.Error!.Message}";
         await LoadIndexAsync();
     }
 
