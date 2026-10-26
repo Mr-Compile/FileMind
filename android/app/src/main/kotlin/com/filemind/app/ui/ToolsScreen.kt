@@ -10,15 +10,24 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DriveFileMove
 import androidx.compose.material.icons.filled.DriveFileRenameOutline
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Rule
 import androidx.compose.material.icons.filled.SmartToy
 import androidx.compose.material.icons.filled.Storage
+import androidx.compose.material.icons.filled.Upload
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +36,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -48,12 +60,14 @@ import com.filemind.app.vm.backendViewModel
 
 private data class ToolRow(
     val name: String, val desc: String, val icon: ImageVector,
-    val available: Boolean, val route: String?)
+    val available: Boolean, val onClick: (() -> Unit)?)
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ToolsScreen(app: FileMindApp, nav: NavHostController) {
     val vm = backendViewModel(app) { ToolsViewModel(it) }
     val state by vm.state.collectAsState()
+    var showCleanup by remember { mutableStateOf(false) }
 
     val owner = LocalLifecycleOwner.current
     DisposableEffect(owner) {
@@ -64,16 +78,28 @@ fun ToolsScreen(app: FileMindApp, nav: NavHostController) {
         onDispose { owner.lifecycle.removeObserver(obs) }
     }
 
-    // Truthful availability — only Organize + Rules are real on Android.
+    // Same tool catalog as the Windows app — truthful availability per platform:
+    // rows that exist on Android navigate; the rest carry a Planned chip.
     val tools = listOf(
         ToolRow("Organize", "Scan a folder, review suggestions, apply safely.",
-            Icons.Filled.DriveFileMove, true, Routes.Organizer),
+            Icons.Filled.DriveFileMove, true) { nav.navigate(Routes.Organizer) },
+        ToolRow("Smart Inbox",
+            "${state.inboxCount} file(s) waiting for a human decision.",
+            Icons.Filled.Badge, true) { nav.navigate(Routes.Activity) },
         ToolRow("Find duplicates", "Detect identical files by content hash.",
             Icons.Filled.ContentCopy, false, null),
+        ToolRow("Cleanup", "Largest indexed files — review before removing anything.",
+            Icons.Filled.Delete, true) { showCleanup = true },
+        ToolRow("Undo history", "Every operation carries a reversible recipe.",
+            Icons.Filled.History, true) { nav.navigate(Routes.Activity) },
+        ToolRow("Watch folders", "Background organize on change — WorkManager job planned.",
+            Icons.Filled.Visibility, false, null),
         ToolRow("AI suggestions", "AI-assisted classification suggestions.",
             Icons.Filled.SmartToy, false, null),
         ToolRow("Rename patterns", "Batch rename via naming templates.",
-            Icons.Filled.DriveFileRenameOutline, false, null)
+            Icons.Filled.DriveFileRenameOutline, false, null),
+        ToolRow("Export profile", "Versioned organizer-profile.json export.",
+            Icons.Filled.Upload, false, null)
     )
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
@@ -122,7 +148,7 @@ fun ToolsScreen(app: FileMindApp, nav: NavHostController) {
                         StatusChip(plannedChip())
                     }
                 },
-                onClick = { tool.route?.let { nav.navigate(it) } })
+                onClick = { tool.onClick?.invoke() })
         }
 
         SectionHeader("Rules (${state.rules.size})")
@@ -147,5 +173,33 @@ fun ToolsScreen(app: FileMindApp, nav: NavHostController) {
             }
         }
         Spacer(Modifier.height(Spacing.s12))
+    }
+
+    // Cleanup — the largest indexed files, straight from the index.
+    if (showCleanup) {
+        ModalBottomSheet(onDismissRequest = { showCleanup = false }) {
+            Column(Modifier.padding(Spacing.s4)) {
+                Text("Largest indexed files",
+                    style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(Spacing.s2))
+                if (state.largest.isEmpty()) {
+                    Text("Nothing indexed yet — organize a folder first.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                } else {
+                    LazyColumn {
+                        items(state.largest) { f ->
+                            ListRow(
+                                title = f.displayName,
+                                subtitle = "${formatBytes(f.sizeBytes)} · " +
+                                    shortPath(f.sourceUri, 44),
+                                icon = { Icon(Icons.Filled.Delete, null,
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant) })
+                        }
+                    }
+                }
+                Spacer(Modifier.height(Spacing.s4))
+            }
+        }
     }
 }

@@ -22,7 +22,9 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Rule
+import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Update
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -200,6 +202,24 @@ fun SettingsScreen(app: FileMindApp, nav: NavHostController) {
                     trailing = { Icon(Icons.Filled.ChevronRight, null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     onClick = { nav.navigate("devices") })
+                // Same Advanced row as the Windows settings — the real Room DB.
+                ListRow(
+                    title = "Local database",
+                    subtitle = "filemind.db (Room) · schema v2",
+                    icon = { Icon(Icons.Filled.Storage, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) })
+            }
+        }
+
+        // Updates
+        SectionHeader("Updates")
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(vertical = Spacing.s1)) {
+                ListRow(
+                    title = "App updates",
+                    subtitle = "No auto-update channel — new versions install manually",
+                    icon = { Icon(Icons.Filled.Update, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) })
             }
         }
 

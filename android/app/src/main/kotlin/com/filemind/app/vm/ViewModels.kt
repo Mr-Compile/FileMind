@@ -278,8 +278,10 @@ data class ToolsState(
     val loading: Boolean = true,
     val rules: List<Rule> = emptyList(),
     val indexedCount: Int = 0,
+    val inboxCount: Int = 0,
     val kindBreakdown: Map<String, Int> = emptyMap(),
-    val bytesByKind: Map<String, Long> = emptyMap()
+    val bytesByKind: Map<String, Long> = emptyMap(),
+    val largest: List<FileCandidate> = emptyList()
 )
 
 class ToolsViewModel(private val app: FileMindApp) : ViewModel() {
@@ -300,9 +302,11 @@ class ToolsViewModel(private val app: FileMindApp) : ViewModel() {
                 loading = false,
                 rules = app.backend.rules.getAll().value ?: emptyList(),
                 indexedCount = index.size,
+                inboxCount = app.backend.smartInbox.getOpen().value?.size ?: 0,
                 kindBreakdown = index.groupingBy(::bucket).eachCount(),
                 bytesByKind = index.groupBy(::bucket)
-                    .mapValues { (_, g) -> g.sumOf { it.sizeBytes } }
+                    .mapValues { (_, g) -> g.sumOf { it.sizeBytes } },
+                largest = index.sortedByDescending { it.sizeBytes }.take(10)
             )
         }
     }
