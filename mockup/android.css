@@ -250,9 +250,10 @@ body.android-mockup {
 }
 .a-row.selected .a-check { background: var(--fm-primary); border-color: var(--fm-primary); }
 
-/* ---------- control row: picker button + filter button (no h-scroll) ---------- */
+/* ---------- control row: picker + searchbar + rescan + filter button ---------- */
 .a-ctl { display: flex; align-items: center; gap: var(--sp-2); }
 .a-ctl .grow { flex: 1; min-width: 0; }
+.a-ctl .a-pick { flex: 0 1 auto; min-width: 0; max-width: 45%; }
 .a-ctl-sub { font-size: 12px; color: var(--fm-text-secondary); padding: 0 var(--sp-1); }
 .a-pick {
   display: inline-flex;

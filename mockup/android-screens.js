@@ -330,9 +330,9 @@ FM.screen("files", (m) => {
 
     m.innerHTML = `
       <div class="a-page">
-        <div class="a-searchbar">${FM.icon("search", "sm")}<input id="fq" type="search" placeholder="Search in ${st.scope}" value="${FM.esc(st.q)}" aria-label="Search in ${st.scope}"></div>
         <div class="a-ctl">
-          <button class="a-pick grow" id="scope-pick" aria-label="Choose folder">${FM.icon("folder", "sm")}<span class="a-pick-txt">${st.scope}</span>${FM.icon("chevR", "sm")}</button>
+          <button class="a-pick" id="scope-pick" aria-label="Choose folder">${FM.icon("folder", "sm")}<span class="a-pick-txt">${st.scope}</span>${FM.icon("chevR", "sm")}</button>
+          <div class="a-searchbar grow">${FM.icon("search", "sm")}<input id="fq" type="search" placeholder="Search" value="${FM.esc(st.q)}" aria-label="Search in ${st.scope}"></div>
           <button class="a-filterbtn" id="rescan" aria-label="Rescan folder">${FM.icon("retry", "sm")}</button>
           <span id="fbtn"></span>
         </div>
@@ -491,8 +491,7 @@ FM.screen("search", (m) => {
 
     m.innerHTML = `
       <div class="a-page">
-        <div class="a-searchbar lg">${FM.icon("search")}<input id="sq" type="search" placeholder="Search files" value="${FM.esc(st.q)}" aria-label="Search files"></div>
-        <div class="a-ctl"><span id="sbtn"></span></div>
+        <div class="a-ctl"><div class="a-searchbar lg grow">${FM.icon("search")}<input id="sq" type="search" placeholder="Search files" value="${FM.esc(st.q)}" aria-label="Search files"></div><span id="sbtn"></span></div>
         <div class="a-sec">${st.q || activeFilters ? `${list.length} result(s)` : "All indexed files"}</div>
         <div class="a-list" id="slist"></div>
         <div class="a-note">${FM.icon("info", "sm")}<span>Mock search filters in memory. The real app queries the file index; full-text content search is Planned on Android.</span></div>

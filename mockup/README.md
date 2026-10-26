@@ -26,7 +26,7 @@ Nothing here touches real files. Every "operation" mutates in-memory mock state 
 | `flows.js` | Windows Organizer operation flow, Console simulator, Architecture screen |
 | `android.html` | Android phone frame: status/system bars, M3 top app bar, selection bar, bottom nav, dialog/toast roots |
 | `android.css` | M3 Minimal Utility styling on the same `--fm-*` tokens: sheets, FAB, bottom nav, 48dp rows, picker/filter rows, progress bars — no `overflow-x`; `.content` is the only scrolling surface (scrollbars hidden, outer page scroll locked) |
-| `android-screens.js` | Android screens on `FM.screen`: Home, Files (scope picker + filter sheet + long-press selection + rename validation), Search (filter sheet: scope/kind/size), Organizer (permission → scope → plan w/ dry-run + preserve-tree → cancellable run → undo), Activity (live ops + real undo + retry + legend), Devices (SAF grant coverage), Tools (rules toggles + storage demo), Settings, Help |
+| `android-screens.js` | Android screens on `FM.screen`: Home, Files (scope picker + filter sheet + long-press selection + rename validation), Search (filter sheet: scope/kind/size), Organizer (permission → scope → plan w/ dry-run + preserve-tree → cancellable run → undo), Activity (live ops + real undo + retry + legend), Devices (SAF grant coverage), Tools (rules toggles + storage demo), Settings, Help. PLAN-024: folder/search/filters share one control row on Files + Search |
 
 ## Token contract
 
