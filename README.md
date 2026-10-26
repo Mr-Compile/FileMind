@@ -1,12 +1,18 @@
 # FileMind
 
-> Offline-first, privacy-first, reversible smart file organizer for Windows and Android. Backend-first implementation.
+> Smart, offline-first, reversible file organization for Windows and Android — scan, classify, build folder structures, move safely, verify, undo.
 
 ## Purpose
-FileMind organizes files locally using deterministic rules and classification. Optional Groq AI may suggest, but only the deterministic `Decision -> Safety -> ActionPlan -> Platform Adapter -> Verify -> History` pipeline may mutate files. See `docs/packs/foundation-pack/` and `docs/packs/backend-roadmap/` for the approved product and backend intent.
+FileMind is a smart automatic file **organization** system — not a file manager. It analyzes your files (type, name, metadata, content, subject codes), builds a meaningful structure under `organized/` (e.g. `School/IT-412/Document/…` or `Files/Image/…`), moves files through a safety-checked, transactional pipeline, and keeps every run undoable. Optional Groq AI may suggest, but only the deterministic `Decision -> Safety -> ActionPlan -> Platform Adapter -> Verify -> History` pipeline may mutate files. Approved intent: `docs/packs/foundation-pack/` + `docs/packs/backend-roadmap/`; product bible: `docs/product/PRODUCT.md`.
 
 ## Status
-M0–M3 implemented and verified (see `docs/plans/PLAN-001-MEGAPLAN.md`): domain contracts/engines, application pipeline, Windows FS adapter, SQLite persistence, console host. Branding palette adopted per `docs/plans/PLAN-002-MEGAPLAN.md` (`branding/` canonical tokens + `FileMind.Branding` constants). The native Windows app (`src/FileMind.WinUI`, WinUI 3) is implemented and verified on a dev-signed unpackaged build — see `docs/plans/PLAN-014-MEGAPLAN.md` + `docs/qa/QA_EVIDENCE_PLAN-014.md`. The native Android app (`android/app`, Jetpack Compose + Material 3) builds and packages a debug APK; emulator runtime verification is tracked in `docs/plans/PLAN-021-MEGAPLAN.md`. Check `docs/features/FEATURES.md` for per-feature status labels.
+Both native clients are implemented and verified:
+
+- **Windows** (`src/FileMind.WinUI`, WinUI 3 + `src/FileMind.Windows.Host` console): full pipeline, watch automation, FTS5 search, Groq advisory layer, duplicates/storage, profile import/export, correction learning — verified on dev-signed builds (`docs/qa/QA_EVIDENCE_PLAN-014.md`). 314 tests pass.
+- **Android** (`android/`, Jetpack Compose + Room + WorkManager, `com.filemind.app`): verified **on-device** (Infinix X6725B, Android 15) — SAF grant flow, recursive scans, subject-based routing (`School/{Subject}/{FileKind}`), Moves under tree-scoped permissions, undo of partial runs, Smart Inbox, rename, Activity needs-attention separation, organizer state preservation + run-in-progress nav guard. Subjects are managed in Settings → Subjects.
+- **Mockup** (`mockup/`): dependency-free interactive HTML mirror of both UIs; kept in sync per `docs/rules/MOCKUP_RULES.md`.
+
+Check `docs/features/FEATURES.md` for per-feature status labels (`EXISTING`/`INCOMPLETE`/`PROPOSED`/…).
 
 **UI preview:** `mockup/` is a dependency-free interactive HTML/CSS/JS mockup of the approved UI — open `mockup/index.html` in a browser (works over `file://`). It drives the real pipeline semantics (scan → analyze → plan → safety → execute → verify → undo) on mock data and must stay in sync with code per `docs/rules/MOCKUP_RULES.md`.
 
@@ -14,7 +20,16 @@ M0–M3 implemented and verified (see `docs/plans/PLAN-001-MEGAPLAN.md`): domain
 
 ```bash
 dotnet build FileMind.slnx --artifacts-path <outdir>   # 0 warnings, 0 errors
-dotnet test  FileMind.slnx --artifacts-path <outdir>   # 90 tests pass
+dotnet test  FileMind.slnx --artifacts-path <outdir>   # 314 tests pass
+# If Smart App Control blocks fresh test binaries: use the byte-loading
+# runner — dotnet fsi tools/sac-test-runner.fsx -- <outdir>/bin/<Tests>/debug …
+```
+
+Android:
+
+```bash
+cd android && ./gradlew.bat installDebug   # needs JAVA_HOME (Android Studio JBR)
+# unit tests: ./gradlew.bat :core:test :platform:testDebugUnitTest
 ```
 
 **Note:** `--artifacts-path` is required on machines where Smart App Control / WDAC blocks unsigned binaries under `C:\wamp64\www` or flags new test DLLs (e.g. `--artifacts-path "$env:USERPROFILE\filemind-artifacts"`). `tests/FileMind.Windows.IntegrationTests` is excluded from the solution for this reason — see its README.

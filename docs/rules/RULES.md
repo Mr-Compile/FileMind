@@ -24,5 +24,29 @@ From `docs/packs/backend-roadmap/AGENTS.md` and `docs/packs/foundation-pack/09-a
 ## Fact Labels
 Use: `EXISTING`, `MISSING`, `BROKEN`, `INCOMPLETE`, `INCONSISTENT`, `LEGACY`, `PROPOSED`, `UNVERIFIED`.
 
+## Organization Safety Rules (product-level, verified intent)
+- Every filesystem mutation originates from an `ActionPlan`, passes the
+  Safety Engine, verifies per-item, and records history with an undo
+  recipe. No other code path moves/copies/renames/deletes files.
+- Never silently overwrite: conflicts resolve via explicit policy
+  (KeepBoth / Skip / Ask / Replace-with-confirmation).
+- Never destructively delete inside the core organizer. Cleanup is a
+  separate feature requiring explicit user confirmation by design.
+- Platform permissions are authoritative: Android writes stay inside
+  persisted SAF tree grants (tree-scoped document URIs); protected and
+  system paths are denied by default.
+- Partially-completed runs are first-class: they end `NeedsAttention`,
+  stay recoverable, and their committed items remain undoable. Do not
+  equate "incomplete" with "currently running".
+- Decisions must be explainable — every organize/skip carries reasons and
+  evidence the UI can surface.
+
+## Offline & AI Boundaries
+- The core workflow (scan → classify → plan → organize → verify → undo →
+  history) must function fully without connectivity.
+- AI providers are advisory only: they return structured suggestions and
+  never mutate files. Absent/denied/offline AI must degrade to the local
+  deterministic result — never to a failure of the workflow.
+
 ## Change Discipline
 Repair before replacing. Reuse before duplicating. Plan before coding. Approval before implementation. QA before completion. Documentation before final handoff. Logical commits after verified work — auto-commit on verified completion per `AGENTS.md`.

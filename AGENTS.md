@@ -3,6 +3,13 @@
 ## Mission
 This file governs AI coding agents working in this repository. The repository is the primary source of truth for implementation. Documentation defines approved intent and constraints but must be compared with code before claims are made.
 
+## Product Context (required reading)
+FileMind is a smart, offline-first, reversible **automatic file organization** system for Android and Windows — `Scan → Understand → Classify → Create Structure → Organize → Verify`. It is not a file manager and not a cleaner. **Before any work, read the Product Bible: `docs/product/PRODUCT.md`** (plus `docs/rules/RULES.md`). Non-negotiables from the bible:
+- All filesystem mutations go through `Decision → Safety → ActionPlan → Adapter → Verify → History`; AI and UI code never mutate directly.
+- Never silently overwrite; never destructively delete in the core organizer; platform permissions (SAF grants / filesystem ACLs) are authoritative.
+- Core features work offline; online AI is an optional advisory enhancement only.
+- Keep user control: preview/dry-run before bulk moves, explainable decisions, undo wherever technically possible.
+
 ## Mandatory Workflow
 1. Audit the relevant codebase before planning.
 2. Read relevant product, rules, architecture, feature, plan, and QA documents.
