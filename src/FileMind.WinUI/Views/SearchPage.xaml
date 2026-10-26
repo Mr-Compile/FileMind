@@ -9,7 +9,7 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" /><RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <StackPanel>
@@ -22,8 +22,19 @@
         <TextBox Grid.Row="1" x:Name="QueryBox" PlaceholderText="Search files…"
                  Width="400" HorizontalAlignment="Left" KeyDown="QueryBox_KeyDown" />
 
-        <!-- kind chips -->
+        <!-- scope chips (mockup: all/downloads/documents/desktop) -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="scope" Style="{StaticResource FmTextBodySmall}" Width="44"
+                       Foreground="{ThemeResource FmTextSecondaryBrush}" VerticalAlignment="Center" />
+            <ItemsControl x:Name="ScopeChips">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="8" /></ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- kind chips -->
+        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8">
             <TextBlock Text="kind" Style="{StaticResource FmTextBodySmall}" Width="44"
                        Foreground="{ThemeResource FmTextSecondaryBrush}" VerticalAlignment="Center" />
             <ItemsControl x:Name="KindChips">
@@ -34,7 +45,7 @@
         </StackPanel>
 
         <!-- size chips -->
-        <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="8">
+        <StackPanel Grid.Row="4" Orientation="Horizontal" Spacing="8">
             <TextBlock Text="size" Style="{StaticResource FmTextBodySmall}" Width="44"
                        Foreground="{ThemeResource FmTextSecondaryBrush}" VerticalAlignment="Center" />
             <ItemsControl x:Name="SizeChips">
@@ -44,62 +55,98 @@
             </ItemsControl>
         </StackPanel>
 
-        <Grid Grid.Row="4">
-            <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" /><RowDefinition Height="*" />
-            </Grid.RowDefinitions>
-            <TextBlock x:Name="Summary" Style="{StaticResource FmTextBodySmall}"
-                       Foreground="{ThemeResource FmTextSecondaryBrush}" Margin="0,4,0,8" />
-            <Border Grid.Row="1" BorderBrush="{ThemeResource FmBorderBrush}" BorderThickness="1"
-                    CornerRadius="{StaticResource FmRadiusMediumValue}"
-                    Background="{ThemeResource FmSurfacePrimaryBrush}">
-                <Grid>
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto" /><RowDefinition Height="*" />
-                    </Grid.RowDefinitions>
-                    <Border BorderBrush="{ThemeResource FmBorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
-                        <Grid ColumnSpacing="16">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="3*" /><ColumnDefinition Width="90" />
-                                <ColumnDefinition Width="90" /><ColumnDefinition Width="140" />
-                                <ColumnDefinition Width="2*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Text="Name" Style="{StaticResource FmTextH3}" />
-                            <TextBlock Grid.Column="1" Text="Type" Style="{StaticResource FmTextH3}" />
-                            <TextBlock Grid.Column="2" Text="Size" Style="{StaticResource FmTextH3}" />
-                            <TextBlock Grid.Column="3" Text="Modified" Style="{StaticResource FmTextH3}" />
-                            <TextBlock Grid.Column="4" Text="Location" Style="{StaticResource FmTextH3}" />
+        <Grid Grid.Row="5" ColumnSpacing="{StaticResource FmSpace3}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" /><ColumnDefinition Width="280" />
+            </Grid.ColumnDefinitions>
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" /><RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock x:Name="Summary" Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmTextSecondaryBrush}" Margin="0,4,0,8" />
+                <Border Grid.Row="1" BorderBrush="{ThemeResource FmBorderBrush}" BorderThickness="1"
+                        CornerRadius="{StaticResource FmRadiusMediumValue}"
+                        Background="{ThemeResource FmSurfacePrimaryBrush}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" /><RowDefinition Height="*" />
+                        </Grid.RowDefinitions>
+                        <Border BorderBrush="{ThemeResource FmBorderBrush}" BorderThickness="0,0,0,1" Padding="12,8">
+                            <Grid ColumnSpacing="16">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="3*" /><ColumnDefinition Width="90" />
+                                    <ColumnDefinition Width="90" /><ColumnDefinition Width="140" />
+                                    <ColumnDefinition Width="2*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="Name" Style="{StaticResource FmTextH3}" />
+                                <TextBlock Grid.Column="1" Text="Type" Style="{StaticResource FmTextH3}" />
+                                <TextBlock Grid.Column="2" Text="Size" Style="{StaticResource FmTextH3}" />
+                                <TextBlock Grid.Column="3" Text="Modified" Style="{StaticResource FmTextH3}" />
+                                <TextBlock Grid.Column="4" Text="Location" Style="{StaticResource FmTextH3}" />
+                            </Grid>
+                        </Border>
+                        <Grid Grid.Row="1">
+                            <ListView x:Name="ResultList" SelectionMode="Single"
+                                      SelectionChanged="Result_SelectionChanged">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnSpacing="16" Padding="0,2">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="3*" /><ColumnDefinition Width="90" />
+                                                <ColumnDefinition Width="90" /><ColumnDefinition Width="140" />
+                                                <ColumnDefinition Width="2*" />
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Grid.Column="1" Text="{Binding Kind}"
+                                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                                            <TextBlock Grid.Column="2" Text="{Binding Size}"
+                                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                                            <TextBlock Grid.Column="3" Text="{Binding Modified}"
+                                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                                            <TextBlock Grid.Column="4" Text="{Binding Path}"
+                                                       TextTrimming="CharacterEllipsis" FontSize="11"
+                                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                            </ListView>
+                            <!-- empty state + clear-all recovery (mockup s-clear) -->
+                            <StackPanel>
+                                <c:FmStateView x:Name="Empty" State="Empty" Title="Search your files"
+                                    Body="Type a name, or filter by kind, scope and size — results come from the local FTS5 index." />
+                                <Button x:Name="ClearAllBtn" Content="Clear all filters"
+                                        Click="ClearAll_Click" HorizontalAlignment="Center"
+                                        Visibility="Collapsed" />
+                            </StackPanel>
                         </Grid>
-                    </Border>
-                    <Grid Grid.Row="1">
-                        <ListView x:Name="ResultList">
-                            <ListView.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid ColumnSpacing="16" Padding="0,2">
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="3*" /><ColumnDefinition Width="90" />
-                                            <ColumnDefinition Width="90" /><ColumnDefinition Width="140" />
-                                            <ColumnDefinition Width="2*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
-                                        <TextBlock Grid.Column="1" Text="{Binding Kind}"
-                                                   Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                                        <TextBlock Grid.Column="2" Text="{Binding Size}"
-                                                   Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                                        <TextBlock Grid.Column="3" Text="{Binding Modified}"
-                                                   Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                                        <TextBlock Grid.Column="4" Text="{Binding Path}"
-                                                   TextTrimming="CharacterEllipsis" FontSize="11"
-                                                   Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                                    </Grid>
-                                </DataTemplate>
-                            </ListView.ItemTemplate>
-                        </ListView>
-                        <c:FmStateView x:Name="Empty" State="Empty" Title="Search your files"
-                            Body="Type a name, or filter by kind and size — results come from the local FTS5 index." />
                     </Grid>
-                </Grid>
-            </Border>
+                </Border>
+            </Grid>
+
+            <!-- result inspector -->
+            <c:FmBentoCard Grid.Column="1" x:Name="Inspector" IconGlyph="&#xE946;" Header="Details">
+                <c:FmBentoCard.CardContent>
+                    <StackPanel Spacing="{StaticResource FmSpace2}">
+                        <TextBlock x:Name="InsName" Style="{StaticResource FmTextBody}"
+                                   FontWeight="SemiBold" TextWrapping="Wrap" />
+                        <TextBlock x:Name="InsHint" Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   Text="Select a result to see where it lives." TextWrapping="Wrap" />
+                        <StackPanel x:Name="InsBody" Spacing="{StaticResource FmSpace2}" Visibility="Collapsed">
+                            <TextBlock x:Name="InsMeta" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap" />
+                            <TextBlock x:Name="InsPath" Style="{StaticResource FmTextBodySmall}"
+                                       FontFamily="Consolas" FontSize="11"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap" />
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Button Content="Show in folder" Click="ShowInFolder_Click" />
+                                <Button Content="Copy path" Click="CopyPath_Click" />
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+                </c:FmBentoCard.CardContent>
+            </c:FmBentoCard>
         </Grid>
     </Grid>
 </Page>
