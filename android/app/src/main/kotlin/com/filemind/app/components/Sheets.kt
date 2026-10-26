@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.clickable
@@ -30,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.filemind.app.theme.Spacing
 import com.filemind.app.theme.semantic
 import com.filemind.core.app.AnalyzedFile
@@ -238,6 +241,72 @@ fun FilterSheet(
                 Button(onClick = onDismiss) { Text("Done") }
             }
         }
+    }
+}
+
+/** Single-select picker option — mirrors the mockup's A.picker items. */
+data class PickerOption(
+    val value: String,
+    val label: String,
+    val sub: String? = null,
+    val right: (@Composable () -> Unit)? = null
+)
+
+/** Single-select picker sheet — the phone answer to dropdowns. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PickerSheet(
+    title: String,
+    options: List<PickerOption>,
+    selected: String?,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(Modifier.fillMaxWidth().padding(bottom = Spacing.s4)) {
+            Text(title, style = MaterialTheme.typography.titleLarge,
+                modifier = Modifier.padding(horizontal = Spacing.s4, vertical = Spacing.s2))
+            options.forEach { opt ->
+                val isOn = opt.value == selected
+                ListItem(
+                    headlineContent = { Text(opt.label) },
+                    supportingContent = opt.sub?.let { { Text(it, maxLines = 1) } },
+                    trailingContent = {
+                        if (isOn) Icon(Icons.Filled.Check, contentDescription = "Selected",
+                            tint = MaterialTheme.colorScheme.primary)
+                        else opt.right?.invoke()
+                    },
+                    modifier = Modifier.clickable { onPick(opt.value); onDismiss() }
+                )
+            }
+        }
+    }
+}
+
+/** Switch row — mirrors the mockup's A.switchRow (settings/toggles). */
+@Composable
+fun SwitchRow(
+    title: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    subtitle: String? = null,
+    icon: (@Composable () -> Unit)? = null
+) {
+    Row(
+        modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = Spacing.s1),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) { icon(); Spacer(Modifier.width(Spacing.s3)) }
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium)
+            if (subtitle != null) {
+                Text(subtitle, style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        androidx.compose.material3.Switch(checked = checked, onCheckedChange = onCheckedChange)
     }
 }
 

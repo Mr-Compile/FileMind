@@ -66,9 +66,11 @@ private val LightScheme = lightColorScheme(
 )
 
 private val DarkScheme = darkColorScheme(
-    primary = Color(0xFF60A5FA),
-    secondary = Color(0xFF818CF8),
-    tertiary = Color(0xFFA78BFA),
+    // Canonical brand tokens stay verbatim in dark — the mockup keeps
+    // --fm-primary:#2563EB for both themes (branding/colors.css).
+    primary = BrandColors.Primary,
+    secondary = BrandColors.Secondary,
+    tertiary = BrandColors.Accent,
     error = Color(0xFFF87171),
     background = BrandColors.Dark.Background,
     surface = BrandColors.Dark.Surface,

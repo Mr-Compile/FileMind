@@ -3,19 +3,33 @@ package com.filemind.app.nav
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BrightnessAuto
+import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Folder
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -76,7 +90,16 @@ fun AppShell(app: FileMindApp) {
     val nav = rememberNavController()
     val backEntry by nav.currentBackStackEntryAsState()
     val route = backEntry?.destination?.route ?: Routes.Home
+    val snackbar = remember { SnackbarHostState() }
+    val theme by app.settingsViewModel.themeMode.collectAsState()
+    var inboxCount by remember { mutableIntStateOf(0) }
 
+    // Open-inbox badge — refreshed on route change (mockup's #opcount).
+    LaunchedEffect(route) {
+        inboxCount = app.backend.smartInbox.getOpen().value?.size ?: 0
+    }
+
+    CompositionLocalProvider(com.filemind.app.components.LocalSnackbar provides snackbar) {
     NavigationSuiteScaffold(
         navigationSuiteItems = {
             Routes.primary.forEach { dest ->
@@ -96,11 +119,44 @@ fun AppShell(app: FileMindApp) {
         }
     ) {
         Scaffold(
+            snackbarHost = { SnackbarHost(snackbar) },
             topBar = {
                 // No Up affordance in the app bar — Android's system Back
                 // (gesture/button) unwinds the NavController stack.
                 TopAppBar(
-                    title = { Text(titles[route] ?: "FileMind") }
+                    title = { Text(titles[route] ?: "FileMind") },
+                    actions = {
+                        IconButton(onClick = { nav.navigate(Routes.Search) }) {
+                            Icon(Icons.Filled.Search, contentDescription = "Search")
+                        }
+                        IconButton(onClick = { nav.navigate(Routes.Activity) }) {
+                            BadgedBox(badge = {
+                                if (inboxCount > 0) Badge { Text("$inboxCount") }
+                            }) {
+                                Icon(Icons.Filled.History,
+                                    contentDescription = "Operation center")
+                            }
+                        }
+                        IconButton(onClick = {
+                            app.settingsViewModel.setTheme(when (theme) {
+                                com.filemind.app.theme.ThemeMode.System ->
+                                    com.filemind.app.theme.ThemeMode.Light
+                                com.filemind.app.theme.ThemeMode.Light ->
+                                    com.filemind.app.theme.ThemeMode.Dark
+                                com.filemind.app.theme.ThemeMode.Dark ->
+                                    com.filemind.app.theme.ThemeMode.System
+                            })
+                        }) {
+                            Icon(when (theme) {
+                                com.filemind.app.theme.ThemeMode.System ->
+                                    Icons.Filled.BrightnessAuto
+                                com.filemind.app.theme.ThemeMode.Light ->
+                                    Icons.Filled.LightMode
+                                com.filemind.app.theme.ThemeMode.Dark ->
+                                    Icons.Filled.DarkMode
+                            }, contentDescription = "Change theme")
+                        }
+                    }
                 )
             }
         ) { padding ->
@@ -129,5 +185,6 @@ fun AppShell(app: FileMindApp) {
                 composable(Routes.HelpLicenses) { HelpScreens.Licenses() }
             }
         }
+    }
     }
 }

@@ -5,25 +5,27 @@ import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Devices
+import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Rule
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -38,11 +40,17 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import com.filemind.app.FileMindApp
+import com.filemind.app.components.ListRow
 import com.filemind.app.components.PermissionExplainer
+import com.filemind.app.components.PickerOption
+import com.filemind.app.components.PickerSheet
 import com.filemind.app.components.SectionHeader
+import com.filemind.app.components.StatusChip
+import com.filemind.app.components.chipSpec
 import com.filemind.app.nav.Routes
 import com.filemind.app.theme.Spacing
 import com.filemind.app.theme.ThemeMode
+import com.filemind.app.vm.backendViewModel
 import com.filemind.core.contracts.OrganizationMode
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,107 +60,169 @@ fun SettingsScreen(app: FileMindApp, nav: NavHostController) {
     val settings = app.settingsViewModel
     val theme by settings.themeMode.collectAsState()
     val orgMode by settings.orgMode.collectAsState()
+    val grantsVm = backendViewModel(app) { com.filemind.app.vm.DevicesViewModel(it) }
+    val devices by grantsVm.state.collectAsState()
+
     var notifExplainer by remember { mutableStateOf(false) }
+    var showThemePicker by remember { mutableStateOf(false) }
+    var showModePicker by remember { mutableStateOf(false) }
+    var showFolderPicker by remember { mutableStateOf(false) }
 
     val notifPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { }
 
+    val notifGranted = Build.VERSION.SDK_INT < 33 ||
+        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
+            PackageManager.PERMISSION_GRANTED
+
+    val version = remember {
+        runCatching {
+            context.packageManager.getPackageInfo(context.packageName, 0)
+                .versionName ?: "dev"
+        }.getOrDefault("dev")
+    }
+
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())
         .padding(Spacing.s4)) {
 
+        // General
         SectionHeader("General")
         Card(Modifier.fillMaxWidth()) {
-            Column(Modifier.padding(Spacing.s4)) {
-                Text("Organization mode", style = MaterialTheme.typography.titleMedium)
-                Text("How the organizer treats confident suggestions.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(Spacing.s2))
-                /* Segmented row fills width — no horizontal scroll on phones. */
-                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-                    listOf(OrganizationMode.Manual, OrganizationMode.Smart,
-                        OrganizationMode.Automatic).forEachIndexed { i, m ->
-                        SegmentedButton(
-                            selected = orgMode == m,
-                            onClick = { settings.setOrgMode(m) },
-                            shape = SegmentedButtonDefaults.itemShape(i, 3),
-                            label = { Text(m.name) })
-                    }
-                }
-                Spacer(Modifier.height(Spacing.s1))
-                Text("AI-assisted and local-only modes are planned — the AI " +
-                    "provider isn't shipped on Android yet.",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Column(Modifier.padding(vertical = Spacing.s1)) {
+                ListRow(
+                    title = "Appearance",
+                    subtitle = when (theme) {
+                        ThemeMode.System -> "Follow system"
+                        ThemeMode.Light -> "Light"
+                        ThemeMode.Dark -> "Dark"
+                    },
+                    icon = { Icon(Icons.Filled.DarkMode, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailing = { Icon(Icons.Filled.ChevronRight, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { showThemePicker = true })
+                ListRow(
+                    title = "Default folder",
+                    subtitle = devices.grants.firstOrNull()?.let { shortPath(it.treeUri, 40) }
+                        ?: "None granted yet",
+                    icon = { Icon(Icons.Filled.Folder, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailing = { Icon(Icons.Filled.ChevronRight, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { showFolderPicker = true })
             }
         }
 
-        Spacer(Modifier.height(Spacing.s4))
-        SectionHeader("Appearance")
+        // Organization
+        SectionHeader("Organization")
         Card(Modifier.fillMaxWidth()) {
-            SingleChoiceSegmentedButtonRow(
-                Modifier.fillMaxWidth().padding(Spacing.s4)) {
-                ThemeMode.entries.forEachIndexed { i, m ->
-                    SegmentedButton(
-                        selected = theme == m,
-                        onClick = { settings.setTheme(m) },
-                        shape = SegmentedButtonDefaults.itemShape(i, ThemeMode.entries.size),
-                        label = { Text(m.name) })
-                }
+            Column(Modifier.padding(vertical = Spacing.s1)) {
+                ListRow(
+                    title = "Organization mode",
+                    subtitle = when (orgMode) {
+                        OrganizationMode.Manual -> "Manual — you approve every run"
+                        OrganizationMode.Smart -> "Smart — confident moves run after preview"
+                        OrganizationMode.Automatic -> "Automatic — runs without asking"
+                        OrganizationMode.AiAssisted -> "AI-assisted — provider not shipped yet"
+                        OrganizationMode.LocalOnly -> "Local-only — on-device rules only"
+                    },
+                    icon = { Icon(Icons.Filled.Tune, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailing = { Icon(Icons.Filled.ChevronRight, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { showModePicker = true })
+                ListRow(
+                    title = "Rules",
+                    subtitle = "Toggle organization rules on or off",
+                    icon = { Icon(Icons.Filled.Rule, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailing = { Icon(Icons.Filled.ChevronRight, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { nav.navigate(Routes.Tools) })
             }
         }
 
-        Spacer(Modifier.height(Spacing.s4))
-        SectionHeader("Permissions")
-        Card(modifier = Modifier.fillMaxWidth(), onClick = { nav.navigate("devices") }) {
-            Row(Modifier.padding(Spacing.s4),
-                verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Folder access", style = MaterialTheme.typography.titleMedium)
-                    Text("Manage granted folders (SAF)",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Icon(Icons.Filled.ChevronRight, contentDescription = null)
-            }
-        }
-        Spacer(Modifier.height(Spacing.s2))
+        // Notifications
+        SectionHeader("Notifications")
         Card(Modifier.fillMaxWidth()) {
-            Row(Modifier.padding(Spacing.s4),
-                verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Notifications", style = MaterialTheme.typography.titleMedium)
-                    val granted = Build.VERSION.SDK_INT < 33 ||
-                        context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) ==
-                            PackageManager.PERMISSION_GRANTED
-                    Text(if (granted) "Allowed" else "Not granted",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                if (Build.VERSION.SDK_INT >= 33 &&
-                    context.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) !=
-                        PackageManager.PERMISSION_GRANTED) {
-                    TextButton(onClick = { notifExplainer = true }) { Text("Allow") }
-                }
+            Column(Modifier.padding(vertical = Spacing.s1)) {
+                ListRow(
+                    title = "Operation alerts",
+                    subtitle = if (notifGranted)
+                        "Allowed — progress and attention alerts for long runs"
+                    else "Not granted — organize runs complete silently",
+                    icon = { Icon(Icons.Filled.Notifications, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailing = {
+                        if (!notifGranted && Build.VERSION.SDK_INT >= 33) {
+                            TextButton(onClick = { notifExplainer = true }) {
+                                Text("Allow")
+                            }
+                        } else {
+                            StatusChip(chipSpec("success", "On",
+                                Icons.Filled.Notifications))
+                        }
+                    })
             }
         }
 
-        Spacer(Modifier.height(Spacing.s4))
+        // Privacy & access
+        SectionHeader("Privacy & access")
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(vertical = Spacing.s1)) {
+                ListRow(
+                    title = "Folder access",
+                    subtitle = "${devices.grants.size} folder(s) granted — " +
+                        "FileMind only touches folders you pick",
+                    icon = { Icon(Icons.Filled.Folder, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailing = { Icon(Icons.Filled.ChevronRight, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { nav.navigate("devices") })
+                ListRow(
+                    title = "On-device only",
+                    subtitle = "No cloud account — names and metadata stay on this phone",
+                    icon = { Icon(Icons.Filled.Lock, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) })
+            }
+        }
+
+        // Advanced
+        SectionHeader("Advanced")
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(vertical = Spacing.s1)) {
+                ListRow(
+                    title = "Devices & diagnostics",
+                    subtitle = "Device info, storage, granted folders",
+                    icon = { Icon(Icons.Filled.Devices, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailing = { Icon(Icons.Filled.ChevronRight, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { nav.navigate("devices") })
+            }
+        }
+
+        // Help & About
         SectionHeader("Help & About")
-        Card(modifier = Modifier.fillMaxWidth(), onClick = { nav.navigate(Routes.Help) }) {
-            Row(Modifier.padding(Spacing.s4),
-                verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Help & About", style = MaterialTheme.typography.titleMedium)
-                    Text("About, guides, diagnostics, credits",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Icon(Icons.Filled.ChevronRight, contentDescription = null)
+        Card(Modifier.fillMaxWidth()) {
+            Column(Modifier.padding(vertical = Spacing.s1)) {
+                ListRow(
+                    title = "Help & guides",
+                    subtitle = "How organizing, the inbox, and undo work",
+                    icon = { Icon(Icons.Filled.Info, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailing = { Icon(Icons.Filled.ChevronRight, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { nav.navigate(Routes.Help) })
+                ListRow(
+                    title = "FileMind",
+                    subtitle = "Version $version · offline-first file organizer",
+                    icon = { Icon(Icons.Filled.Info, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) })
             }
         }
-        Spacer(Modifier.height(Spacing.s4))
+        Spacer(Modifier.height(Spacing.s12))
     }
 
     if (notifExplainer) {
@@ -165,5 +235,48 @@ fun SettingsScreen(app: FileMindApp, nav: NavHostController) {
                 notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
             },
             onDismiss = { notifExplainer = false })
+    }
+
+    if (showThemePicker) {
+        PickerSheet(
+            title = "Appearance",
+            options = listOf(
+                PickerOption(ThemeMode.System.name, "Follow system",
+                    "Match the device theme"),
+                PickerOption(ThemeMode.Light.name, "Light"),
+                PickerOption(ThemeMode.Dark.name, "Dark")),
+            selected = theme.name,
+            onPick = { settings.setTheme(ThemeMode.valueOf(it)) },
+            onDismiss = { showThemePicker = false })
+    }
+
+    if (showModePicker) {
+        PickerSheet(
+            title = "Organization mode",
+            options = listOf(
+                PickerOption(OrganizationMode.Manual.name, "Manual",
+                    "You approve every organize run"),
+                PickerOption(OrganizationMode.Smart.name, "Smart",
+                    "Confident moves run after a preview"),
+                PickerOption(OrganizationMode.Automatic.name, "Automatic",
+                    "Runs without asking — undo stays available"),
+                PickerOption(OrganizationMode.AiAssisted.name, "AI-assisted",
+                    "Planned — the AI provider isn't shipped on Android yet"),
+                PickerOption(OrganizationMode.LocalOnly.name, "Local-only",
+                    "On-device rules only — no remote features")),
+            selected = orgMode.name,
+            onPick = { settings.setOrgMode(OrganizationMode.valueOf(it)) },
+            onDismiss = { showModePicker = false })
+    }
+
+    if (showFolderPicker) {
+        PickerSheet(
+            title = "Default folder",
+            options = devices.grants.map {
+                PickerOption(it.treeUri, shortPath(it.treeUri, 44), "Granted folder")
+            },
+            selected = devices.grants.firstOrNull()?.treeUri,
+            onPick = { },
+            onDismiss = { showFolderPicker = false })
     }
 }
