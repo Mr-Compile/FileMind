@@ -2,6 +2,12 @@
 
 All notable verified project changes should be recorded here. Do not add planned work as released work.
 
+## 2026-10-26 — Android Top Bar & Scrolling (PLAN-023)
+- `mockup/android.html` + `android-screens.js`: in-app Back button removed from the app bar — the back stack (`A.backStack`/`popBack`/`clearBack`) stays for system-Back parity (Escape in the demo); dead `pushBack`/`syncBack` helpers dropped.
+- `mockup/android.css`: the app content is now the only scrolling surface — `.content`/`.a-sheet` scrollbars hidden (`scrollbar-width:none` + webkit), `body`/`.stage` locked to `100dvh` with `overflow:hidden`, `.phone` `min-height` removed so a short window shrinks the phone instead of scrolling the page.
+- `android/app` `nav/AppShell.kt`: `TopAppBar` `navigationIcon` Up arrow removed — Android system Back unwinds the NavController stack; `isPrimary` + unused `ArrowBack`/`IconButton` imports dropped.
+- Verified: `node --check` clean; zero `back-btn`/`syncBack`/`navigateUp`/`ArrowBack`/`navigationIcon` residue; `overflow-x` still 0; `:app:compileDebugKotlin` green; browser preview served for manual shell checks.
+
 ## 2026-10-26 — Cross-Platform UX Parity (PLAN-022)
 - `mockup/android.html` shell reworked phone-first: **zero horizontal scrolling** inside the phone frame (`.a-scope`/`.a-chips`/`.a-steps` `overflow-x` removed from `android.css`). Files gains a folder scope picker sheet + one Filters button (active-count badge) → M3 bottom sheet (kind + sort + clear-all); Search gains the same filter sheet (scope + kind + size); Organizer steps become `Step N of 5` + linear progress bar.
 - Android mockup raised to feature parity with the Windows mockup via Android idioms — `A.picker`/`A.filterSheet`/`A.filterBtn`/`A.switchRow` helpers, Why? evidence blocks in inspector sheets, rename with Android-invalid-char validation, Rescan action, dashboard Active-ops/Devices/Cleanup cards, Activity real-undo (`RolledBack` record) + retry + canonical status legend, Tools rules toggles + storage-analysis demo, Settings general/notifications/privacy/advanced/reset groups, Organizer dry-run toggle + preserve-tree toggle + cancellable run (AbortController) + real undo.
