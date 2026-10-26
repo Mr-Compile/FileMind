@@ -512,6 +512,19 @@ FM.confirm = ({ title, body, ok = "Continue", kind = "primary", cancel = "Cancel
       </div>`);
     d.el.querySelectorAll("[data-x]").forEach((b) => (b.onclick = () => { d.close(); res(b.dataset.x === "1"); }));
   });
+/* Three-choice confirm (PLAN-028 leave-guard): resolves "ok" | "alt" | "cancel". */
+FM.confirm3 = ({ title, body, ok = "Continue", alt, cancel = "Stay", kind = "primary" }) =>
+  new Promise((res) => {
+    const d = FM.dialog(`
+      <h2>${FM.icon(kind === "destructive" ? "warn" : "info")} ${FM.esc(title)}</h2>
+      <div class="tiny" style="color:var(--fm-text-secondary)">${body}</div>
+      <div class="foot">
+        <button class="btn" data-x="cancel">${FM.esc(cancel)}</button>
+        ${alt ? `<button class="btn" data-x="alt">${FM.esc(alt)}</button>` : ""}
+        <button class="btn ${kind}" data-x="ok">${FM.esc(ok)}</button>
+      </div>`);
+    d.el.querySelectorAll("[data-x]").forEach((b) => (b.onclick = () => { d.close(); res(b.dataset.x); }));
+  });
 FM.menu = (items, x, y) => {
   const m = document.createElement("div");
   m.className = "menu"; m.style.left = x + "px"; m.style.top = y + "px";
@@ -538,6 +551,7 @@ FM.routes = [
   ["devices", "Devices", "devices"],
   ["activity", "Activity", "activity"],
   ["settings", "Settings", "settings"],
+  ["help", "Help & About", "info"],
 ];
 FM.go = (r) => (location.hash = "#/" + r);
 FM.route = () => {
@@ -604,6 +618,27 @@ document.addEventListener("DOMContentLoaded", () => {
   FM.bus.on("ops", updateOpBadge);
   updateOpBadge();
   addEventListener("hashchange", FM.route);
+  /* Leave-guard parity (PLAN-028): exiting the organizer while a run executes
+     asks Keep running / Cancel run / Stay. FM.store.activeOp exists only
+     mid-run on both platforms' screens; the session object survives because
+     organizer state lives outside the screen closure. */
+  addEventListener("hashchange", (e) => {
+    const op = FM.store?.activeOp;
+    const org = FM.state?.org ?? FM.store?.orgSession;
+    if (!op || !org) return;
+    const from = (new URL(e.oldURL).hash || "").replace(/^#\/?/, "").split("?")[0];
+    const to = location.hash.replace(/^#\/?/, "").split("?")[0] || "dashboard";
+    if (from !== "organizer" || to === "organizer") return;
+    FM.confirm3({
+      title: "Run in progress",
+      body: `${op.done} of ${op.total} item(s) done. The run can keep going in the background — the result lands in Activity.`,
+      ok: "Keep running", alt: "Cancel run", cancel: "Stay",
+    }).then((r) => {
+      if (r === "alt") { org.abort?.abort(); return; }
+      if (r === "cancel") location.hash = "#/organizer";
+      // "ok": stay on the new route — the run completes in the background.
+    });
+  });
   FM.route();
   /* splash: brief brand display on boot, then fade (BRAND.md: simple/fast, no fake progress) */
   const splash = document.getElementById("splash");

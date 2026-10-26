@@ -550,7 +550,11 @@ FM.screen("search", (m) => {
 /* ========================================================================= */
 FM.screen("organizer", (m) => {
   A.title("Organizer");
-  const S = { step: "perm", scope: null, scopeName: "", analyzed: null, plan: null, safety: null, done: null, dry: true, tree: false, abort: null };
+  /* Session persists across navigation (PLAN-028: mirrors the app-scoped
+     OrganizerViewModel — leaving and returning resumes the exact step). */
+  const S = (FM.store.orgSession ??= {
+    step: "perm", scope: null, scopeName: "", analyzed: null, plan: null,
+    safety: null, done: null, dry: true, tree: false, abort: null, running: false });
   const trees = A.scopes();
   const STEPS = ["Access", "Folder", "Analyze", "Plan", "Run"];
   const stepIdx = { perm: 0, scope: 1, plan: 3, run: 4, result: 4 };
@@ -676,9 +680,23 @@ FM.screen("organizer", (m) => {
           right: i.operation === "Ask" ? FM.statusChip("Review") : FM.confBar(i._a?.classification.confidence ?? 0),
         }));
       });
-      if (!p.items.length) pl.innerHTML = FM.empty("organize", "Nothing to move", "Every file classified as NoOp — the mock classifier leaves low-confidence files in place.");
+      if (!p.items.length) pl.innerHTML = FM.empty("organize", "Nothing to move", "Files without a recognizable type or confident target stay put — medium-confidence items wait in the Smart Inbox.");
       m.querySelector("#exec").onclick = async () => { S.step = "run"; await runExec(); };
       m.querySelector("#back").onclick = () => { S.step = "scope"; render(); };
+    } else if (S.step === "run") {
+      /* Re-entry while a run executes (PLAN-028): static progress snapshot —
+         the engine keeps ticking via FM.store.activeOp; the result lands in
+         Activity and on next entry here. */
+      const op = FM.store.activeOp;
+      m.innerHTML = `
+        <div class="a-page">
+          ${steps("run")}
+          <section class="a-card">
+            <div class="a-card-head">${FM.icon("activity")}<h2>Running…</h2><span class="grow"></span>${FM.statusChip("Executing")}</div>
+            <div class="a-progress" style="margin:var(--sp-2) 0"><i style="width:${op ? Math.round(op.done / Math.max(1, op.total) * 100) : 0}%"></i></div>
+            <div class="a-card-sub">${op ? `${op.done}/${op.total} item(s)` : "Finishing…"}</div>
+          </section>
+        </div>`;
     } else if (S.step === "result") {
       const done = S.done;
       m.innerHTML = `
@@ -742,6 +760,7 @@ FM.screen("organizer", (m) => {
       return;
     }
     S.abort = new AbortController();
+    S.running = true;
     m.innerHTML = `
       <div class="a-page">
         ${steps("run")}
@@ -780,12 +799,14 @@ FM.screen("organizer", (m) => {
           FM.bus.emit("ops");
         }
       }, S.abort.signal);
+      S.running = false;
       FM.store.activeOp = null; FM.bus.emit("ops");
       FM.store.ops.unshift(record);
       FM.store.activity.unshift({ t: record.committedAt, text: `Organize ${S.scopeName} — ${record.items.length} file(s) moved`, opId: record.operationId });
       S.done = record;
       S.step = "result"; render();
     } catch (e) {
+      S.running = false;
       FM.store.activeOp = null; FM.bus.emit("ops");
       if (e.name === "AbortError") {
         m.innerHTML = `<div class="a-page">
@@ -1007,6 +1028,8 @@ FM.screen("settings", (m) => {
         <div class="a-list" id="priv"></div>
         <div class="a-sec">Advanced</div>
         <div class="a-list" id="adv"></div>
+        <div class="a-sec">Updates</div>
+        <div class="a-list" id="upd"></div>
         <div class="a-sec">About</div>
         <div class="a-list" id="about"></div>
         ${A.demoNote()}
@@ -1098,6 +1121,9 @@ FM.screen("settings", (m) => {
         if (ok) { FM.store = null; FM.initStore(); s = FM.store.settings; A.grants = ["Downloads", "Documents"]; FM.toast("Demo data reset", "success"); render(); }
       },
     }));
+
+    const upd = m.querySelector("#upd");
+    upd.append(A.row({ icon: FM.icon("retry"), title: "App updates", sub: "Mockup 1.0 — no auto-update channel; new builds are installed manually", right: "", onTap: null }));
 
     const about = m.querySelector("#about");
     about.append(A.row({ icon: FM.icon("info"), title: "Help & About", sub: "Guides, shortcuts, and app info", right: FM.icon("chevR", "sm"), onTap: () => FM.go("help") }));

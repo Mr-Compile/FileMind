@@ -57,6 +57,7 @@ FM.screen("dashboard", (m) => {
         <div class="li"><button class="btn tertiary" data-go="organizer?src=downloads&dry=1" style="padding-left:0">${icon("play", "sm")} Preview a dry run</button></div>
         <div class="li"><button class="btn tertiary" data-go="console" style="padding-left:0">${icon("console", "sm")} Open console host</button></div>
         <div class="li"><button class="btn tertiary" data-go="tools" style="padding-left:0">${icon("tools", "sm")} View organizer rules</button></div>
+        <div class="li"><button class="btn tertiary" data-go="help" style="padding-left:0">${icon("info", "sm")} Help &amp; About</button></div>
       </div>
     </div>
     <div class="card clickable" data-go="activity">
@@ -506,18 +507,19 @@ FM.screen("settings", (m) => {
     <div class="field"><label>Theme</label>${radio("st-theme", ["system", "light", "dark"], FM.theme.get())}</div>
     <label class="check"><input type="checkbox" id="st-density" ${FM.density.get() ? "checked" : ""}> Compact density (Windows file-heavy views)</label>`)}
 
-  ${sect("File behavior", "Conflicts and organization mode", `
+  ${sect("File management", "Conflicts and organization mode", `
     <div class="field"><label>When a destination already exists</label>
       <select class="select" id="st-conflict" style="max-width:280px">${FM_DATA.enums.ConflictPolicy.map((v) => `<option ${v === s.conflictPolicy ? "selected" : ""}>${v}</option>`).join("")}</select>
       <div class="hint">Default is <strong>Keep Both</strong> — FileMind never silently overwrites.</div></div>
     <div class="field"><label>Organization mode <span class="badge">${s.organizationMode}</span></label>
-      ${radio("st-mode", ["Manual", "Smart", "Automatic"], s.organizationMode, true)}
-      <div class="hint">Mode is enforced by the real backend and changed via the host <code>mode</code> verb; the demo runs the Smart flow you see in Organizer.</div></div>`)}
+      ${radio("st-mode", ["Manual", "Smart", "Automatic", "AI-assisted", "Local-only"], s.organizationMode)}
+      <div class="hint">Saved to <code>organization.mode</code> — the same key the Android app writes; the host reads it too.</div></div>`)}
 
-  ${sect("Permissions", "What FileMind may touch", `
+  ${sect("Privacy & safety", "What FileMind may touch", `
     <div class="tiny muted" style="margin-bottom:var(--sp-2)">Watched folders (FileSystemWatcher automation exists via the host <code>watch</code> verbs — <strong>F-P4</strong>):</div>
     ${s.watchedFolders.length ? s.watchedFolders.map((f) => `<div class="li"><span class="grow mono tiny">${esc(f)}</span></div>`).join("") : `<div class="tiny muted" style="margin-bottom:var(--sp-2)">No watched folders yet.</div>`}
-    <button class="btn" disabled title="Managed via host watch add">${icon("plus", "sm")} Add watched folder</button>`)}
+    <button class="btn" disabled title="Managed via host watch add">${icon("plus", "sm")} Add watched folder</button>
+    <div class="li" style="margin-top:var(--sp-2)">${icon("lock", "sm")}<span class="grow">On-device only — no cloud account; names and metadata stay on this PC</span></div>`)}
 
   ${sect("Notifications", "Batched, never per-file spam", `
     ${[["operationDone", "Operation completed"], ["warnings", "Warnings and failures"], ["smartInbox", "Smart Inbox arrivals"]].map(([k, l]) =>
@@ -533,10 +535,18 @@ FM.screen("settings", (m) => {
       <button class="btn" disabled title="Exists via host profile verbs">${icon("open", "sm")} Export profile <span class="badge">Host: profile</span></button>
       <button class="btn destructive" id="st-reset">Reset demo data</button>
     </div>
+    <div class="li" style="margin-top:var(--sp-3)"><button class="btn tertiary" id="st-diag" style="padding-left:0">${icon("db", "sm")} Diagnostics — device info, storage, support copy</button></div>
     <div class="hint" style="margin-top:6px">Reset only clears this session's mock operations and inbox — medium-tier, reversible on reload.</div>`)}
 
-  ${sect("About", "", `
+  ${sect("Updates", "How new versions arrive", `
     <dl class="kv">
+      <dt>Version</dt><dd class="mono">mockup 1.0</dd>
+    </dl>
+    <div class="tiny muted">No auto-update channel is wired — new builds are installed manually.</div>`)}
+
+  ${sect("Help & About", "Guides, support info, and app details", `
+    <div class="li"><button class="btn tertiary" id="st-help" style="padding-left:0">${icon("info", "sm")} Help &amp; guides — how organizing, the inbox, and undo work</button></div>
+    <dl class="kv" style="margin-top:var(--sp-3)">
       <dt>App</dt><dd>FileMind — offline-first, privacy-first, reversible file organizer</dd>
       <dt>This preview</dt><dd>UI mockup 1.0 · mirrors backend M0–M3 + approved ui-ux-foundation 1.0.0</dd>
       <dt>Source</dt><dd class="mono">mockup/ — sync enforced by docs/rules/MOCKUP_RULES.md</dd>
@@ -547,8 +557,87 @@ FM.screen("settings", (m) => {
   m.querySelector("#st-density").onchange = (e) => FM.density.set(e.target.checked);
   m.querySelector("#st-conflict").onchange = (e) => { s.conflictPolicy = e.target.value; FM.toast(`Conflict policy: ${s.conflictPolicy}`, "success"); };
   m.querySelectorAll("[data-notif]").forEach((cb) => (cb.onchange = () => { s.notifications[cb.dataset.notif] = cb.checked; FM.toast("Notification preference saved", "success"); }));
+  m.querySelectorAll("[name=st-mode]").forEach((r) => (r.onchange = () => { s.organizationMode = r.value; FM.toast(`Mode: ${r.value}`, "success"); FM.screen("settings")(m, {}); }));
+  m.querySelector("#st-help").onclick = () => FM.go("help");
+  m.querySelector("#st-diag").onclick = () => FM.go("help?topic=diagnostics");
   m.querySelector("#st-reset").onclick = async () => {
     const ok = await FM.confirm({ title: "Reset demo data?", body: "Mock operations and Smart Inbox items return to their seeded state on next reload. Nothing real is affected.", ok: "Reset demo", kind: "destructive" });
     if (ok) { FM.store = null; FM.initStore(); FM.toast("Demo data reset", "success"); FM.screen("settings")(m, {}); }
   };
+});
+
+/* ============================= Help & About ============================= */
+const HELP_TOPICS = [
+  ["about", "About FileMind", "Version, purpose, and project links"],
+  ["getting-started", "Getting started", "From install to your first safe organize"],
+  ["guide", "User guide", "Organizing, rules, Smart Inbox, undo, and more"],
+  ["whats-new", "What's new", "Release highlights"],
+  ["troubleshooting", "Troubleshooting", "Fix common problems"],
+  ["diagnostics", "Diagnostics", "Device info, storage, support copy"],
+  ["feedback", "Feedback", "Send a report or suggestion"],
+  ["credits", "Credits", "Who built FileMind"],
+  ["licenses", "Licenses", "App and dependency licenses"],
+];
+const HELP_BODIES = {
+  about: `<dl class="kv"><dt>FileMind</dt><dd>Offline-first, privacy-first, reversible file organizer.</dd><dt>Version</dt><dd class="mono">mockup 1.0 (demo data)</dd><dt>Source</dt><dd class="mono">github.com/FileMind (demo link)</dd></dl>`,
+  "getting-started": `<ol style="margin:0;padding-left:18px" class="tiny">
+    <li>Pick a folder to watch or scan (Files).</li>
+    <li>Preview an organize run — nothing moves without your confirm.</li>
+    <li>Review the plan: adds, moves, conflicts, skips.</li>
+    <li>Confirm to execute — every move is journaled.</li>
+    <li>Undo any run from Activity.</li></ol>
+    <button class="btn primary" data-go="organizer?src=downloads" style="margin-top:12px">Start organizing</button>`,
+  guide: `<div class="list">
+    <div class="li">${icon("organize","sm")}<span class="grow"><strong>Organize</strong> — rules classify files into destination folders. Dry-run first.</span></div>
+    <div class="li">${icon("info","sm")}<span class="grow"><strong>Smart Inbox</strong> — low-confidence matches wait for your review.</span></div>
+    <div class="li">${icon("undo","sm")}<span class="grow"><strong>Undo</strong> — every executed plan is reversible from Activity.</span></div>
+    <div class="li">${icon("tools","sm")}<span class="grow"><strong>Rules</strong> — per-kind targets in Tools; conflicts default to Keep Both.</span></div></div>`,
+  "whats-new": `<dl class="kv"><dt>mockup 1.0</dt><dd>Dashboard, Files, Organizer preview, Tools, Activity, Settings, Help &amp; About.</dd></dl>`,
+  troubleshooting: `<div class="list">
+    <div class="li">${icon("warn","sm")}<span class="grow"><strong>A scan found nothing</strong> — check the scope in Files; mock demo only indexes seeded folders.</span></div>
+    <div class="li">${icon("error","sm")}<span class="grow"><strong>A move was skipped</strong> — conflicts default to Keep Both; check the plan's skip list.</span></div>
+    <div class="li">${icon("db","sm")}<span class="grow"><strong>Still stuck</strong> — copy Diagnostics and attach it to a report.</span></div></div>
+    <button class="btn" data-topic="diagnostics" style="margin-top:12px">Open diagnostics</button>`,
+  feedback: `<div class="tiny">Found a bug or have a suggestion? Attach diagnostics and describe what you expected vs what happened.</div>
+    <div style="display:flex;gap:var(--sp-2);margin-top:12px"><button class="btn" id="fb-copy">Copy diagnostics + send</button></div>`,
+  credits: `<dl class="kv"><dt>Product</dt><dd>FileMind team</dd><dt>Mockup</dt><dd class="mono">mockup/ — enforced by docs/rules/MOCKUP_RULES.md</dd></dl>`,
+  licenses: `<dl class="kv"><dt>FileMind</dt><dd>Proprietary — demo mockup</dd><dt>Dependencies</dt><dd>None — vanilla HTML/CSS/JS, runs from file://</dd></dl>`,
+};
+FM.screen("help", (m, params) => {
+  const topic = params.topic;
+  if (topic && (HELP_BODIES[topic] || topic === "diagnostics")) {
+    const title = (HELP_TOPICS.find((t) => t[0] === topic) || [topic, topic])[1];
+    m.innerHTML = `
+    <div class="page-head"><div><button class="btn tertiary" data-go="help" style="padding-left:0">${icon("back","sm")} Help</button>
+      <h1>${title}</h1></div></div>
+    <div class="card" style="max-width:720px">${topic === "diagnostics" ? `
+      <dl class="kv"><dt>Device</dt><dd class="mono">Demo desktop · ${navigator.userAgent.includes("Win") ? "Windows" : "unknown OS"}</dd>
+      <dt>Version</dt><dd class="mono">mockup 1.0</dd>
+      <dt>Catalog</dt><dd class="mono">${FM.store.files.length} files · ${FM.store.ops.length} ops · ${FM.store.inbox.length} inbox</dd></dl>
+      <label class="li" style="gap:8px"><input type="checkbox" id="dg-paths"> Include local paths (off by default — privacy)</label>
+      <button class="btn" id="dg-copy" style="margin-top:10px">${icon("copy","sm")} Copy diagnostic info</button>
+      <div class="tiny muted" style="margin-top:6px">Excludes paths unless you opt in.</div>` : HELP_BODIES[topic]}</div>`;
+    m.querySelectorAll("[data-go]").forEach((el) => (el.onclick = () => FM.go(el.dataset.go)));
+    m.querySelectorAll("[data-topic]").forEach((el) => (el.onclick = () => FM.go("help?topic=" + el.dataset.topic)));
+    const cp = m.querySelector("#dg-copy");
+    if (cp) cp.onclick = async () => {
+      const paths = m.querySelector("#dg-paths")?.checked;
+      const txt = `FileMind mockup 1.0 | ${navigator.userAgent} | files:${FM.store.files.length} ops:${FM.store.ops.length}${paths ? " | scope:" + FM_DATA.roots.downloads : ""}`;
+      try { await navigator.clipboard.writeText(txt); FM.toast("Diagnostics copied", "success"); }
+      catch { FM.toast("Clipboard blocked — select the info above manually", "warn"); }
+    };
+    const fb = m.querySelector("#fb-copy");
+    if (fb) fb.onclick = () => FM.toast("Demo — no real feedback channel in the mockup", "info");
+    return;
+  }
+  m.innerHTML = `
+  <div class="page-head"><div><h1>Help &amp; About</h1>
+    <div class="sub">Guides, support info, and app details — every topic is a real destination.</div></div></div>
+  <div class="card" style="max-width:720px"><div class="list">${HELP_TOPICS.map(([id, t, d]) => `
+    <div class="li clickable" data-topic="${id}" tabindex="0">${icon("info","sm")}<span class="grow"><strong>${t}</strong><div class="tiny muted">${d}</div></span>${icon("chevR","sm")}</div>`).join("")}
+  </div></div>`;
+  m.querySelectorAll("[data-topic]").forEach((el) => {
+    el.onclick = () => FM.go("help?topic=" + el.dataset.topic);
+    el.onkeydown = (e) => e.key === "Enter" && FM.go("help?topic=" + el.dataset.topic);
+  });
 });
