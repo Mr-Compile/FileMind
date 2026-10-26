@@ -1,0 +1,19 @@
+<Page
+    x:Class="FileMind.WinUI.Views.HelpTopicPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:FileMind.WinUI.Controls">
+    <!-- One parameterized page for the static Help & About topics
+         (crossplatform-ux/04_HELP_ABOUT); Diagnostics is its own page. -->
+    <ScrollViewer>
+        <StackPanel Spacing="{StaticResource FmSpace5}" MaxWidth="720">
+            <StackPanel>
+                <TextBlock x:Name="TitleText" Style="{StaticResource FmTextH1}" />
+                <TextBlock x:Name="SubText" Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmTextSecondaryBrush}"
+                           TextWrapping="Wrap" />
+            </StackPanel>
+            <StackPanel x:Name="Body" Spacing="{StaticResource FmSpace4}" />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

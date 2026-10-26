@@ -92,6 +92,11 @@
                                     <FontIcon Glyph="&#xE81C;" FontSize="14" /><TextBlock Text="Open activity" />
                                 </StackPanel>
                             </Button>
+                            <Button Style="{StaticResource FmLinkButton}" Click="GoHelp">
+                                <StackPanel Orientation="Horizontal" Spacing="6">
+                                    <FontIcon Glyph="&#xE946;" FontSize="14" /><TextBlock Text="Help &amp; About" />
+                                </StackPanel>
+                            </Button>
                         </StackPanel>
                     </c:FmBentoCard.CardContent>
                 </c:FmBentoCard>

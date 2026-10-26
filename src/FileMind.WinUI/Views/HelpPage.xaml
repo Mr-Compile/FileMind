@@ -1,0 +1,45 @@
+<Page
+    x:Class="FileMind.WinUI.Views.HelpPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:FileMind.WinUI.Controls">
+    <!-- Help & About hub (crossplatform-ux/04_HELP_ABOUT + android HelpScreens.Hub):
+         9 deep-linkable destinations, same set as the Android app. -->
+    <ScrollViewer>
+        <StackPanel Spacing="{StaticResource FmSpace5}" MaxWidth="720">
+            <StackPanel>
+                <TextBlock Text="Help &amp; About" Style="{StaticResource FmTextH1}" />
+                <TextBlock Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmTextSecondaryBrush}"
+                           Text="Guides, support info, and app details — the same destinations as the Android app." />
+            </StackPanel>
+
+            <ListView x:Name="TopicList" SelectionMode="None" IsItemClickEnabled="True"
+                      ItemClick="Topic_Click">
+                <ListView.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnSpacing="{StaticResource FmSpace3}" Padding="4,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <FontIcon Glyph="{Binding Glyph}" FontSize="16"
+                                      Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                      VerticalAlignment="Center" />
+                            <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Title}" Style="{StaticResource FmTextBody}"
+                                           FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding Sub}" Style="{StaticResource FmTextBodySmall}"
+                                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            </StackPanel>
+                            <FontIcon Grid.Column="2" Glyph="&#xE76C;" FontSize="12"
+                                      Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                      VerticalAlignment="Center" />
+                        </Grid>
+                    </DataTemplate>
+                </ListView.ItemTemplate>
+            </ListView>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

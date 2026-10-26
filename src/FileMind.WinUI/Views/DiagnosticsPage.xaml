@@ -1,0 +1,77 @@
+<Page
+    x:Class="FileMind.WinUI.Views.DiagnosticsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:c="using:FileMind.WinUI.Controls">
+    <!-- Diagnostics (crossplatform-ux/04_HELP_ABOUT): safe support info +
+         Copy Diagnostic Information; paths/names excluded unless opted in. -->
+    <ScrollViewer>
+        <StackPanel Spacing="{StaticResource FmSpace5}" MaxWidth="720">
+            <StackPanel>
+                <TextBlock Text="Diagnostics" Style="{StaticResource FmTextH1}" />
+                <TextBlock Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmTextSecondaryBrush}"
+                           Text="Safe by default: no file names or paths are included unless you opt in below."
+                           TextWrapping="Wrap" />
+            </StackPanel>
+
+            <c:FmBentoCard IconGlyph="&#xE9D9;" Header="System">
+                <c:FmBentoCard.CardContent>
+                    <StackPanel Spacing="{StaticResource FmSpace2}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="App version" Width="140" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <TextBlock x:Name="VerText" FontSize="12" FontFamily="Consolas" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Device" Width="140" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <TextBlock x:Name="DeviceText" FontSize="12" FontFamily="Consolas" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="OS" Width="140" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <TextBlock x:Name="OsText" FontSize="12" FontFamily="Consolas" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Storage free" Width="140" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <TextBlock x:Name="StorageText" FontSize="12" FontFamily="Consolas" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Indexed files" Width="140" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <TextBlock x:Name="IndexText" FontSize="12" FontFamily="Consolas" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="Watched folders" Width="140" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <TextBlock x:Name="WatchedText" FontSize="12" FontFamily="Consolas" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="AI provider" Width="140" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <TextBlock x:Name="AiText" FontSize="12" FontFamily="Consolas" />
+                        </StackPanel>
+                    </StackPanel>
+                </c:FmBentoCard.CardContent>
+            </c:FmBentoCard>
+
+            <ToggleSwitch x:Name="PathsToggle" Header="Include paths (database + watched folders)"
+                          OffContent="Off — support text stays anonymous" OnContent="On — paths included" />
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Style="{StaticResource AccentButtonStyle}" Click="Copy_Click">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                        <TextBlock x:Name="CopyLabel" Text="Copy diagnostic info" />
+                    </StackPanel>
+                </Button>
+                <TextBlock x:Name="CopiedNote" Style="{StaticResource FmTextBodySmall}"
+                           Foreground="{ThemeResource FmStatusSuccessBrush}"
+                           VerticalAlignment="Center" Visibility="Collapsed"
+                           Text="Copied to clipboard" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

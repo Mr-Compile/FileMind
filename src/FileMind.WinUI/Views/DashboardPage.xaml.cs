@@ -28,6 +28,7 @@ public sealed partial class DashboardPage : Page
     private void GoFiles(object s, RoutedEventArgs e) => GoTo("files");
     private void GoTools(object s, RoutedEventArgs e) => GoTo("tools");
     private void GoActivity(object s, RoutedEventArgs e) => GoTo("activity");
+    private void GoHelp(object s, RoutedEventArgs e) => GoTo("help");
     private void GoDevices(object s, PointerRoutedEventArgs e) => GoTo("devices");
     private void GoTools(object s, PointerRoutedEventArgs e) => GoTo("tools");
     private void GoActivity(object s, PointerRoutedEventArgs e) => GoTo("activity");
