@@ -33,6 +33,10 @@ public sealed class FmBackend : IAsyncDisposable
     public ModePolicy ModePolicy { get; private set; } = null!;
     public int RecoveredOnStart { get; private set; }
 
+    /// <summary>Swap the live mode after Settings changes organization.mode —
+    /// keeps the app instance in sync with what was persisted.</summary>
+    public void SetMode(OrganizationMode mode) => ModePolicy = new ModePolicy(mode);
+
     public static async Task<FmBackend> OpenAsync()
     {
         var be = new FmBackend();
@@ -90,7 +94,7 @@ public sealed class FmBackend : IAsyncDisposable
             (IAiAuditRepository)be.Store, aiClock);
         var aiGate = new FileMind.Intelligence.AI.AiPrivacyGate(aiOptions, adapter.ProtectedPaths);
         var aiAdvisor = new FileMind.Intelligence.AI.AiAdvisor(
-            aiGate, aiProvider, confidence, () => currentMode, (IAiAuditRepository)be.Store);
+            aiGate, aiProvider, confidence, () => be.ModePolicy.Mode, (IAiAuditRepository)be.Store);
 
         be.Duplicates = new FileMind.Application.Duplicates.DuplicateDetectionService(
             (IFileIndexRepository)be.Store, hashing, adapter);

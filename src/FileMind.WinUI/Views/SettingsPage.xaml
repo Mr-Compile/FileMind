@@ -3,8 +3,10 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:c="using:FileMind.WinUI.Controls">
-    <!-- matched to mockup screens.js "settings": Appearance / File behavior /
-         Permissions / Notifications / Advanced / About sections -->
+    <!-- Settings — shared IA sections (crossplatform-ux SHARED_UX_SYSTEM):
+         General / Appearance / File management / Notifications /
+         Privacy & safety / Advanced / Updates / Help & About.
+         Same section set and rows as the Android SettingsScreen. -->
     <ScrollViewer>
         <StackPanel Spacing="{StaticResource FmSpace6}" MaxWidth="720">
             <StackPanel>
@@ -13,6 +15,25 @@
                            Foreground="{ThemeResource FmTextSecondaryBrush}"
                            Text="Preferences with plain-language consequences. Dangerous things live under Advanced." />
             </StackPanel>
+
+            <c:FmBentoCard IconGlyph="&#xE8B7;" Header="General">
+                <c:FmBentoCard.CardContent>
+                    <StackPanel Spacing="{StaticResource FmSpace3}">
+                        <StackPanel>
+                            <TextBlock Text="Default folder" Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                                <TextBox x:Name="DefaultFolderBox" Width="300"
+                                         PlaceholderText="Default folder to organize" />
+                                <Button Content="Browse…" Click="DefaultFolder_Click" />
+                            </StackPanel>
+                            <TextBlock Style="{StaticResource FmTextBodySmall}" Margin="0,4,0,0"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                       Text="Pre-fills the Organizer's source picker." />
+                        </StackPanel>
+                    </StackPanel>
+                </c:FmBentoCard.CardContent>
+            </c:FmBentoCard>
 
             <c:FmBentoCard IconGlyph="&#xE771;" Header="Appearance">
                 <c:FmBentoCard.CardContent>
@@ -38,9 +59,25 @@
                 </c:FmBentoCard.CardContent>
             </c:FmBentoCard>
 
-            <c:FmBentoCard IconGlyph="&#xE8B7;" Header="File behavior">
+            <c:FmBentoCard IconGlyph="&#xE90F;" Header="File management">
                 <c:FmBentoCard.CardContent>
                     <StackPanel Spacing="{StaticResource FmSpace3}">
+                        <StackPanel>
+                            <TextBlock Text="Organization mode"
+                                       Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
+                            <ComboBox x:Name="ModePicker" Width="300" HorizontalAlignment="Left"
+                                      Margin="0,4,0,0" SelectionChanged="Mode_Changed">
+                                <ComboBoxItem Content="Manual — you approve every run" Tag="Manual" />
+                                <ComboBoxItem Content="Smart — confident moves run after preview" Tag="Smart" />
+                                <ComboBoxItem Content="Automatic — runs without asking" Tag="Automatic" />
+                                <ComboBoxItem Content="AI-assisted — optional, opt-in" Tag="AiAssisted" />
+                                <ComboBoxItem Content="Local-only — on-device rules only" Tag="LocalOnly" />
+                            </ComboBox>
+                            <TextBlock Style="{StaticResource FmTextBodySmall}" Margin="0,4,0,0"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}" TextWrapping="Wrap"
+                                       Text="Saved to the organizer profile (organization.mode) — the host, watchers and new sessions read it." />
+                        </StackPanel>
                         <StackPanel>
                             <TextBlock x:Name="ConflictLabel" Text="When a destination already exists"
                                        Style="{StaticResource FmTextBodySmall}"
@@ -56,50 +93,13 @@
                                        Foreground="{ThemeResource FmTextSecondaryBrush}"
                                        Text="Default is Keep both — FileMind never silently overwrites." />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBox x:Name="DefaultFolderBox" Width="300"
-                                     PlaceholderText="Default folder to organize" />
-                            <Button Content="Browse…" Click="DefaultFolder_Click" />
-                        </StackPanel>
-                        <TextBlock Style="{StaticResource FmTextBodySmall}" Margin="0,-4,0,0"
-                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
-                                   Text="Pre-fills the Organizer's source picker." />
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="Organization mode" Style="{StaticResource FmTextBodySmall}"
-                                       Foreground="{ThemeResource FmTextSecondaryBrush}"
-                                       VerticalAlignment="Center" />
-                            <Border Style="{StaticResource FmBadgeBorder}">
-                                <TextBlock x:Name="ModeBadgeText" FontSize="11"
-                                           Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                            </Border>
-                            <TextBlock x:Name="ModeNote" Style="{StaticResource FmTextBodySmall}"
-                                       Foreground="{ThemeResource FmTextSecondaryBrush}"
-                                       VerticalAlignment="Center" TextWrapping="Wrap" />
-                        </StackPanel>
-                    </StackPanel>
-                </c:FmBentoCard.CardContent>
-            </c:FmBentoCard>
-
-            <c:FmBentoCard IconGlyph="&#xE72E;" Header="Permissions">
-                <c:FmBentoCard.CardContent>
-                    <StackPanel Spacing="{StaticResource FmSpace2}">
-                        <TextBlock Style="{StaticResource FmTextBodySmall}"
-                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
-                                   Text="Watched folders (FileSystemWatcher automation — F-P4):" />
-                        <ItemsRepeater x:Name="WatchedList">
-                            <ItemsRepeater.ItemTemplate>
-                                <DataTemplate>
-                                    <TextBlock Text="{Binding}" FontSize="12" Padding="0,2"
-                                               FontFamily="Consolas" />
-                                </DataTemplate>
-                            </ItemsRepeater.ItemTemplate>
-                        </ItemsRepeater>
-                        <TextBlock x:Name="WatchedEmpty" Style="{StaticResource FmTextBodySmall}"
-                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
-                                   Text="No watched folders yet — managed via the host watch verbs." />
-                        <Button Content="Add watched folder" IsEnabled="False" Margin="0,4,0,0"
-                                HorizontalAlignment="Left"
-                                ToolTipService.ToolTip="Managed via the host watch add verb" />
+                        <Button Style="{StaticResource FmLinkButton}" Click="GoTools"
+                                HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE8C7;" FontSize="14" />
+                                <TextBlock Text="Rules — toggle organization rules on or off" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </c:FmBentoCard.CardContent>
             </c:FmBentoCard>
@@ -121,7 +121,47 @@
                 </c:FmBentoCard.CardContent>
             </c:FmBentoCard>
 
-            <c:FmBentoCard IconGlyph="&#xE90F;" Header="Advanced">
+            <c:FmBentoCard IconGlyph="&#xE72E;" Header="Privacy &amp; safety">
+                <c:FmBentoCard.CardContent>
+                    <StackPanel Spacing="{StaticResource FmSpace2}">
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   Text="Watched folders (FileSystemWatcher automation — F-P4):" />
+                        <ItemsRepeater x:Name="WatchedList">
+                            <ItemsRepeater.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontSize="12" Padding="0,2"
+                                               FontFamily="Consolas" />
+                                </DataTemplate>
+                            </ItemsRepeater.ItemTemplate>
+                        </ItemsRepeater>
+                        <TextBlock x:Name="WatchedEmpty" Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   Text="No watched folders yet — managed via the host watch verbs." />
+                        <Button Content="Add watched folder" IsEnabled="False" Margin="0,4,0,0"
+                                HorizontalAlignment="Left"
+                                ToolTipService.ToolTip="Managed via the host watch add verb" />
+                        <Button Style="{StaticResource FmLinkButton}" Click="GoDevices"
+                                HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xEDA2;" FontSize="14" />
+                                <TextBlock Text="Folder access — FileMind only touches folders you pick" />
+                            </StackPanel>
+                        </Button>
+                        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                            <FontIcon Glyph="&#xE72E;" FontSize="14"
+                                      Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                      VerticalAlignment="Center" />
+                            <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                       Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                       Text="On-device only — no cloud account; names and metadata stay on this PC."
+                                       TextWrapping="Wrap" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </StackPanel>
+                </c:FmBentoCard.CardContent>
+            </c:FmBentoCard>
+
+            <c:FmBentoCard IconGlyph="&#xE9D9;" Header="Advanced">
                 <c:FmBentoCard.CardContent>
                     <StackPanel Spacing="{StaticResource FmSpace2}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -141,30 +181,55 @@
                             <TextBlock x:Name="AiStatus" FontSize="12" TextWrapping="Wrap"
                                        Foreground="{ThemeResource FmTextSecondaryBrush}" />
                         </StackPanel>
+                        <Button Style="{StaticResource FmLinkButton}" Click="GoDiagnostics"
+                                HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE9D9;" FontSize="14" />
+                                <TextBlock Text="Diagnostics — device info, storage, support copy" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </c:FmBentoCard.CardContent>
             </c:FmBentoCard>
 
-            <c:FmBentoCard IconGlyph="&#xE946;" Header="About">
+            <c:FmBentoCard IconGlyph="&#xE895;" Header="Updates">
                 <c:FmBentoCard.CardContent>
                     <StackPanel Spacing="{StaticResource FmSpace2}">
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="App" Width="110" Style="{StaticResource FmTextBodySmall}"
-                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                            <TextBlock FontSize="12" TextWrapping="Wrap"
-                                       Text="FileMind — offline-first, privacy-first, reversible file organizer" />
-                        </StackPanel>
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <TextBlock Text="Version" Width="110" Style="{StaticResource FmTextBodySmall}"
                                        Foreground="{ThemeResource FmTextSecondaryBrush}" />
                             <TextBlock x:Name="VersionText" FontSize="12" FontFamily="Consolas" />
                         </StackPanel>
-                        <StackPanel Orientation="Horizontal" Spacing="8">
-                            <TextBlock Text="This build" Width="110" Style="{StaticResource FmTextBodySmall}"
-                                       Foreground="{ThemeResource FmTextSecondaryBrush}" />
-                            <TextBlock FontSize="12" TextWrapping="Wrap"
-                                       Text="Native Windows app (PLAN-014) — shares the canonical design with mockup/index.html" />
-                        </StackPanel>
+                        <TextBlock Style="{StaticResource FmTextBodySmall}"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   Text="No auto-update channel is wired — new builds are installed manually."
+                                   TextWrapping="Wrap" />
+                    </StackPanel>
+                </c:FmBentoCard.CardContent>
+            </c:FmBentoCard>
+
+            <c:FmBentoCard IconGlyph="&#xE946;" Header="Help &amp; About">
+                <c:FmBentoCard.CardContent>
+                    <StackPanel Spacing="{StaticResource FmSpace2}">
+                        <Button Style="{StaticResource FmLinkButton}" Click="GoHelp"
+                                HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE946;" FontSize="14" />
+                                <TextBlock Text="Help &amp; guides — how organizing, the inbox, and undo work" />
+                            </StackPanel>
+                        </Button>
+                        <Button Style="{StaticResource FmLinkButton}" Click="GoAbout"
+                                HorizontalAlignment="Left">
+                            <StackPanel Orientation="Horizontal" Spacing="6">
+                                <FontIcon Glyph="&#xE713;" FontSize="14" />
+                                <TextBlock x:Name="AboutLinkText"
+                                           Text="About FileMind — offline-first file organizer" />
+                            </StackPanel>
+                        </Button>
+                        <TextBlock Style="{StaticResource FmTextBodySmall}" Margin="0,4,0,0"
+                                   Foreground="{ThemeResource FmTextSecondaryBrush}"
+                                   TextWrapping="Wrap"
+                                   Text="FileMind — offline-first, privacy-first, reversible file organizer. Native Windows app (PLAN-014)." />
                     </StackPanel>
                 </c:FmBentoCard.CardContent>
             </c:FmBentoCard>

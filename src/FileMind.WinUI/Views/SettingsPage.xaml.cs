@@ -1,14 +1,17 @@
+using FileMind.Application.Decisions;
 using FileMind.Application.Ports;
 using FileMind.Branding;
+using FileMind.Domain.Contracts;
 using FileMind.WinUI.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 
 namespace FileMind.WinUI.Views;
 
-/// <summary>Settings matched to the mockup sections. Theme/density apply live;
-/// conflict policy + notification prefs persist via ISettingsRepository;
-/// mode and watched folders are shown truthfully (managed via the host).</summary>
+/// <summary>Settings — shared IA sections (crossplatform-ux SHARED_UX_SYSTEM),
+/// same section set as the Android SettingsScreen. Theme/density apply live;
+/// conflict policy, notification prefs and organization mode persist via
+/// ISettingsRepository (organization.mode is the same key Android writes).</summary>
 public sealed partial class SettingsPage : Page
 {
     private const string ConflictKey = "ui.conflictPolicy";
@@ -24,6 +27,17 @@ public sealed partial class SettingsPage : Page
         InitializeComponent();
         Loaded += async (_, _) => await LoadAsync();
     }
+
+    private void GoTo(string tag)
+    {
+        if (App.MainAppWindow?.Content is Shell shell) shell.NavigateTo(tag);
+    }
+
+    private void GoTools(object sender, RoutedEventArgs e) => GoTo("tools");
+    private void GoDevices(object sender, RoutedEventArgs e) => GoTo("devices");
+    private void GoDiagnostics(object sender, RoutedEventArgs e) => GoTo("help/diagnostics");
+    private void GoHelp(object sender, RoutedEventArgs e) => GoTo("help");
+    private void GoAbout(object sender, RoutedEventArgs e) => GoTo("help/about");
 
     private async Task LoadAsync()
     {
@@ -43,8 +57,9 @@ public sealed partial class SettingsPage : Page
             .FirstOrDefault(o => (string)o.Tag == conflict)
             ?? ConflictPicker.Items[0];
 
-        ModeBadgeText.Text = be.ModePolicy.Mode.ToString();
-        ModeNote.Text = "Mode is enforced by the backend — changed via the host mode verb.";
+        ModePicker.SelectedItem = ModePicker.Items.OfType<ComboBoxItem>()
+            .FirstOrDefault(o => (string)o.Tag == be.ModePolicy.Mode.ToString())
+            ?? ModePicker.Items[0];
 
         var watched = await ((IWatchedFolderRepository)be.Store).GetAllAsync();
         if (watched.IsSuccess && watched.Value!.Count > 0)
@@ -74,6 +89,7 @@ public sealed partial class SettingsPage : Page
                 typeof(App).Assembly)?.InformationalVersion
             ?? typeof(App).Assembly.GetName().Version?.ToString() ?? "dev";
         VersionText.Text = ver;
+        AboutLinkText.Text = $"About FileMind — Version {ver} · offline-first file organizer";
 
         _ready = true;
     }
@@ -108,6 +124,17 @@ public sealed partial class SettingsPage : Page
         if (!_ready) return;
         App.Theme.SetDensity(DensityCheck.IsChecked == true
             ? FmDensity.Compact : FmDensity.Comfortable);
+    }
+
+    private async void Mode_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (!_ready || ModePicker.SelectedItem is not ComboBoxItem item) return;
+        if (!Enum.TryParse<OrganizationMode>((string)item.Tag, out var mode)) return;
+        var be = await App.Backend;
+        // Same canonical storage form the Android app writes (ModePolicy.display).
+        await ((ISettingsRepository)be.Store).SetAsync(
+            ModePolicy.SettingsKey, ModePolicy.Display(mode));
+        be.SetMode(mode);
     }
 
     private async void Conflict_Changed(object sender, SelectionChangedEventArgs e)
