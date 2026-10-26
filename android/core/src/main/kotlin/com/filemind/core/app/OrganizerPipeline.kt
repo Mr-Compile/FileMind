@@ -2,7 +2,9 @@ package com.filemind.core.app
 
 import com.filemind.core.classification.ClassifierEngine
 import com.filemind.core.classification.Normalizer
+import com.filemind.core.classification.SubjectClusterer
 import com.filemind.core.contracts.ActionItem
+import com.filemind.core.contracts.ClassifierSource
 import com.filemind.core.contracts.ActionPlan
 import com.filemind.core.contracts.ClassificationResult
 import com.filemind.core.contracts.Decision
@@ -85,6 +87,11 @@ class OrganizerPipeline(
         val collectionList = collections.getAll()
         if (!collectionList.isSuccess) return Result.fail(collectionList.error!!)
 
+        // Inferred subjects: filename clusters sharing a course-code pattern
+        // group into School/{Subject}/... without a configured catalog (F-P12).
+        val clusterer = SubjectClusterer()
+        val inferred = clusterer.detect(candidates.map { it.displayName })
+
         val results = ArrayList<AnalyzedFile>(candidates.size)
         for (candidate in candidates) {
             var effective = candidate
@@ -111,7 +118,17 @@ class OrganizerPipeline(
                 }
             }
 
-            var classification = classifier.classify(effective, extraEvidence, contentTokens)
+            val inferredCode = if (inferred.isNotEmpty())
+                clusterer.codeIn(effective.displayName, inferred.keys) else null
+            val evidenceIn = buildList {
+                extraEvidence?.let { addAll(it) }
+                if (inferredCode != null) add(Evidence(
+                    "inferred-subject",
+                    "Auto-grouped: ${inferred[inferredCode]} files share course code '$inferredCode'.",
+                    SubjectClusterer.InferredScore, ClassifierSource.Local))
+            }
+            var classification = classifier.classify(
+                effective, evidenceIn.ifEmpty { null }, contentTokens)
             if (!enrichWarnings.isNullOrEmpty()) {
                 classification = classification.copy(
                     warnings = classification.warnings + enrichWarnings)
@@ -127,6 +144,22 @@ class OrganizerPipeline(
                 if (adjusted != classification.confidence) {
                     classification = classification.copy(confidence = adjusted)
                 }
+            }
+            if (classification.subject == null && inferredCode != null) {
+                val bonus = if (classification.fileKind != com.filemind.core.contracts.FileKind.Other)
+                    listOf(Evidence(
+                        "context-over-type",
+                        "Subject context present; context beats generic type routing.",
+                        20.0, ClassifierSource.Local)) else emptyList()
+                val bumped = minOf(100.0,
+                    classification.confidence + bonus.sumOf { it.scoreContribution })
+                classification = classification.copy(
+                    subject = inferredCode,
+                    confidence = bumped,
+                    // NeedsReview was computed before the subject bonus — rebake
+                    // it against the new band so High-confidence clusters organize.
+                    needsReview = (bumped >= 70.0 && bumped < 95.0) || classification.warnings.isNotEmpty(),
+                    evidence = classification.evidence + bonus)
             }
             val evaluation = ruleEngine.evaluate(effective, classification, ruleList.value!!)
             val decision = decisionMaker.decide(effective, classification, evaluation, collectionList.value!!)

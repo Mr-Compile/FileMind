@@ -159,4 +159,40 @@ public sealed class WindowsEndToEndTests : IDisposable
         Assert.Single(candidates);
         Assert.Equal("done.txt", candidates[0].DisplayName);
     }
+
+    [Fact]
+    public async Task InferredSubject_AutoGroupsWithoutCatalog()
+    {
+        // MATH-210 is NOT in the subject catalog — the filename cluster must
+        // infer it (F-P12) and group both files, including the nested one.
+        WriteFile("inbox/MATH210_hw1.pdf");
+        WriteFile("inbox/nested/MATH-210 notes.docx");
+        WriteFile("inbox/plain_file.xyz");
+
+        var analyzed = await AnalyzeAsync();
+        var grouped = analyzed.Where(a => a.Classification.Subject == "MATH-210").ToList();
+        Assert.Equal(2, grouped.Count);
+        Assert.All(grouped, a => Assert.Contains(
+            a.Classification.Evidence, e => e.Kind == "inferred-subject"));
+        Assert.Null(analyzed.Single(
+            a => a.Candidate.DisplayName == "plain_file.xyz").Classification.Subject);
+
+        var destRoot = Path.Combine(_root, "organized");
+        var plan = _pipeline.Plan(analyzed, dryRun: false, destinationRoot: destRoot);
+        Assert.True(plan.IsSuccess);
+        var executed = await _pipeline.ExecuteAsync(plan.Value!);
+        Assert.True(executed.IsSuccess, executed.Error?.Message);
+        var decisions = string.Join("; ", analyzed.Select(a =>
+            $"{a.Candidate.DisplayName}:{a.Decision.Kind}:{a.Decision.DestinationTemplate}:{a.Classification.Confidence}" +
+            $" warn=[{string.Join('|', a.Classification.Warnings)}] reasons=[{string.Join('|', a.Decision.Reasons)}]"));
+
+        var allDest = Directory.Exists(destRoot)
+            ? Directory.EnumerateFiles(destRoot, "*", SearchOption.AllDirectories).ToList()
+            : [];
+        var underSubject = allDest.Where(
+            f => f.Contains(Path.Combine("School", "MATH-210") + Path.DirectorySeparatorChar)).ToList();
+        Assert.True(underSubject.Count == 2,
+            $"dests=[{string.Join(", ", allDest)}] decisions=[{decisions}]");
+        Assert.True(File.Exists(Path.Combine(_root, "inbox", "plain_file.xyz")));
+    }
 }

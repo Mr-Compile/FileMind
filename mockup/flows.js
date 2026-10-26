@@ -886,6 +886,7 @@ FM.screen("architecture", (m) => {
     ["Local signals", "extension → FileKind + MIME; extractors add bounded content/metadata evidence", "ClassifierEngine.cs · Intelligence.Local analyzers", "EXISTING"],
     ["Rule engine", "JSON rules: priority → specificity → stop → conflicts", "Domain/Rules/RuleEngine.cs", "EXISTING"],
     ["Classifier", "subject code>alias>keyword + project match", "SubjectMatcher.cs · ProjectMatcher.cs", "EXISTING"],
+    ["Clusterer", "auto subject inference: ≥2 filenames sharing a course-code token group w/o catalog", "SubjectClusterer.cs · F-P12", "EXISTING"],
     ["Confidence", "weighted evidence, per-kind caps, bands 95/70", "ConfidenceEngine.cs", "EXISTING"],
     ["AI (optional)", "Groq suggestions — advisory only, never mutates", "Intelligence.AI · AiAdvisor merge", "EXISTING"],
     ["Decision", "Organize / Review(Smart Inbox) / Ignore / NoOp", "Application/Decisions/DecisionMaker.cs", "EXISTING"],

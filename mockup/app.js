@@ -245,6 +245,15 @@ FM.engine = {
         warnings.push(`Ambiguous subject match: ${amb.map((a) => a[0].name).join(", ")} also matched.`);
       }
     }
+    /* inferred cluster fallback (F-P12): files sharing a course code group
+       under School/{Subject}/... without a catalog entry */
+    if (!subject && this._inferred?.size) {
+      const code = this.codeIn(c.displayName, this._inferred);
+      if (code) {
+        subject = code;
+        ev.push({ kind: "inferred-subject", detail: `Auto-grouped: ${this._inferred.get(code)} files share course code '${code}'.`, scoreContribution: 60, source: "Local" });
+      }
+    }
     /* mirrors ProjectMatcher: alias 55 / name 55 > keyword 12; ambiguity -10 + warning */
     const pMatches = [];
     for (const p of FM_DATA.projects) {
@@ -288,7 +297,37 @@ FM.engine = {
     };
   },
 
+  /* mirrors SubjectClusterer.cs: LETTERS{2,5}[-_ ]?DIGITS{3,4}L? word-bounded;
+     deny-list; clusters of >= 2 files get an ephemeral inferred subject id */
+  COURSE_CODE: /(?<![A-Za-z0-9])([A-Za-z]{2,5})[-_ ]?([0-9]{3,4}[A-Za-z]?)(?![A-Za-z0-9])/gi,
+  CODE_DENY: new Set(["img", "pxl", "vid", "dsc", "dscn", "screenshot", "screen", "photo",
+    "wa", "wp", "mmexport", "received", "download", "doc", "file",
+    "copy", "untitled", "final", "scan", "snap", "new", "temp", "mov"]),
+
+  detectClusters(names) {
+    const groups = new Map();
+    for (const name of names) {
+      for (const m of name.matchAll(this.COURSE_CODE)) {
+        if (this.CODE_DENY.has(m[1].toLowerCase())) continue;
+        const k = `${m[1]}-${m[2]}`.toUpperCase();
+        if (!groups.has(k)) groups.set(k, new Set());
+        groups.get(k).add(name);
+      }
+    }
+    return new Map([...groups].filter(([, v]) => v.size >= 2).map(([k, v]) => [k, v.size]));
+  },
+
+  codeIn(name, inferred) {
+    for (const m of name.matchAll(this.COURSE_CODE)) {
+      if (this.CODE_DENY.has(m[1].toLowerCase())) continue;
+      const k = `${m[1]}-${m[2]}`.toUpperCase();
+      if (inferred.has(k)) return k;
+    }
+    return null;
+  },
+
   analyze(candidates) { /* mirrors src/FileMind.Application/Decisions/DecisionMaker.cs */
+    this._inferred = this.detectClusters(candidates.map((c) => c.displayName));
     return candidates.map((c) => {
       const excluded = FM.engine.excluded(c);
       const classification = FM.engine.classify(c);

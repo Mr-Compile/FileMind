@@ -58,6 +58,11 @@ public sealed class OrganizerPipeline(
         var collectionList = await collections.GetAllAsync(ct);
         if (!collectionList.IsSuccess) return Result<IReadOnlyList<AnalyzedFile>>.Fail(collectionList.Error!);
 
+        // Inferred subjects: filename clusters sharing a course-code pattern
+        // group into School/{Subject}/... without a configured catalog (F-P12).
+        var clusterer = new SubjectClusterer();
+        var inferred = clusterer.Detect(candidates.Select(c => c.DisplayName).ToList());
+
         var results = new List<AnalyzedFile>(candidates.Count);
         foreach (var candidate in candidates)
         {
@@ -87,7 +92,17 @@ public sealed class OrganizerPipeline(
                 }
             }
 
-            var classification = classifier.Classify(effective, extraEvidence, contentTokens);
+            var inferredCode = inferred.Count > 0
+                ? clusterer.CodeIn(effective.DisplayName, new HashSet<string>(inferred.Keys))
+                : null;
+            var evidenceIn = new List<Evidence>(extraEvidence ?? []);
+            if (inferredCode is not null)
+                evidenceIn.Add(new Evidence(
+                    "inferred-subject",
+                    $"Auto-grouped: {inferred[inferredCode]} files share course code '{inferredCode}'.",
+                    SubjectClusterer.InferredScore, ClassifierSource.Local));
+            var classification = classifier.Classify(
+                effective, evidenceIn.Count > 0 ? evidenceIn : null, contentTokens);
             if (enrichWarnings is { Count: > 0 })
                 classification = classification with
                 {
@@ -106,6 +121,28 @@ public sealed class OrganizerPipeline(
                 var adjusted = await calibrator.AdjustAsync(key, classification.Confidence, ct);
                 if (adjusted != classification.Confidence)
                     classification = classification with { Confidence = adjusted };
+            }
+            if (classification.Subject is null && inferredCode is not null)
+            {
+                var bonus = classification.FileKind != FileKind.Other
+                    ? new Evidence(
+                        "context-over-type",
+                        "Subject context present; context beats generic type routing.",
+                        20.0, ClassifierSource.Local)
+                    : null;
+                var bumped = Math.Min(100.0,
+                    classification.Confidence + (bonus?.ScoreContribution ?? 0));
+                classification = classification with
+                {
+                    Subject = inferredCode,
+                    Confidence = bumped,
+                    // NeedsReview was computed before the subject bonus — rebake
+                    // it against the new band so High-confidence clusters organize.
+                    NeedsReview = bumped is >= 70 and < 95 || classification.Warnings.Count > 0,
+                    Evidence = bonus is null
+                        ? classification.Evidence
+                        : [.. classification.Evidence, bonus]
+                };
             }
             var evaluation = ruleEngine.Evaluate(effective, classification, ruleList.Value);
             var decision = decisionMaker.Decide(effective, classification, evaluation, collectionList.Value);
