@@ -311,7 +311,7 @@ FM.engine = {
         decision = {
           kind: "Organize",
           destinationTemplate: org.destinationTemplate || coll?.destinationTemplate
-            || (classification.subject ? "School/{Subject}" : classification.project ? "Work/{Project}" : "Files/{FileKind}"),
+            || (classification.subject ? "School/{Subject}/{FileKind}" : classification.project ? "Work/{Project}/{FileKind}" : "Files/{FileKind}"),
           namingTemplate: org.namingTemplate || null,
           conflictPolicy: org.conflictPolicy || "KeepBoth",
           reasons: [`Rule '${rules.winningRuleId}' matched.`],
@@ -325,7 +325,7 @@ FM.engine = {
         } else {
           decision = {
             kind: "Organize",
-            destinationTemplate: classification.subject ? "School/{Subject}" : classification.project ? "Work/{Project}" : "Files/{FileKind}",
+            destinationTemplate: classification.subject ? "School/{Subject}/{FileKind}" : classification.project ? "Work/{Project}/{FileKind}" : "Files/{FileKind}",
             namingTemplate: null, conflictPolicy: "KeepBoth",
             reasons: [`High-confidence classification (${classification.confidence}).`],
           };

@@ -336,7 +336,16 @@ fun FilesScreen(app: FileMindApp, nav: NavHostController) {
             onRename = { newName ->
                 renaming = null
                 scope.launch {
-                    snackbar.showSnackbar("Rename runs inside an organizer plan — coming with file actions.")
+                    val r = app.backend.fileSystem().rename(
+                        file.sourceUri, newName,
+                        com.filemind.core.contracts.ConflictPolicy.KeepBoth)
+                    snackbar.showSnackbar(if (r.isSuccess) "Renamed to $newName"
+                        else "Rename failed: ${r.error?.message ?: "denied"}")
+                    if (r.isSuccess) {
+                        // Re-index the covering tree so the list shows it.
+                        vm.grantedTrees().firstOrNull { file.sourceUri.startsWith(it) }
+                            ?.let { vm.rescan(it) } ?: vm.refresh()
+                    }
                 }
             },
             onDismiss = { renaming = null })

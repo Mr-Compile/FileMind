@@ -88,43 +88,23 @@ fun ActivityScreen(app: FileMindApp, nav: NavHostController) {
         .padding(Spacing.s4)) {
         if (state.loading) { LoadingBox("Loading activity"); return@Column }
 
-        // Running now
+        // Running now — genuinely in-flight statuses only. NeedsAttention is
+        // terminal (the run ended) but still lands in getIncomplete() on purpose;
+        // it gets its own section so finished ops don't pose as "running".
+        val running = state.active.filter { it.status in setOf(
+            OperationStatus.Planned, OperationStatus.Validating,
+            OperationStatus.Executing, OperationStatus.Verifying,
+            OperationStatus.RollingBack) }
+        val attention = state.active.filter {
+            it.status == OperationStatus.NeedsAttention }
         SectionHeader("Running now")
-        if (state.active.isEmpty() && workInfos.isEmpty()) {
+        if (running.isEmpty() && workInfos.isEmpty()) {
             Text("Nothing running — operations appear here while they execute.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(horizontal = Spacing.s1))
         }
-        state.active.forEach { op ->
-            val done = op.items.count {
-                it.status == OperationStatus.Committed ||
-                    it.status == OperationStatus.Failed ||
-                    it.status == OperationStatus.NeedsAttention
-            }
-            Card(onClick = { opDetail = op },
-                modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.s1)) {
-                Column(Modifier.padding(Spacing.s4)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("Organize · ${op.items.size} item(s)",
-                            style = MaterialTheme.typography.titleMedium,
-                            modifier = Modifier.weight(1f))
-                        StatusChip(operationChip(op.status))
-                    }
-                    Spacer(Modifier.height(Spacing.s2))
-                    LinearProgressIndicator(
-                        progress = {
-                            if (op.items.isNotEmpty())
-                                done / op.items.size.toFloat() else 0f
-                        },
-                        modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(Spacing.s1))
-                    Text("$done/${op.items.size} item(s) · ${formatInstant(op.createdAt)}",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
+        running.forEach { op -> ActiveOpCard(op) { opDetail = op } }
         workInfos.forEach { wi ->
             ListRow(
                 title = "Background scan",
@@ -132,6 +112,15 @@ fun ActivityScreen(app: FileMindApp, nav: NavHostController) {
                 icon = { Icon(Icons.Filled.Sync, null,
                     tint = MaterialTheme.colorScheme.primary) },
                 trailing = { StatusChip(operationChip(OperationStatus.Executing)) })
+        }
+
+        if (attention.isNotEmpty()) {
+            SectionHeader("Needs attention")
+            Text("These runs ended with unresolved items — tap one to review.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = Spacing.s1))
+            attention.forEach { op -> ActiveOpCard(op) { opDetail = op } }
         }
 
         // Smart Inbox
@@ -297,6 +286,38 @@ fun ActivityScreen(app: FileMindApp, nav: NavHostController) {
                 }
                 Spacer(Modifier.height(Spacing.s4))
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ActiveOpCard(op: com.filemind.core.contracts.OperationRecord,
+                         onOpen: () -> Unit) {
+    val done = op.items.count {
+        it.status == OperationStatus.Committed ||
+            it.status == OperationStatus.Failed ||
+            it.status == OperationStatus.NeedsAttention
+    }
+    Card(onClick = onOpen,
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.s1)) {
+        Column(Modifier.padding(Spacing.s4)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Organize · ${op.items.size} item(s)",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.weight(1f))
+                StatusChip(operationChip(op.status))
+            }
+            Spacer(Modifier.height(Spacing.s2))
+            LinearProgressIndicator(
+                progress = {
+                    if (op.items.isNotEmpty()) done / op.items.size.toFloat() else 0f
+                },
+                modifier = Modifier.fillMaxWidth())
+            Spacer(Modifier.height(Spacing.s1))
+            Text("$done/${op.items.size} item(s) · ${formatInstant(op.createdAt)}",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

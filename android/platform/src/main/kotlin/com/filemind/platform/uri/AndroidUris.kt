@@ -69,6 +69,14 @@ object AndroidUris {
                 UriInfo(uri, UriKind.MediaStoreRow, authority, null, volume,
                     segments.drop(1).joinToString("/"))
             }
+            segments.getOrNull(0) == "tree" &&
+                segments.getOrNull(2) == "document" -> {
+                // Tree-scoped document: tree/<grantDocId>/document/<leafDocId>.
+                // Emitted by DocumentFile children and buildDocumentUriUsingTree;
+                // the leaf docId is what identifies the file.
+                val docId = decode(segments.getOrNull(3) ?: "")
+                UriInfo(uri, UriKind.SafDocument, authority, docId, volumeOf(docId), pathOf(docId))
+            }
             segments.getOrNull(0) == "tree" -> {
                 val docId = decode(segments.getOrNull(1) ?: "")
                 UriInfo(uri, UriKind.SafTree, authority, docId, volumeOf(docId), pathOf(docId))

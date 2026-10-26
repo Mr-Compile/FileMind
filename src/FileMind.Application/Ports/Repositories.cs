@@ -23,6 +23,7 @@ public interface ISubjectRepository
 {
     Task<Result<IReadOnlyList<SubjectLike>>> GetAllAsync(CancellationToken ct = default);
     Task<Result<SubjectLike>> UpsertAsync(SubjectLike entry, CancellationToken ct = default);
+    Task<Result<bool>> RemoveAsync(string id, CancellationToken ct = default);
 }
 
 public sealed record SubjectLike(string Id, string Name, string? Code, IReadOnlyList<string> Aliases, IReadOnlyList<string> Keywords);

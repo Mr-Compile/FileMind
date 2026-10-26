@@ -31,6 +31,14 @@ public sealed partial class OrganizerPage : Page
     private CancellationTokenSource? _cts;
     private string? _lastOperationId;
     private string _source = "";
+    private int _runDone;
+
+    // Leave-guard surface for Shell (PLAN-028): while a run executes the
+    // shell asks Keep running / Cancel run / Stay before navigating.
+    internal bool IsExecuting => _step == Step.Execute;
+    internal int RunDone => _runDone;
+    internal int RunTotal => _plan?.Items.Count ?? 0;
+    internal void RequestCancel() => _cts?.Cancel();
 
     // ---- row view models ------------------------------------------------
 
@@ -50,6 +58,9 @@ public sealed partial class OrganizerPage : Page
     public OrganizerPage()
     {
         InitializeComponent();
+        // Frame caches this instance — navigating away mid-flow no longer
+        // discards scan/plan/run state (PLAN-028, mockup parity).
+        NavigationCacheMode = Microsoft.UI.Xaml.Navigation.NavigationCacheMode.Required;
         RenderStepBar();
         Loaded += async (_, _) =>
         {
@@ -152,6 +163,14 @@ public sealed partial class OrganizerPage : Page
         {
             await foreach (var c in be.Pipeline.ScanAsync(source, recursive: true, _cts.Token))
             {
+                // Skip the organizer's own output subtree: re-scanning
+                // <source>/organized would re-plan already-moved files into
+                // organized/organized/... and duplicate the structure.
+                var rel = System.IO.Path.GetRelativePath(source, c.SourceUri)
+                    .Replace('\\', '/');
+                if (rel.Equals("organized", StringComparison.OrdinalIgnoreCase) ||
+                    rel.StartsWith("organized/", StringComparison.OrdinalIgnoreCase))
+                    continue;
                 _candidates.Add(c);
                 rows.Add(new LogRow(
                     $"{c.DisplayName,-44} {DashboardPage.FormatBytes(c.SizeBytes),12}  {c.SourceScope}"));
@@ -373,6 +392,7 @@ public sealed partial class OrganizerPage : Page
 
         _cts = new CancellationTokenSource();
         var ct = _cts.Token;
+        _runDone = 0;
         var be = await App.Backend;
         var store = (IOperationRepository)be.Store;
         RunLog.ItemsSource = new System.Collections.ObjectModel
@@ -415,6 +435,7 @@ public sealed partial class OrganizerPage : Page
         var done = live.Items.Count(i =>
             i.Status is OperationStatus.Committed or OperationStatus.Failed
                 or OperationStatus.NeedsAttention);
+        _runDone = done;
         RunStage.State = DashboardPage.MapStatus(live.Status);
         RunBar.Value = live.Items.Count > 0 ? 100.0 * done / live.Items.Count : 0;
         RunCount.Text = $"{done}/{live.Items.Count}";

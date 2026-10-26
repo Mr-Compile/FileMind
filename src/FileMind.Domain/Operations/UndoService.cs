@@ -8,24 +8,21 @@ public sealed class UndoService(IFileSystemAdapter fs)
 {
     public async Task<Result<ActionPlan>> BuildReversePlanAsync(OperationRecord record, CancellationToken ct = default)
     {
-        if (record.Status != OperationStatus.Committed)
+        // Undo what actually moved. NeedsAttention/Failed runs can still hold
+        // committed items — partial results must be reversible too.
+        var committed = record.Items.Where(i =>
+            i.Status == OperationStatus.Committed && i.UndoRecipe is not null).ToList();
+        if (committed.Count == 0)
             return Result<ActionPlan>.Fail(FileMindError.Validation(
-                $"Operation {record.OperationId} is not committed (status={record.Status}); nothing to undo."));
+                $"Operation {record.OperationId} has no committed items to undo (status={record.Status})."));
 
         var items = new List<ActionItem>();
         var blockers = new List<string>();
         var needsReview = false;
 
-        foreach (var item in record.Items)
+        foreach (var item in committed)
         {
-            if (item.UndoRecipe is null)
-            {
-                needsReview = true;
-                blockers.Add($"Item '{item.ItemId}' has no undo recipe; manual review required.");
-                continue;
-            }
-
-            var recipe = item.UndoRecipe;
+            var recipe = item.UndoRecipe!;
             var current = await fs.StatAsync(recipe.ReverseSource, ct);
             if (!current.IsSuccess)
             {

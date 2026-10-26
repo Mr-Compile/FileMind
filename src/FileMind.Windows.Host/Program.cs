@@ -191,7 +191,7 @@ switch (command)
             ["IT 421", "IT-421", "IT_421"], ["networks", "lecture"]));
         await projectsRepo.UpsertAsync(new ProjectLike("alpha", "Alpha Rollout", "Contoso",
             ["alpha"], ["rollout"]));
-        await collectionsRepo.UpsertAsync(new CollectionEntry("school", "School", "School/{Subject}", ["IT421"]));
+        await collectionsRepo.UpsertAsync(new CollectionEntry("school", "School", "School/{Subject}/{FileKind}", ["IT421"]));
         await collectionsRepo.UpsertAsync(new CollectionEntry("work", "Work", "Work/{Project}", ["alpha"]));
         Console.WriteLine("Seeded demo catalog: subject IT421, project alpha, collections school/work.");
         return 0;

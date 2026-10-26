@@ -13,16 +13,21 @@ import java.time.Instant
 
 class UndoService(private val fs: FileSystemAdapter) {
     suspend fun buildReversePlan(record: OperationRecord): Result<ActionPlan> {
-        if (record.status != OperationStatus.Committed) {
+        // Undo what actually moved. NeedsAttention/Failed runs can still hold
+        // committed items — partial results must be reversible too.
+        val committed = record.items.filter {
+            it.status == OperationStatus.Committed && it.undoRecipe != null
+        }
+        if (committed.isEmpty()) {
             return Result.fail(FileMindError.validation(
-                "Operation ${record.operationId} is not committed (status=${record.status}); nothing to undo."))
+                "Operation ${record.operationId} has no committed items to undo (status=${record.status})."))
         }
 
         val items = mutableListOf<ActionItem>()
         val blockers = mutableListOf<String>()
         var needsReview = false
 
-        for (item in record.items) {
+        for (item in committed) {
             if (item.undoRecipe == null) {
                 needsReview = true
                 blockers.add("Item '${item.itemId}' has no undo recipe; manual review required.")

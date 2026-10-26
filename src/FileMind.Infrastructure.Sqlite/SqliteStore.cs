@@ -117,6 +117,10 @@ public sealed class SqliteStore(FileMindDb db) :
             return Result<SubjectLike>.Ok(entry);
         }));
 
+    Task<Result<bool>> ISubjectRepository.RemoveAsync(string id, CancellationToken ct) =>
+        Task.FromResult(Try(() => Result<bool>.Ok(
+            db.Exec("DELETE FROM subjects WHERE id = $id", ("$id", id)) > 0)));
+
     // ---- IProjectRepository ----
 
     Task<Result<IReadOnlyList<ProjectLike>>> IProjectRepository.GetAllAsync(CancellationToken ct) =>

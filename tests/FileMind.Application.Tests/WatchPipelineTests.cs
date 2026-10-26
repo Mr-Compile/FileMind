@@ -224,7 +224,7 @@ public sealed class WatchPipelineTests : IDisposable
         var act = Assert.Single(result.Value!.Actions);
         Assert.Equal("Execute", act.Route);
         Assert.False(File.Exists(f));
-        Assert.True(File.Exists(Path.Combine(_destRoot, "School", "IT421", "IT421_Lecture_5.mp4")));
+        Assert.True(File.Exists(Path.Combine(_destRoot, "School", "IT421", "Video", "IT421_Lecture_5.mp4")));
         Assert.Contains(_notifications, n => n.StartsWith("File organized"));
     }
 
@@ -394,7 +394,7 @@ public sealed class WatchPipelineTests : IDisposable
 
         Assert.True(run.IsSuccess, run.Error?.Message);
         Assert.True(run.Value!.EventsProcessed >= 1);
-        Assert.True(File.Exists(Path.Combine(_destRoot, "School", "IT421", "IT421_Lecture_9.mp4")));
+        Assert.True(File.Exists(Path.Combine(_destRoot, "School", "IT421", "Video", "IT421_Lecture_9.mp4")));
     }
 
     [Fact]
@@ -417,7 +417,7 @@ public sealed class WatchPipelineTests : IDisposable
         var run = await runTask;
 
         Assert.True(run.IsSuccess, run.Error?.Message);
-        Assert.True(File.Exists(Path.Combine(_destRoot, "School", "IT421", "IT421_Lecture_10.mp4")));
+        Assert.True(File.Exists(Path.Combine(_destRoot, "School", "IT421", "Video", "IT421_Lecture_10.mp4")));
         var done = await ((IJobRepository)_store).GetByStatusAsync("done");
         Assert.Contains(done.Value!, j => j.Request.JobType == WatchJobPayload.JobType);
     }
@@ -464,7 +464,7 @@ public sealed class WatchPipelineTests : IDisposable
         var act = Assert.Single(result.Value!.Actions);
         Assert.Equal("Execute", act.Route);
         Assert.True(File.Exists(Path.Combine(
-            _destRoot, "School", "IT421", "receipts", "jan", "IT421_notes.pdf")));
+            _destRoot, "School", "IT421", "Document", "receipts", "jan", "IT421_notes.pdf")));
     }
 
     [Fact]
@@ -477,7 +477,7 @@ public sealed class WatchPipelineTests : IDisposable
             sourceRoot: _scanRoot, preserveTree: false);
 
         Assert.True(result.IsSuccess, result.Error?.Message);
-        Assert.True(File.Exists(Path.Combine(_destRoot, "School", "IT421", "IT421_notes.pdf")));
+        Assert.True(File.Exists(Path.Combine(_destRoot, "School", "IT421", "Document", "IT421_notes.pdf")));
     }
 
     [Fact]
@@ -502,6 +502,6 @@ public sealed class WatchPipelineTests : IDisposable
 
         Assert.True(run.IsSuccess, run.Error?.Message);
         Assert.True(File.Exists(Path.Combine(
-            _destRoot, "School", "IT421", "receipts", "jan", "IT421_hw.pdf")));
+            _destRoot, "School", "IT421", "Document", "receipts", "jan", "IT421_hw.pdf")));
     }
 }

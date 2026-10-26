@@ -13,6 +13,7 @@ import com.filemind.app.theme.ThemeMode
 import com.filemind.core.app.AnalyzedFile
 import com.filemind.core.app.ModePolicy
 import com.filemind.core.app.SmartInboxItem
+import com.filemind.core.app.SubjectLike
 import com.filemind.core.contracts.ActionPlan
 import com.filemind.core.contracts.FileCandidate
 import com.filemind.core.contracts.OperationRecord
@@ -464,6 +465,13 @@ class OrganizerViewModel(private val app: FileMindApp) : ViewModel() {
                 val pipeline = app.backend.pipeline()
                 val candidates = mutableListOf<FileCandidate>()
                 pipeline.scan(rootUri).collect { c ->
+                    // Skip the organizer's own output subtree: re-scanning
+                    // <source>/organized would re-plan already-moved files into
+                    // organized/organized/... and duplicate the structure.
+                    val rel = app.backend.paths.relativeTo(c.sourceUri, rootUri)?.lowercase()
+                    if (rel != null && (rel == "organized" || rel.startsWith("organized/"))) {
+                        return@collect
+                    }
                     candidates.add(c)
                     if (candidates.size % 10 == 0) {
                         _state.value = _state.value.copy(
@@ -625,4 +633,72 @@ class OrganizerViewModel(private val app: FileMindApp) : ViewModel() {
     }
 
     init { refreshGrants() }
+}
+
+// ------------------------------------------------------------------ subjects
+
+data class SubjectsState(
+    val subjects: List<SubjectLike> = emptyList(),
+    val loading: Boolean = true,
+    val error: String? = null
+)
+
+/**
+ * Subject manager — the classifier's course catalog. A file routes into
+ * organized/School/<subject> when its name matches a subject code, name,
+ * alias, or keyword (SubjectMatcher).
+ */
+class SubjectsViewModel(private val app: FileMindApp) : ViewModel() {
+    private val _state = MutableStateFlow(SubjectsState())
+    val state: StateFlow<SubjectsState> = _state
+
+    init { refresh() }
+
+    fun refresh() {
+        viewModelScope.launch {
+            _state.value = _state.value.copy(loading = true, error = null)
+            val r = app.backend.subjects.getAll()
+            _state.value = if (r.isSuccess) {
+                SubjectsState(subjects = r.value!!, loading = false)
+            } else {
+                SubjectsState(loading = false,
+                    error = r.error?.message ?: "Could not load subjects")
+            }
+        }
+    }
+
+    fun save(name: String, code: String, aliases: String, keywords: String) {
+        val n = name.trim()
+        if (n.isEmpty()) {
+            _state.value = _state.value.copy(error = "Name is required")
+            return
+        }
+        // The id lands in {Subject} destination folders — prefer the readable
+        // course code (e.g. "IT421"), else a slug of the name.
+        val c = code.trim().ifBlank { null }
+        val id = (c ?: n).lowercase().replace(Regex("[^a-z0-9]+"), "-").trim('-')
+        if (id.isEmpty()) {
+            _state.value = _state.value.copy(error = "Name has no usable characters")
+            return
+        }
+        val entry = SubjectLike(
+            id = id, name = n, code = c,
+            aliases = aliases.split(',').map { it.trim() }.filter { it.isNotEmpty() },
+            keywords = keywords.split(',').map { it.trim() }.filter { it.isNotEmpty() })
+        viewModelScope.launch {
+            val r = app.backend.subjects.upsert(entry)
+            if (r.isSuccess) refresh()
+            else _state.value = _state.value.copy(
+                error = r.error?.message ?: "Could not save subject")
+        }
+    }
+
+    fun remove(id: String) {
+        viewModelScope.launch {
+            val r = app.backend.subjects.remove(id)
+            if (r.isSuccess) refresh()
+            else _state.value = _state.value.copy(
+                error = r.error?.message ?: "Could not remove subject")
+        }
+    }
 }

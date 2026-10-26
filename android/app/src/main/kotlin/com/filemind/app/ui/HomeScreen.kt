@@ -136,19 +136,31 @@ fun HomeScreen(app: FileMindApp, nav: NavHostController) {
                 }
             }
 
-            // Running-now card
-            state.activeOps.firstOrNull()?.let { op ->
+            // Running-now card — in-flight ops first, then a run that ended
+            // with unresolved items (NeedsAttention stays in getIncomplete() by
+            // design; the label says what it is).
+            val liveOp = state.activeOps.firstOrNull { it.status in setOf(
+                OperationStatus.Planned, OperationStatus.Validating,
+                OperationStatus.Executing, OperationStatus.Verifying,
+                OperationStatus.RollingBack) }
+                ?: state.activeOps.firstOrNull {
+                    it.status == OperationStatus.NeedsAttention }
+            liveOp?.let { op ->
+                val inFlight = op.status != OperationStatus.NeedsAttention
                 Spacer(Modifier.height(Spacing.s3))
-                Card(Modifier.fillMaxWidth()) {
+                Card(onClick = { nav.navigate(Routes.Activity) },
+                    modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(Spacing.s4)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Running now", style = MaterialTheme.typography.titleMedium,
+                            Text(if (inFlight) "Running now" else "Needs attention",
+                                style = MaterialTheme.typography.titleMedium,
                                 modifier = Modifier.weight(1f))
                             StatusChip(operationChip(op.status))
                         }
                         val done = op.items.count {
                             it.status == OperationStatus.Committed ||
-                                it.status == OperationStatus.Failed
+                                it.status == OperationStatus.Failed ||
+                                it.status == OperationStatus.NeedsAttention
                         }
                         Text("$done/${op.items.size} item(s)",
                             style = MaterialTheme.typography.bodyMedium,

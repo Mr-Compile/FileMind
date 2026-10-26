@@ -130,8 +130,8 @@ class ManifestParityTest {
             val candidate = candidateFor(case)
             val classification = classifier.classify(candidate)
             val expectedPrefix = case.expectedRoute!!.split('/').take(2).joinToString("/")
-            val template = if (classification.subject != null) "School/{Subject}"
-                else if (classification.project != null) "Work/{Project}"
+            val template = if (classification.subject != null) "School/{Subject}/{FileKind}"
+                else if (classification.project != null) "Work/{Project}/{FileKind}"
                 else "Files/{FileKind}"
             val decision = com.filemind.core.contracts.Decision(
                 kind = com.filemind.core.contracts.DecisionKind.Organize,

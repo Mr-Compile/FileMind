@@ -88,6 +88,8 @@ class RoomSubjectRepository(private val dao: SubjectDao) : SubjectRepository {
             FileMindJson.encodeToString(entry)))
         entry
     }
+
+    override suspend fun remove(id: String) = suspendIo { dao.delete(id) > 0 }
 }
 
 class RoomProjectRepository(private val dao: ProjectDao) : ProjectRepository {

@@ -16,10 +16,12 @@ import com.filemind.core.errors.Result
 import com.filemind.core.ports.FileEntry
 import com.filemind.core.ports.FileStat
 import com.filemind.core.ports.FileSystemAdapter
+import com.filemind.platform.db.UriGrantEntity
 import com.filemind.platform.grants.UriGrantStore
 import com.filemind.platform.protect.AndroidProtectedPathProvider
 import com.filemind.platform.uri.AndroidCapabilityModel
 import com.filemind.platform.uri.AndroidUris
+import com.filemind.platform.uri.GrantCoverage
 import com.filemind.platform.uri.AndroidUris.UriKind
 import java.io.File
 import java.io.FileInputStream
@@ -75,7 +77,11 @@ class AndroidFileSystemAdapter(
                         path = child.uri.toString(),
                         sizeBytes = child.length(),
                         createdAt = Instant.ofEpochMilli(child.lastModified()),
-                        modifiedAt = Instant.ofEpochMilli(child.lastModified())))
+                        modifiedAt = Instant.ofEpochMilli(child.lastModified()),
+                        // Provider metadata — opaque docIds (msf:NNN, numeric
+                        // ids) carry no usable name in the URI itself.
+                        displayName = child.name,
+                        mimeType = child.type))
                 }
             }
         }
@@ -90,6 +96,7 @@ class AndroidFileSystemAdapter(
         val projection = arrayOf(
             MediaStore.MediaColumns._ID,
             MediaStore.MediaColumns.DISPLAY_NAME,
+            MediaStore.MediaColumns.MIME_TYPE,
             MediaStore.MediaColumns.SIZE,
             MediaStore.MediaColumns.DATE_MODIFIED,
             MediaStore.MediaColumns.RELATIVE_PATH)
@@ -105,6 +112,7 @@ class AndroidFileSystemAdapter(
         resolver.query(collection, projection, selection, args, null)?.use { c ->
             val idCol = c.getColumnIndexOrThrow(MediaStore.MediaColumns._ID)
             val nameCol = c.getColumnIndexOrThrow(MediaStore.MediaColumns.DISPLAY_NAME)
+            val mimeCol = c.getColumnIndexOrThrow(MediaStore.MediaColumns.MIME_TYPE)
             val sizeCol = c.getColumnIndexOrThrow(MediaStore.MediaColumns.SIZE)
             val modCol = c.getColumnIndexOrThrow(MediaStore.MediaColumns.DATE_MODIFIED)
             while (c.moveToNext()) {
@@ -115,7 +123,11 @@ class AndroidFileSystemAdapter(
                     path = android.content.ContentUris.withAppendedId(collection, id).toString(),
                     sizeBytes = c.getLong(sizeCol),
                     createdAt = modified,
-                    modifiedAt = modified))
+                    modifiedAt = modified,
+                    // Row URIs are numeric ids — the real name/mime only exist
+                    // in the cursor columns.
+                    displayName = name,
+                    mimeType = c.getString(mimeCol)))
             }
         }
     }
@@ -135,7 +147,8 @@ class AndroidFileSystemAdapter(
                         path = "file://${child.absolutePath}",
                         sizeBytes = child.length(),
                         createdAt = Instant.ofEpochMilli(child.lastModified()),
-                        modifiedAt = Instant.ofEpochMilli(child.lastModified())))
+                        modifiedAt = Instant.ofEpochMilli(child.lastModified()),
+                        displayName = child.name))
                 }
             }
         }
@@ -254,21 +267,40 @@ class AndroidFileSystemAdapter(
      * Ensure each rel-path segment of [info]'s docId exists as a directory,
      * creating missing ones under the held tree grant.
      */
+    /** Deepest held grant covering [uri] with [needWrite] permission, or null. */
+    private suspend fun coveringGrant(uri: String, needWrite: Boolean): UriGrantEntity? =
+        grantStore.grants()
+            .filter { (!needWrite || it.canWrite) && GrantCoverage.isCovered(
+                uri, listOf(GrantCoverage.Grant(it.authority, it.docId))) }
+            .maxByOrNull { it.docId.length }
+
+    /**
+     * Document URI scoped under the covering tree grant —
+     * "tree/<grant>/document/<docId>". Persisted tree permissions only cover
+     * URIs in this form; plain "document/<docId>" URIs are denied.
+     */
+    private suspend fun scopedDocUri(authority: String, docId: String,
+                                     needWrite: Boolean): Uri? {
+        val grant = coveringGrant(AndroidUris.documentUri(authority, docId), needWrite)
+            ?: return null
+        return DocumentsContract.buildDocumentUriUsingTree(Uri.parse(grant.treeUri), docId)
+    }
+
     private suspend fun ensureSafDirs(info: AndroidUris.UriInfo): Result<Boolean> {
-        if (!grantStore.covers(info.raw, needWrite = true)) {
-            return Result.fail(FileMindError(
-                ErrorCode.PermissionDenied, "No write grant covers ${info.raw}",
-                retrySafe = false, requiresReview = true))
-        }
         val docId = info.docId ?: return Result.fail(FileMindError.validation(
             "Not a document URI: ${info.raw}"))
-        val volume = docId.substringBefore(':')
-        val rel = docId.substringAfter(':', "")
-        val segments = rel.split('/').filter { it.isNotEmpty() }
-        // Root of the volume: locate the held tree that covers docId.
-        var current = DocumentFile.fromTreeUri(context,
-            Uri.parse(AndroidUris.treeUri(info.authority!!, "$volume:")))
-        var curDocId = "$volume:"
+        // Deepest held grant covering the target — walking must start at the
+        // granted tree root: segments above it are outside the grant, so
+        // findFile/createDirectory on them is denied by the provider.
+        val grant = coveringGrant(info.raw, needWrite = true)
+            ?: return Result.fail(FileMindError(
+                ErrorCode.PermissionDenied, "No write grant covers ${info.raw}",
+                retrySafe = false, requiresReview = true))
+        val grantPrefix = grant.docId.trimEnd('/', ':')
+        val below = docId.removePrefix(grantPrefix).trimStart('/', ':')
+        val segments = below.split('/').filter { it.isNotEmpty() }
+        var current = DocumentFile.fromTreeUri(context, Uri.parse(grant.treeUri))
+        var curDocId = grant.docId
         for (seg in segments) {
             if (current == null) return Result.fail(FileMindError.io(
                 "Lost directory handle while ensuring $curDocId"))
@@ -331,12 +363,18 @@ class AndroidFileSystemAdapter(
             AndroidUris.documentUri(authority, dstParentDocId)))
         if (!ensured.isSuccess) return Result.fail(ensured.error!!)
 
+        val srcUri = scopedDocUri(authority, srcDocId, needWrite = true)
+        val srcParentUri = scopedDocUri(authority, srcParentDocId, needWrite = true)
+        val dstParentUri = scopedDocUri(authority, dstParentDocId, needWrite = true)
+        if (srcUri == null || srcParentUri == null || dstParentUri == null) {
+            return Result.fail(FileMindError(
+                ErrorCode.PermissionDenied,
+                "No write grant covers move $source -> $destination",
+                retrySafe = false, requiresReview = true))
+        }
         return runCatching {
             val result = DocumentsContract.moveDocument(
-                resolver,
-                DocumentsContract.buildDocumentUri(authority, srcDocId),
-                DocumentsContract.buildDocumentUri(authority, srcParentDocId),
-                DocumentsContract.buildDocumentUri(authority, dstParentDocId))
+                resolver, srcUri, srcParentUri, dstParentUri)
             if (result == null) {
                 // Some providers return null but still move; verify via stat.
                 if (docExists(authority, dstDocId)) Result.ok(destination)
@@ -447,7 +485,11 @@ class AndroidFileSystemAdapter(
         if (!ensured.isSuccess) return Result.fail(ensured.error!!)
         val name = targetDocId.substringAfterLast('/')
         val mime = resolver.getType(Uri.parse(source)) ?: "application/octet-stream"
-        val parentUri = DocumentsContract.buildDocumentUri(authority, parent)
+        val parentUri = scopedDocUri(authority, parent, needWrite = true)
+            ?: return Result.fail(FileMindError(
+                ErrorCode.PermissionDenied,
+                "No write grant covers $destination",
+                retrySafe = false, requiresReview = true))
         val created = DocumentsContract.createDocument(resolver, parentUri, mime, name)
             ?: return Result.fail(FileMindError.io("createDocument failed for $destination"))
         resolver.openOutputStream(created)?.use { out -> ins.copyTo(out) }
@@ -489,7 +531,9 @@ class AndroidFileSystemAdapter(
         runCatching {
             when (info.kind) {
                 UriKind.SafDocument -> {
-                    val renamed = DocumentsContract.renameDocument(resolver, Uri.parse(source), name)
+                    val scoped = scopedDocUri(info.authority!!, info.docId!!,
+                        needWrite = true) ?: Uri.parse(source)
+                    val renamed = DocumentsContract.renameDocument(resolver, scoped, name)
                     if (renamed != null) Result.ok(renamed.toString())
                     else Result.fail(FileMindError.io("renameDocument returned null for $source"))
                 }
@@ -567,12 +611,11 @@ class AndroidFileSystemAdapter(
         }
     }
 
-    private fun docExists(authority: String, docId: String): Boolean =
+    private suspend fun docExists(authority: String, docId: String): Boolean =
         runCatching {
-            DocumentsContract.buildDocumentUri(authority, docId).let { uri ->
-                resolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID),
-                    null, null, null)?.use { it.moveToFirst() } == true
-            }
+            val uri = scopedDocUri(authority, docId, needWrite = false) ?: return false
+            resolver.query(uri, arrayOf(DocumentsContract.Document.COLUMN_DOCUMENT_ID),
+                null, null, null)?.use { it.moveToFirst() } == true
         }.getOrDefault(false)
 
     private fun parentDocId(docId: String): String {
@@ -585,7 +628,7 @@ class AndroidFileSystemAdapter(
     private fun docIdOf(uri: String): String = AndroidUris.docIdOf(uri) ?: uri
 
     /** Deterministic "name (n).ext" suffixing — KeepBoth never overwrites. */
-    private fun uniquified(uri: String, authority: String): String {
+    private suspend fun uniquified(uri: String, authority: String): String {
         val docId = AndroidUris.docIdOf(uri)!!
         var candidate = docId
         var n = 1

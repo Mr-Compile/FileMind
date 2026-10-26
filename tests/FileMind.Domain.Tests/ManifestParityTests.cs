@@ -129,8 +129,8 @@ public class ManifestParityTests
             var classification = _classifier.Classify(candidate);
             var expectedPrefix = string.Join('/',
                 c.ExpectedRoute!.Split('/').Take(2));
-            var template = classification.Subject is not null ? "School/{Subject}"
-                : classification.Project is not null ? "Work/{Project}"
+            var template = classification.Subject is not null ? "School/{Subject}/{FileKind}"
+                : classification.Project is not null ? "Work/{Project}/{FileKind}"
                 : "Files/{FileKind}";
             var decision = new Decision
             {

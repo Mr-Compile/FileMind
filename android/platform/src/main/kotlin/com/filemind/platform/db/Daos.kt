@@ -36,6 +36,9 @@ interface SubjectDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(entity: SubjectEntity)
+
+    @Query("DELETE FROM subjects WHERE id = :id")
+    suspend fun delete(id: String): Int
 }
 
 @Dao

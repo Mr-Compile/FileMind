@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Rule
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.Update
@@ -142,6 +143,14 @@ fun SettingsScreen(app: FileMindApp, nav: NavHostController) {
                     trailing = { Icon(Icons.Filled.ChevronRight, null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant) },
                     onClick = { nav.navigate(Routes.Tools) })
+                ListRow(
+                    title = "Subjects",
+                    subtitle = "Course codes the organizer sorts by (e.g. IT421)",
+                    icon = { Icon(Icons.Filled.School, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    trailing = { Icon(Icons.Filled.ChevronRight, null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant) },
+                    onClick = { nav.navigate("subjects") })
             }
         }
 

@@ -24,6 +24,7 @@ interface CollectionRepository {
 interface SubjectRepository {
     suspend fun getAll(): Result<List<SubjectLike>>
     suspend fun upsert(entry: SubjectLike): Result<SubjectLike>
+    suspend fun remove(id: String): Result<Boolean>
 }
 
 interface ProjectRepository {

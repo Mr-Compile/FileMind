@@ -111,8 +111,8 @@ public sealed class WindowsEndToEndTests : IDisposable
         var record = executed.Value!;
         Assert.Equal(OperationStatus.Committed, record.Status);
 
-        Assert.True(File.Exists(Path.Combine(destRoot, "School", "IT421", "IT421_Lecture_5.mp4")));
-        Assert.True(File.Exists(Path.Combine(destRoot, "School", "IT421", "IT-421_hw.pdf")));
+        Assert.True(File.Exists(Path.Combine(destRoot, "School", "IT421", "Video", "IT421_Lecture_5.mp4")));
+        Assert.True(File.Exists(Path.Combine(destRoot, "School", "IT421", "Document", "IT-421_hw.pdf")));
         Assert.False(File.Exists(Path.Combine(_root, "inbox", "IT421_Lecture_5.mp4")));
         Assert.True(File.Exists(Path.Combine(_root, "inbox", "random_unrelated.xyz")));
 
@@ -126,7 +126,7 @@ public sealed class WindowsEndToEndTests : IDisposable
 
         Assert.True(File.Exists(Path.Combine(_root, "inbox", "IT421_Lecture_5.mp4")));
         Assert.True(File.Exists(Path.Combine(_root, "inbox", "IT-421_hw.pdf")));
-        Assert.False(File.Exists(Path.Combine(destRoot, "School", "IT421", "IT421_Lecture_5.mp4")));
+        Assert.False(File.Exists(Path.Combine(destRoot, "School", "IT421", "Video", "IT421_Lecture_5.mp4")));
     }
 
     [Fact]
@@ -134,16 +134,16 @@ public sealed class WindowsEndToEndTests : IDisposable
     {
         var destRoot = Path.Combine(_root, "organized");
         WriteFile("inbox/IT421_notes.txt", "first file");
-        WriteFile("organized/School/IT421/IT421_notes.txt", "pre-existing content");
+        WriteFile("organized/School/IT421/Document/IT421_notes.txt", "pre-existing content");
 
         var analyzed = await AnalyzeAsync();
         var plan = _pipeline.Plan(analyzed, dryRun: false, destinationRoot: destRoot);
         var executed = await _pipeline.ExecuteAsync(plan.Value!);
         Assert.True(executed.IsSuccess);
 
-        var kept = File.ReadAllText(Path.Combine(destRoot, "School", "IT421", "IT421_notes.txt"));
+        var kept = File.ReadAllText(Path.Combine(destRoot, "School", "IT421", "Document", "IT421_notes.txt"));
         Assert.Equal("pre-existing content", kept);
-        Assert.True(File.Exists(Path.Combine(destRoot, "School", "IT421", "IT421_notes (2).txt")));
+        Assert.True(File.Exists(Path.Combine(destRoot, "School", "IT421", "Document", "IT421_notes (2).txt")));
     }
 
     [Fact]

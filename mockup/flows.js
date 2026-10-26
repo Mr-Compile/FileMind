@@ -150,6 +150,20 @@ FM.screen("organizer", (m, params) => {
   /* ---------- step 6: execute ---------- */
   const vExecute = async (b) => {
     const p = st.plan;
+    /* Re-entry while running (PLAN-028): static snapshot — the engine keeps
+       going; restarting execute would double-run the plan. */
+    if (st.running) {
+      const op = FM.store.activeOp;
+      b.innerHTML = `<div class="card">
+        <div style="display:flex;align-items:center;gap:var(--sp-3)">
+          ${FM.statusChip("Executing")}
+          <div class="progress" style="flex:1"><i style="width:${op ? Math.round(op.done / Math.max(1, op.total) * 100) : 0}%"></i></div>
+          <span class="tiny muted">${op ? `${op.done}/${op.total}` : "…"} item(s)</span>
+        </div>
+        <div class="tiny muted" style="margin-top:var(--sp-2)">Run continues in the background — the result lands in Activity.</div>
+      </div>`;
+      return;
+    }
     if (p.dryRun) {
       b.innerHTML = `${FM.banner("info", "info", `<strong>Dry run.</strong> The full pipeline ran end-to-end; nothing was moved. Output matches <span class="mono">filemind execute --dry-run</span>.`)}
         <div class="term" style="height:auto"><div class="term-out">-- dry-run: no changes made.</div></div>
@@ -161,6 +175,7 @@ FM.screen("organizer", (m, params) => {
       return;
     }
     st.abort = new AbortController();
+    st.running = true;
     b.innerHTML = `
       <div class="card">
         <div style="display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-3)">
@@ -195,11 +210,13 @@ FM.screen("organizer", (m, params) => {
           FM.bus.emit("ops");
         }
       }, st.abort.signal);
+      st.running = false;
       FM.store.activeOp = null; FM.bus.emit("ops");
       FM.store.ops.unshift(st.record);
       FM.store.activity.unshift({ t: st.record.committedAt, text: `Organize ${st.scope} — ${st.record.items.length} file(s) moved`, opId: st.record.operationId });
       st.step = "result"; render();
     } catch (e) {
+      st.running = false;
       if (e.name === "AbortError") {
         FM.store.activeOp = null; FM.bus.emit("ops");
         b.innerHTML = FM.banner("warning", "cancel", "<strong>Cancelled.</strong> The operation was aborted — mirrors <span class=\"mono\">OperationStatus.Failed → RollingBack</span> handling for partial batches.") +

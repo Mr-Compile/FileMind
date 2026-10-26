@@ -1,6 +1,7 @@
 package com.filemind.app.ui
 
 import android.provider.DocumentsContract
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +29,7 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Undo
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -66,8 +68,6 @@ import com.filemind.app.nav.Routes
 import com.filemind.app.theme.Spacing
 import com.filemind.app.theme.semantic
 import com.filemind.app.vm.OrgStep
-import com.filemind.app.vm.OrganizerViewModel
-import com.filemind.app.vm.backendViewModel
 import com.filemind.core.app.AnalyzedFile
 import com.filemind.core.contracts.OperationStatus
 import com.filemind.core.contracts.OperationType
@@ -99,11 +99,25 @@ private fun StepsHeader(step: OrgStep) {
 
 @Composable
 fun OrganizerScreen(app: FileMindApp, nav: NavHostController) {
-    val vm = backendViewModel(app) { OrganizerViewModel(it) }
+    // App-scoped session: navigating away and back resumes the exact step.
+    val vm = app.organizerViewModel
     val state by vm.state.collectAsState()
 
     var confirm by remember { mutableStateOf<OrgStep.Preview?>(null) }
     var why by remember { mutableStateOf<AnalyzedFile?>(null) }
+    var leaveRun by remember { mutableStateOf(false) }
+
+    // System Back while a run is executing asks first — the run can safely
+    // continue in the app-scoped VM (result lands in Activity).
+    BackHandler(enabled = state.step is OrgStep.Executing) { leaveRun = true }
+    if (leaveRun) {
+        val exec = state.step as? OrgStep.Executing
+        RunInProgressLeaveDialog(
+            done = exec?.done ?: 0, total = exec?.plan?.items?.size ?: 0,
+            onKeepRunning = { leaveRun = false; nav.popBackStack() },
+            onCancelRun = { leaveRun = false; vm.cancel(); nav.popBackStack() },
+            onStay = { leaveRun = false })
+    }
 
     // Land the picker inside Download: Android 11+ refuses the Download
     // *root* itself ("To protect your privacy…") but allows subfolders —
@@ -247,6 +261,7 @@ fun OrganizerScreen(app: FileMindApp, nav: NavHostController) {
             is OrgStep.Preview -> {
                 val moves = step.plan.items.count { it.operation == OperationType.Move }
                 val asks = step.plan.items.count { it.operation == OperationType.Ask }
+                val untouched = step.analyzed.size - step.plan.items.size
                 val bySource = step.analyzed.associateBy { it.candidate.sourceUri }
 
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState())) {
@@ -264,6 +279,7 @@ fun OrganizerScreen(app: FileMindApp, nav: NavHostController) {
                                     append("${step.plan.items.size} planned action(s)")
                                     append(", $moves moving")
                                     if (asks > 0) append(", $asks to Smart Inbox")
+                                    if (untouched > 0) append(", $untouched left in place")
                                     if (step.plan.dryRun) append(" · dry-run preview")
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
@@ -322,7 +338,9 @@ fun OrganizerScreen(app: FileMindApp, nav: NavHostController) {
                     SectionHeader("Planned moves")
                     if (step.plan.items.isEmpty()) {
                         EmptyState("Nothing to move",
-                            "Every file was left in place — low-confidence items go to the Smart Inbox.")
+                            "Every file was left in place — files without a recognizable " +
+                                "type or confident target stay put. Medium-confidence " +
+                                "items wait in the Smart Inbox.")
                     } else {
                         step.plan.items.forEach { item ->
                             val a = bySource[item.source]
@@ -450,8 +468,13 @@ fun OrganizerScreen(app: FileMindApp, nav: NavHostController) {
                             Spacer(Modifier.height(Spacing.s2))
                             FriendlyError("Operation error", it.message)
                         }
+                        state.error?.let {
+                            Spacer(Modifier.height(Spacing.s2))
+                            FriendlyError("Notice", it)
+                        }
                         Spacer(Modifier.height(Spacing.s4))
-                        if (step.record.items.any { it.undoRecipe != null }) {
+                        if (step.record.items.any {
+                            it.status == OperationStatus.Committed && it.undoRecipe != null }) {
                             OutlinedButton(onClick = { vm.undo(step.record.operationId) },
                                 modifier = Modifier.fillMaxWidth().height(52.dp)) {
                                 Icon(Icons.Filled.Undo, null)
@@ -490,4 +513,33 @@ fun OrganizerScreen(app: FileMindApp, nav: NavHostController) {
     }
 
     why?.let { WhySheet(analyzed = it, onDismiss = { why = null }) }
+}
+
+/**
+ * "Run in progress" leave guard — shown when the user tries to exit the
+ * organizer mid-execute (system Back, or shell navigation via AppShell).
+ * The run lives in the app-scoped OrganizerViewModel, so leaving is safe:
+ * the record lands in Activity either way.
+ */
+@Composable
+fun RunInProgressLeaveDialog(
+    done: Int, total: Int,
+    onKeepRunning: () -> Unit, onCancelRun: () -> Unit, onStay: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onStay,
+        title = { Text("Run in progress") },
+        text = {
+            Text("$done of $total item(s) done. The run can keep going in " +
+                "the background — the result lands in Activity.")
+        },
+        confirmButton = {
+            TextButton(onClick = onKeepRunning) { Text("Keep running") }
+        },
+        dismissButton = {
+            Row {
+                TextButton(onClick = onCancelRun) { Text("Cancel run") }
+                TextButton(onClick = onStay) { Text("Stay") }
+            }
+        })
 }
