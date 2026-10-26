@@ -2,6 +2,11 @@
 
 All notable verified project changes should be recorded here. Do not add planned work as released work.
 
+## 2026-10-26 — Android One-Row Controls (PLAN-024)
+- `mockup/android-screens.js` + `android.css`: Files and Search merge their search bar and Filters button into a single `.a-ctl` row — Files keeps scope picker + rescan in the same row (scope label truncates, `min-width:0`); the Files search placeholder shortens to "Search" since the scope pick labels the folder beside it.
+- `android/app` `FilesScreen.kt`/`SearchScreen.kt`: `OutlinedTextField` (weight 1f) and `FilterButton` share one `Row`; the active-filter summary line renders only when a non-default filter is active (the button badge already shows the count).
+- Verified: `node --check` clean; `overflow-x` still 0; `:app:compileDebugKotlin` green.
+
 ## 2026-10-26 — Android Top Bar & Scrolling (PLAN-023)
 - `mockup/android.html` + `android-screens.js`: in-app Back button removed from the app bar — the back stack (`A.backStack`/`popBack`/`clearBack`) stays for system-Back parity (Escape in the demo); dead `pushBack`/`syncBack` helpers dropped.
 - `mockup/android.css`: the app content is now the only scrolling surface — `.content`/`.a-sheet` scrollbars hidden (`scrollbar-width:none` + webkit), `body`/`.stage` locked to `100dvh` with `overflow:hidden`, `.phone` `min-height` removed so a short window shrinks the phone instead of scrolling the page.
