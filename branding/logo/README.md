@@ -18,7 +18,7 @@ Selected candidate: **Option 4 — "Folder + Mind"** (gradient folder + sparkle)
 - `res/` — **drop-in resource tree** for a future Android Studio project (copy `res/` into `app/src/main/`):
   - `drawable/` VectorDrawables: `ic_launcher_foreground` (brand gradients via `aapt:attr`), `ic_launcher_monochrome`, `ic_notification`, `splash_icon`
   - `mipmap-anydpi-v26/{ic_launcher,ic_launcher_round}.xml` adaptive icons; `mipmap-*dpi/` PNG fallbacks (legacy squircle, round, foreground 108–432)
-  - `drawable-*dpi/ic_notification.png` (24–96), `values/colors.xml` (`ic_launcher_background=#2563EB`), `values-v31/themes.xml` (`Theme.FileMind.Splash`)
+  - `drawable-*dpi/ic_notification.png` (24–96), `values{,-night}/colors.xml` (`ic_launcher_background=#F8FAFC` light / `#0B1120` night), `values-v31/themes.xml` (`Theme.FileMind.Splash`)
 - Source SVGs: `ic_launcher_foreground.svg`, `ic_launcher_monochrome.svg`, `ic_launcher_round.svg`, `ic_launcher_legacy.svg`; loose references `adaptive-icon.xml`, `colors.xml`
 - `png/` — generic launcher + notification PNGs
 

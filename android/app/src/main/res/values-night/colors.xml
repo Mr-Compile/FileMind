@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Night variant: canonical dark surface (branding/colors.json
+     dark.background) so the icon + splash follow the system theme. -->
+<resources>
+    <color name="ic_launcher_background">#0B1120</color>
+</resources>

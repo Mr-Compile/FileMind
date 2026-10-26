@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Brand adaptive-icon background: brand primary (#2563EB).
-     Alternative: a gradient drawable matching the brand gradient
-     #2563EB -> #4F46E5 -> #7C3AED if a flat color reads too plain. -->
+<!-- Brand adaptive-icon + splash background: canonical light surface
+     (branding/colors.json light.background). The gradient mark's start
+     stop is #2563EB — a brand-primary background hid the folder's left
+     edge (blue-on-blue). values-night/ carries the dark surface. -->
 <resources>
-    <color name="ic_launcher_background">#2563EB</color>
+    <color name="ic_launcher_background">#F8FAFC</color>
 </resources>
